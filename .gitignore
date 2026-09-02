@@ -1,0 +1,34 @@
+## Visual Studio & IDE temporary files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.ide/
+.idea/
+.vscode/
+
+## Build results & binaries
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+out/
+*.log
+*.dll
+*.exe
+*.pdb
+
+## Sensitive configuration & secret files
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
+!appsettings.Example.json
+secrets.json
+
+## OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini

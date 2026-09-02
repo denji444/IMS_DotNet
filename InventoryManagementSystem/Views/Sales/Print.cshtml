@@ -1,0 +1,194 @@
+@model InventoryManagementSystem.Models.Sale
+@using InventoryManagementSystem.Models
+@{
+    Layout = null; // No navbar or site layout
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - @Model.InvoiceNo</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-color: #fff;
+            color: #000;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 35px;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            border-radius: 5px;
+        }
+        .invoice-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        @@media print {
+            body {
+                padding: 0;
+            }
+            .invoice-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="invoice-box">
+    <div class="d-flex justify-content-between align-items-center no-print mb-4">
+        <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print"></i> Print Invoice</button>
+    </div>
+
+    <div class="invoice-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-0">IMS PORTAL</h2>
+            <p class="text-muted mb-0">Inventory Management System</p>
+        </div>
+        <div class="text-end">
+            <h4 class="fw-bold text-uppercase text-secondary">Sales Invoice</h4>
+            <p class="mb-0"><strong>Invoice No:</strong> @Model.InvoiceNo</p>
+            <p class="mb-0"><strong>Date:</strong> @Model.SaleDate.ToString("yyyy-MM-dd HH:mm")</p>
+        </div>
+    </div>
+
+    <div class="row my-4">
+        <div class="col-6">
+            <h6 class="text-uppercase fw-bold text-secondary">Customer Invoice To:</h6>
+            <p class="mb-0"><strong>Name:</strong> @(Model.Customer?.FullName ?? "N/A")</p>
+            <p class="mb-0"><strong>Username:</strong> @(Model.Customer?.UserName ?? "N/A")</p>
+            <p class="mb-0"><strong>Phone:</strong> @(Model.Customer?.PhoneNumber ?? "N/A")</p>
+            <p class="mb-0"><strong>Email:</strong> @(Model.Customer?.Email ?? "N/A")</p>
+        </div>
+        <div class="col-6 text-end">
+            <h6 class="text-uppercase fw-bold text-secondary">Payment Method:</h6>
+            @if (Model.PaymentMode == PaymentMode.Lease)
+            {
+                <p class="mb-0">Lease / Installments</p>
+                <p class="mb-0">Frequency: @Model.InstallmentFrequency</p>
+                <p class="mb-0">Installments: @Model.InstallmentsCount</p>
+            }
+            else
+            {
+                <p class="mb-0">Cash</p>
+                <p class="mb-0">Status: Paid</p>
+            }
+        </div>
+    </div>
+
+    <table class="table table-bordered my-4">
+        <thead class="table-dark">
+            <tr>
+                <th>Product SKU</th>
+                <th>Item Name</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@(Model.Product?.Sku ?? "N/A")</td>
+                <td>
+                    @(Model.Product != null ? (string.IsNullOrEmpty(Model.Product.Variant) ? Model.Product.Name : $"{Model.Product.Name} ({Model.Product.Variant})") : "N/A")
+                </td>
+                <td class="text-center">@Model.Quantity</td>
+                <td class="text-end">PKR @Model.UnitPrice.ToString("F2")</td>
+                <td class="text-end fw-bold">PKR @Model.TotalAmount.ToString("F2")</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="row justify-content-end">
+        <div class="col-4 text-end">
+            <h5 class="fw-bold text-dark">Grand Total: PKR @Model.TotalAmount.ToString("F2")</h5>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Notes))
+    {
+        <div class="border rounded p-3 my-4 bg-light">
+            <h6 class="fw-bold mb-1">Invoice Notes:</h6>
+            <p class="mb-0 text-muted small">@Model.Notes</p>
+        </div>
+    }
+
+    @if (Model.PaymentMode == PaymentMode.Lease)
+    {
+        <div class="my-4">
+            <h6 class="text-uppercase fw-bold text-secondary mb-3"><i class="fas fa-calendar-alt me-2"></i>Lease Installment Schedule</h6>
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Installment #</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Collected</th>
+                        <th>Collection Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background-color: #eef7ee;">
+                        <td>Down Payment</td>
+                        <td>@Model.SaleDate.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
+                        <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
+                        <td>@Model.SaleDate.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><span class="badge bg-success text-white">Paid</span></td>
+                    </tr>
+                    @if (Model.Installments != null && Model.Installments.Any())
+                    {
+                        foreach (var inst in Model.Installments.OrderBy(i => i.InstallmentNumber))
+                        {
+                            <tr>
+                                <td>Installment #@inst.InstallmentNumber</td>
+                                <td>@inst.DueDate.ToString("yyyy-MM-dd")</td>
+                                <td class="text-end">PKR @inst.Amount.ToString("F2")</td>
+                                <td class="text-end text-success">PKR @inst.PaidAmount.ToString("F2")</td>
+                                <td>@(inst.PaymentDate.HasValue ? inst.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-")</td>
+                                <td>
+                                    @if (inst.Status == "Paid")
+                                    {
+                                        <span class="badge bg-success text-white">Collected</span>
+                                    }
+                                    else if (inst.Status == "Overdue")
+                                    {
+                                        <span class="badge bg-danger text-white">Overdue</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+</div>
+
+<script>
+    // Automatically trigger print dialog when loaded
+    window.onload = function() {
+        window.print();
+    }
+</script>
+</body>
+</html>

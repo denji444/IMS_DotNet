@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Welcome to IMS";
+}
+
+<div class="row align-items-center justify-content-center min-vh-75">
+    <div class="col-md-8 text-dark text-center">
+        <h1 class="display-3 fw-bold mb-4"><i class="fas fa-warehouse text-dark me-2"></i>Inventory Management System</h1>
+        <div class="d-flex gap-3 justify-content-center">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Admin" asp-action="Index" class="btn btn-dark btn-lg px-4"><i class="fas fa-chart-line me-2"></i>Go to Admin Panel</a>
+                }
+                else
+                {
+                    <a asp-controller="CustomerDashboard" asp-action="Index" class="btn btn-dark btn-lg px-4"><i class="fas fa-file-invoice-dollar me-2"></i>Go to My Purchases</a>
+                }
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="btn btn-dark btn-lg px-4"><i class="fas fa-sign-in-alt me-2"></i>Sign In</a>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-outline-dark btn-lg px-4"><i class="fas fa-user-plus me-2"></i>Register Customer</a>
+            }
+        </div>
+    </div>
+</div>

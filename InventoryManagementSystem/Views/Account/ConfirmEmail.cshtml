@@ -1,0 +1,39 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Email Verification";
+}
+
+<div class="row justify-content-center align-items-center min-vh-75">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-lg mt-5">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <h3 class="font-weight-light my-1"><i class="fas fa-envelope-open-text me-2"></i>Email Verification</h3>
+            </div>
+            <div class="card-body p-5 text-center">
+                @if (ViewBag.Success == true)
+                {
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success fa-4x animate__animated animate__bounceIn"></i>
+                    </div>
+                    <h4 class="mb-3">Email Verified Successfully!</h4>
+                    <p class="text-muted mb-4">Your email address has been verified. You can now log into your account using your credentials.</p>
+                    <div class="d-grid">
+                        <a asp-action="Login" class="btn btn-dark py-2">Go to Sign In</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-4">
+                        <i class="fas fa-times-circle text-danger fa-4x animate__animated animate__bounceIn"></i>
+                    </div>
+                    <h4 class="mb-3">Verification Failed</h4>
+                    <p class="text-muted mb-4">We were unable to verify your email. The link may have expired or the verification code is invalid.</p>
+                    <div class="d-grid">
+                        <a asp-action="Register" class="btn btn-secondary py-2 mb-2">Back to Registration</a>
+                        <a asp-action="Login" class="btn btn-dark py-2">Go to Sign In</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

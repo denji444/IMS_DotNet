@@ -1,0 +1,49 @@
+@model InventoryManagementSystem.Models.ViewModels.LoginViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Sign In";
+}
+
+<div class="row justify-content-center align-items-center min-vh-75">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-lg mt-5">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <h3 class="font-weight-light my-1"><i class="fas fa-lock me-2"></i>IMS - Sign In</h3>
+            </div>
+            <div class="card-body p-4">
+                <form id="loginForm" method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="form-floating mb-3">
+                        <input asp-for="Username" class="form-control" placeholder="Enter username" id="inputUsername" />
+                        <label asp-for="Username"></label>
+                        <span asp-validation-for="Username" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-floating mb-3">
+                        <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="inputPassword" />
+                        <label asp-for="Password"></label>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" asp-for="RememberMe" id="inputRememberMe" />
+                        <label class="form-check-label" asp-for="RememberMe"></label>
+                    </div>
+                    
+                    <div class="d-grid mt-4 mb-0">
+                        <button type="submit" class="btn btn-dark btn-block py-2">
+                            <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true" id="loginSpinner"></span>
+                            Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,890 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Master Settings";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div>
+                <h2 class="fw-bold mb-0 text-dark"><i class="fas fa-sliders-h me-2 text-primary"></i>Master Settings</h2>
+                <p class="text-muted mb-0">Consolidated administration hub for departments, employee directory, attendance, and leaves.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nav Tabs -->
+<ul class="nav nav-tabs nav-fill mb-4 bg-white p-2 rounded shadow-sm" id="masterSettingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="true">
+            <i class="fas fa-users-cog me-2"></i> Employee Directory
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="departments-tab" data-bs-toggle="tab" data-bs-target="#departments" type="button" role="tab" aria-controls="departments" aria-selected="false">
+            <i class="fas fa-sitemap me-2"></i> Departments
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab" aria-controls="attendance" aria-selected="false">
+            <i class="fas fa-user-clock me-2"></i> Attendance Log
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves" type="button" role="tab" aria-controls="leaves" aria-selected="false">
+            <i class="fas fa-calendar-times me-2"></i> Leave Requests
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="masterSettingsTabsContent">
+    
+    <!-- Employees Tab -->
+    <div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Manage Employees</h5>
+                <button class="btn btn-primary btn-sm" onclick="openEmployeeModal(0)">
+                    <i class="fas fa-user-plus me-1"></i> Add Employee
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped w-100" id="employeesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Department</th>
+                                <th>Designation</th>
+                                <th>Hire Date</th>
+                                <th>Salary</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Departments Tab -->
+    <div class="tab-pane fade" id="departments" role="tabpanel" aria-labelledby="departments-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-sitemap me-2"></i>Manage Departments</h5>
+                <button class="btn btn-primary btn-sm" onclick="openDeptModal(0)">
+                    <i class="fas fa-plus me-1"></i> Add Department
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped w-100" id="departmentsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Department Name</th>
+                                <th>Description</th>
+                                <th>Employees Count</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Tab -->
+    <div class="tab-pane fade" id="attendance" role="tabpanel" aria-labelledby="attendance-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Manage Attendance</h5>
+                <button class="btn btn-primary btn-sm" onclick="openAttendanceModal(0)">
+                    <i class="fas fa-calendar-check me-1"></i> Log Attendance
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped w-100" id="attendanceTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Date</th>
+                                <th>Clock In</th>
+                                <th>Clock Out</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaves Tab -->
+    <div class="tab-pane fade" id="leaves" role="tabpanel" aria-labelledby="leaves-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-calendar-times me-2"></i>Manage Leaves</h5>
+                <button class="btn btn-primary btn-sm" onclick="openLeaveModal(0)">
+                    <i class="fas fa-file-signature me-1"></i> Add Leave Request
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped w-100" id="leavesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Leave Type</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Employee Modal -->
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="employeeModalLabel">Add Employee</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="employeeForm">
+                <input type="hidden" id="empId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Full Name</label>
+                            <input type="text" class="form-control" id="empFullName" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email Address</label>
+                            <input type="email" class="form-control" id="empEmail" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Phone Number</label>
+                            <input type="text" class="form-control" id="empPhone" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Department</label>
+                            <select class="form-select" id="empDepartmentId">
+                                <option value="">Select Department</option>
+                                @foreach (var dept in (List<Department>)ViewBag.DepartmentList)
+                                {
+                                    <option value="@dept.Id">@dept.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Designation</label>
+                            <input type="text" class="form-control" id="empDesignation" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Hire Date</label>
+                            <input type="date" class="form-control" id="empHireDate" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Salary (Monthly)</label>
+                            <input type="number" step="0.01" class="form-control" id="empSalary" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" id="empStatus">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Terminated">Terminated</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveEmployee">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Department Modal -->
+<div class="modal fade" id="deptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="deptModalLabel">Add Department</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deptForm">
+                <input type="hidden" id="deptId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Department Name</label>
+                        <input type="text" class="form-control" id="deptName" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea class="form-control" id="deptDescription" style="height: 100px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveDept">Save Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="attendanceModalLabel">Log Attendance</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="attendanceForm">
+                <input type="hidden" id="attId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Employee</label>
+                        <select class="form-select select2-ajax" id="attEmployeeId" required style="width: 100%;"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control" id="attDate" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Clock In</label>
+                            <input type="time" class="form-control" id="attClockIn" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Clock Out</label>
+                            <input type="time" class="form-control" id="attClockOut" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select class="form-select" id="attStatus">
+                            <option value="Present">Present</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Late">Late</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveAttendance">Save Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Modal -->
+<div class="modal fade" id="leaveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="leaveModalLabel">Add Leave Request</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="leaveForm">
+                <input type="hidden" id="leaveId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Employee</label>
+                        <select class="form-select select2-ajax" id="leaveEmployeeId" required style="width: 100%;"></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" id="leaveStartDate" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" id="leaveEndDate" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Leave Type</label>
+                            <select class="form-select" id="leaveType">
+                                <option value="Vacation">Vacation</option>
+                                <option value="Sick">Sick</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" id="leaveStatus">
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea class="form-control" id="leaveNotes" style="height: 80px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveLeave">Save Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        var empTable, deptTable, attTable, leaveTable;
+        var token = $('input[name="__RequestVerificationToken"]').val();
+
+        $(document).ready(function () {
+            // Setup CSRF header for Ajax
+            $.ajaxSetup({
+                headers: {
+                    'RequestVerificationToken': token
+                }
+            });
+
+            // Initialize select2 components
+            initSelect2();
+
+            // Lazy load tables on tab switch
+            $('#masterSettingsTabs button').on('shown.bs.tab', function (e) {
+                var targetId = $(e.target).data('bs-target');
+                if (targetId === '#employees') {
+                    empTable.ajax.reload(null, false);
+                } else if (targetId === '#departments') {
+                    deptTable.ajax.reload(null, false);
+                } else if (targetId === '#attendance') {
+                    attTable.ajax.reload(null, false);
+                } else if (targetId === '#leaves') {
+                    leaveTable.ajax.reload(null, false);
+                }
+            });
+
+            // Initialize DataTables
+            initTables();
+
+            // Activate tab from URL query parameter if present
+            var urlParams = new URLSearchParams(window.location.search);
+            var tabParam = urlParams.get('tab');
+            if (tabParam) {
+                var tabButton = $('#' + tabParam + '-tab');
+                if (tabButton.length) {
+                    tabButton.trigger('click');
+                }
+            }
+
+            // Form Submissions
+            setupFormHandlers();
+        });
+
+        function initSelect2() {
+            $('.select2-ajax').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('.modal:visible').length ? $('.modal:visible') : null,
+                ajax: {
+                    url: '/MasterSettings/GetEmployeesJson',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0,
+                placeholder: 'Search employee name...'
+            });
+        }
+
+        // Re-init select2 when a modal opens
+        $('.modal').on('shown.bs.modal', function () {
+            initSelect2();
+        });
+
+        function initTables() {
+            // Employees Table
+            empTable = $("#employeesTable").DataTable({
+                "ajax": {
+                    "url": "/MasterSettings/GetEmployeesData",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "fullName", "width": "15%" },
+                    { "data": "email", "width": "15%" },
+                    { "data": "phone", "width": "10%" },
+                    { "data": "departmentName", "width": "15%" },
+                    { "data": "designation", "width": "12%" },
+                    { "data": "hireDate", "width": "10%" },
+                    { 
+                        "data": "salary", 
+                        "render": function(d) { return 'PKR ' + parseFloat(d).toFixed(2); },
+                        "width": "10%" 
+                    },
+                    { 
+                        "data": "status",
+                        "render": function(d) {
+                            var badge = "bg-success";
+                            if (d === "Inactive") badge = "bg-secondary";
+                            else if (d === "On Leave") badge = "bg-warning text-dark";
+                            else if (d === "Terminated") badge = "bg-danger";
+                            return `<span class="badge ${badge}">${d}</span>`;
+                        },
+                        "width": "10%" 
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center text-nowrap">
+                                    <button class="btn btn-sm btn-dark me-1" onclick="openEmployeeModal(${data})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${data})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "8%"
+                    }
+                ]
+            });
+
+            // Departments Table
+            deptTable = $("#departmentsTable").DataTable({
+                "ajax": {
+                    "url": "/MasterSettings/GetDepartmentsData",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "id", "width": "10%" },
+                    { "data": "name", "width": "30%" },
+                    { "data": "description", "width": "40%" },
+                    { 
+                        "data": "employeeCount",
+                        "render": function(d) { return `<span class="badge bg-secondary">${d} Employee(s)</span>`; },
+                        "width": "10%" 
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center text-nowrap">
+                                    <button class="btn btn-sm btn-dark me-1" onclick="openDeptModal(${data})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDept(${data})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "10%"
+                    }
+                ]
+            });
+
+            // Attendance Table
+            attTable = $("#attendanceTable").DataTable({
+                "ajax": {
+                    "url": "/MasterSettings/GetAttendanceData",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "employeeName", "width": "30%" },
+                    { "data": "date", "width": "20%" },
+                    { "data": "clockIn", "width": "15%" },
+                    { "data": "clockOut", "width": "15%" },
+                    { 
+                        "data": "status",
+                        "render": function(d) {
+                            var badge = "bg-success";
+                            if (d === "Absent") badge = "bg-danger";
+                            else if (d === "Late") badge = "bg-warning text-dark";
+                            else if (d === "Half Day") badge = "bg-info text-white";
+                            return `<span class="badge ${badge}">${d}</span>`;
+                        },
+                        "width": "10%" 
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center text-nowrap">
+                                    <button class="btn btn-sm btn-dark me-1" onclick="openAttendanceModal(${data})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${data})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "10%"
+                    }
+                ]
+            });
+
+            // Leaves Table
+            leaveTable = $("#leavesTable").DataTable({
+                "ajax": {
+                    "url": "/MasterSettings/GetLeavesData",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "employeeName", "width": "25%" },
+                    { "data": "startDate", "width": "15%" },
+                    { "data": "endDate", "width": "15%" },
+                    { "data": "leaveType", "width": "15%" },
+                    { 
+                        "data": "status",
+                        "render": function(d) {
+                            var badge = "bg-warning text-dark";
+                            if (d === "Approved") badge = "bg-success";
+                            else if (d === "Rejected") badge = "bg-danger";
+                            return `<span class="badge ${badge}">${d}</span>`;
+                        },
+                        "width": "10%" 
+                    },
+                    { "data": "notes", "width": "12%" },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center text-nowrap">
+                                    <button class="btn btn-sm btn-dark me-1" onclick="openLeaveModal(${data})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteLeave(${data})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "8%"
+                    }
+                ]
+            });
+        }
+
+        function setupFormHandlers() {
+            // Employee Form Save
+            $("#employeeForm").on("submit", function (e) {
+                e.preventDefault();
+                var model = {
+                    Id: parseInt($("#empId").val()),
+                    FullName: $("#empFullName").val(),
+                    Email: $("#empEmail").val(),
+                    Phone: $("#empPhone").val(),
+                    DepartmentId: $("#empDepartmentId").val() ? parseInt($("#empDepartmentId").val()) : null,
+                    Designation: $("#empDesignation").val(),
+                    HireDate: $("#empHireDate").val(),
+                    Salary: parseFloat($("#empSalary").val()),
+                    Status: $("#empStatus").val()
+                };
+
+                submitForm("/MasterSettings/SaveEmployee", model, "#employeeModal", empTable, "#btnSaveEmployee");
+            });
+
+            // Department Form Save
+            $("#deptForm").on("submit", function (e) {
+                e.preventDefault();
+                var model = {
+                    Id: parseInt($("#deptId").val()),
+                    Name: $("#deptName").val(),
+                    Description: $("#deptDescription").val()
+                };
+
+                submitForm("/MasterSettings/SaveDepartment", model, "#deptModal", deptTable, "#btnSaveDept");
+            });
+
+            // Attendance Form Save
+            $("#attendanceForm").on("submit", function (e) {
+                e.preventDefault();
+                var model = {
+                    Id: parseInt($("#attId").val()),
+                    EmployeeId: parseInt($("#attEmployeeId").val()),
+                    Date: $("#attDate").val(),
+                    ClockIn: $("#attClockIn").val() || null,
+                    ClockOut: $("#attClockOut").val() || null,
+                    Status: $("#attStatus").val()
+                };
+
+                submitForm("/MasterSettings/SaveAttendance", model, "#attendanceModal", attTable, "#btnSaveAttendance");
+            });
+
+            // Leave Form Save
+            $("#leaveForm").on("submit", function (e) {
+                e.preventDefault();
+                var model = {
+                    Id: parseInt($("#leaveId").val()),
+                    EmployeeId: parseInt($("#leaveEmployeeId").val()),
+                    StartDate: $("#leaveStartDate").val(),
+                    EndDate: $("#leaveEndDate").val(),
+                    LeaveType: $("#leaveType").val(),
+                    Status: $("#leaveStatus").val(),
+                    Notes: $("#leaveNotes").val()
+                };
+
+                submitForm("/MasterSettings/SaveLeave", model, "#leaveModal", leaveTable, "#btnSaveLeave");
+            });
+        }
+
+        // Helper function for CRUD forms submission
+        function submitForm(url, model, modalSelector, tableRef, btnSelector) {
+            var btn = $(btnSelector);
+            var originalText = btn.html();
+            btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(model),
+                success: function (response) {
+                    btn.prop("disabled", false).html(originalText);
+                    if (response.success) {
+                        $(modalSelector).modal("hide");
+                        tableRef.ajax.reload(null, false);
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message,
+                            icon: 'success',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    btn.prop("disabled", false).html(originalText);
+                    var msg = xhr.responseJSON?.message || "An unexpected error occurred.";
+                    Swal.fire({
+                        title: 'Error!',
+                        text: msg,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        }
+
+        // Modal Open Functions
+        function openEmployeeModal(id) {
+            $("#employeeForm")[0].reset();
+            $("#empId").val(0);
+            $("#employeeModalLabel").text("Add Employee");
+            $("#empEmail").prop("disabled", false);
+
+            if (id > 0) {
+                $.get("/MasterSettings/GetEmployee/" + id, function (data) {
+                    $("#empId").val(data.id);
+                    $("#empFullName").val(data.fullName);
+                    $("#empEmail").val(data.email).prop("disabled", true); // email cannot be edited
+                    $("#empPhone").val(data.phone);
+                    $("#empDepartmentId").val(data.departmentId);
+                    $("#empDesignation").val(data.designation);
+                    $("#empHireDate").val(data.hireDate);
+                    $("#empSalary").val(data.salary);
+                    $("#empStatus").val(data.status);
+
+                    $("#employeeModalLabel").text("Edit Employee");
+                    $("#employeeModal").modal("show");
+                });
+            } else {
+                $("#empHireDate").val(new Date().toISOString().substring(0, 10));
+                $("#employeeModal").modal("show");
+            }
+        }
+
+        function openDeptModal(id) {
+            $("#deptForm")[0].reset();
+            $("#deptId").val(0);
+            $("#deptModalLabel").text("Add Department");
+
+            if (id > 0) {
+                $.get("/MasterSettings/GetDepartment/" + id, function (data) {
+                    $("#deptId").val(data.id);
+                    $("#deptName").val(data.name);
+                    $("#deptDescription").val(data.description);
+
+                    $("#deptModalLabel").text("Edit Department");
+                    $("#deptModal").modal("show");
+                });
+            } else {
+                $("#deptModal").modal("show");
+            }
+        }
+
+        function openAttendanceModal(id) {
+            $("#attendanceForm")[0].reset();
+            $("#attId").val(0);
+            $("#attEmployeeId").val(null).trigger('change');
+            $("#attendanceModalLabel").text("Log Attendance");
+
+            if (id > 0) {
+                $.get("/MasterSettings/GetAttendance/" + id, function (data) {
+                    $("#attId").val(data.id);
+                    $("#attDate").val(data.date);
+                    $("#attClockIn").val(data.clockIn);
+                    $("#attClockOut").val(data.clockOut);
+                    $("#attStatus").val(data.status);
+
+                    // Fetch employee details to show in select2
+                    $.get("/MasterSettings/GetEmployee/" + data.employeeId, function(emp) {
+                        var option = new Option(emp.fullName + " (" + emp.designation + ")", data.employeeId, true, true);
+                        $("#attEmployeeId").append(option).trigger('change');
+                        $("#attendanceModalLabel").text("Edit Attendance Log");
+                        $("#attendanceModal").modal("show");
+                    });
+                });
+            } else {
+                $("#attDate").val(new Date().toISOString().substring(0, 10));
+                $("#attendanceModal").modal("show");
+            }
+        }
+
+        function openLeaveModal(id) {
+            $("#leaveForm")[0].reset();
+            $("#leaveId").val(0);
+            $("#leaveEmployeeId").val(null).trigger('change');
+            $("#leaveModalLabel").text("Add Leave Request");
+
+            if (id > 0) {
+                $.get("/MasterSettings/GetLeave/" + id, function (data) {
+                    $("#leaveId").val(data.id);
+                    $("#leaveStartDate").val(data.startDate);
+                    $("#leaveEndDate").val(data.endDate);
+                    $("#leaveType").val(data.leaveType);
+                    $("#leaveStatus").val(data.status);
+                    $("#leaveNotes").val(data.notes);
+
+                    $.get("/MasterSettings/GetEmployee/" + data.employeeId, function(emp) {
+                        var option = new Option(emp.fullName + " (" + emp.designation + ")", data.employeeId, true, true);
+                        $("#leaveEmployeeId").append(option).trigger('change');
+                        $("#leaveModalLabel").text("Edit Leave Request");
+                        $("#leaveModal").modal("show");
+                    });
+                });
+            } else {
+                var today = new Date().toISOString().substring(0, 10);
+                $("#leaveStartDate").val(today);
+                $("#leaveEndDate").val(today);
+                $("#leaveModal").modal("show");
+            }
+        }
+
+        // Delete Actions
+        function deleteEmployee(id) {
+            confirmDelete("/MasterSettings/DeleteEmployee/" + id, empTable, "This will delete the employee and their corresponding user account!");
+        }
+
+        function deleteDept(id) {
+            confirmDelete("/MasterSettings/DeleteDepartment/" + id, deptTable, "Employees in this department will be set to 'Unassigned'.");
+        }
+
+        function deleteAttendance(id) {
+            confirmDelete("/MasterSettings/DeleteAttendance/" + id, attTable, "This attendance log entry will be permanently removed.");
+        }
+
+        function deleteLeave(id) {
+            confirmDelete("/MasterSettings/DeleteLeave/" + id, leaveTable, "This leave record will be permanently deleted.");
+        }
+
+        function confirmDelete(url, tableRef, warningText) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: warningText,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: url,
+                        type: "POST",
+                        success: function (response) {
+                            if (response.success) {
+                                tableRef.ajax.reload(null, false);
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            var msg = xhr.responseJSON?.message || "An unexpected error occurred.";
+                            Swal.fire({
+                                title: 'Error!',
+                                text: msg,
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

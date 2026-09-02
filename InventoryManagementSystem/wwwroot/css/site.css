@@ -1,0 +1,211 @@
+:root {
+  --sidebar-width: 260px;
+  --transition-speed: 0.3s;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #212529;
+}
+
+/* Sidebar Wrapper & Core Layout */
+#wrapper {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+}
+
+#sidebar-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  min-width: var(--sidebar-width);
+  max-width: var(--sidebar-width);
+  background: linear-gradient(180deg, #1e2229 0%, #111417 100%);
+  color: #fff;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+#sidebar-wrapper .sidebar-heading {
+  padding: 1.5rem 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#sidebar-wrapper .list-group-item {
+  padding: 1rem 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: transparent;
+  border: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all var(--transition-speed) ease;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+#sidebar-wrapper .list-group-item i {
+  width: 24px;
+  font-size: 1.1rem;
+}
+
+#sidebar-wrapper .list-group-item:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding-left: 1.75rem;
+}
+
+#sidebar-wrapper .list-group-item.active-link {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid #fff;
+  font-weight: 600;
+}
+
+#sidebar-wrapper .sidebar-submenu .list-group-item {
+  border-left: 3px solid transparent;
+}
+
+#sidebar-wrapper .sidebar-submenu .list-group-item.active-sublink {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.07);
+  border-left: 3px solid #ffc107; /* Accent color matching profile icon badge */
+  font-weight: 600;
+}
+
+.transition-transform {
+  display: inline-block;
+  transition: transform var(--transition-speed) ease;
+}
+
+[data-bs-toggle="collapse"][aria-expanded="true"] .transition-transform,
+[data-bs-toggle="collapse"]:not(.collapsed) .transition-transform,
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+[data-bs-toggle="collapse"][aria-expanded="false"] .transition-transform,
+[data-bs-toggle="collapse"].collapsed .transition-transform {
+  transform: rotate(0deg);
+}
+
+/* DataTables Export Buttons Custom Styling */
+.dt-buttons .btn,
+button.dt-button,
+a.dt-button {
+  background-color: #ffffff !important;
+  color: #212529 !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 0.375rem !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.85rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dt-buttons .btn:hover,
+button.dt-button:hover,
+a.dt-button:hover,
+.dt-buttons .btn:focus,
+.dt-buttons .btn.show {
+  background-color: #f8f9fa !important;
+  color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15) !important;
+}
+
+div.dt-button-collection {
+  width: 170px !important;
+  padding: 0.4rem 0 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  background-color: #ffffff !important;
+  z-index: 1050 !important;
+}
+
+div.dt-button-collection .dt-button,
+div.dt-button-collection button.dt-button,
+div.dt-button-collection a.dt-button {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0.45rem 1rem !important;
+  font-size: 0.875rem !important;
+  color: #212529 !important;
+  text-decoration: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  text-align: left !important;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out !important;
+}
+
+div.dt-button-collection .dt-button:hover,
+div.dt-button-collection button.dt-button:hover,
+div.dt-button-collection a.dt-button:hover {
+  background-color: #f8f9fa !important;
+  color: #0d6efd !important;
+}
+
+/* Page Content Wrapper */
+#page-content-wrapper {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  background-color: #f4f6f9;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left var(--transition-speed) ease;
+}
+
+/* Responsive adjustments for mobile screen */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 70px;
+  }
+
+  #sidebar-wrapper .nav-text {
+    display: none !important;
+  }
+
+  #sidebar-wrapper .sidebar-heading {
+    padding: 1.5rem 0.25rem;
+  }
+
+  #sidebar-wrapper .list-group-item {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+  }
+
+  #sidebar-wrapper .list-group-item i {
+    margin-right: 0 !important;
+    font-size: 1.25rem;
+  }
+
+  #sidebar-wrapper .sidebar-footer {
+    padding: 0.75rem 0.25rem;
+  }
+
+  #sidebar-wrapper .sidebar-submenu {
+    margin-left: 0 !important;
+    border-left: none !important;
+  }
+
+  #sidebar-wrapper .sidebar-submenu .list-group-item {
+    padding: 0.75rem 0.5rem !important;
+  }
+}

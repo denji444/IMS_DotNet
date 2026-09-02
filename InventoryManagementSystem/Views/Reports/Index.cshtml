@@ -1,0 +1,104 @@
+@model IEnumerable<InventoryManagementSystem.Models.ViewModels.ProductReportViewModel>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Product & Sales Report";
+}
+
+<!-- Summary Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-primary border-4 py-2">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 small fw-bold">Total Products</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalProducts">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-boxes fa-2x text-gray-300 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-info border-4 py-2">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1 small fw-bold">Available Stock</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalAvailableQty">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cubes fa-2x text-gray-300 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4 py-2">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 small fw-bold">Total Purchased Value</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalPurchasedCost">PKR 0.00</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-gray-300 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100 border-start border-success border-4 py-2">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1 small fw-bold">Total Sales Revenue</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalSalesRevenue">PKR 0.00</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white py-3">
+        <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Product Performance Directory</h4>
+    </div>
+    <div class="card-body p-4">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped w-100" id="reportsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>SKU</th>
+                        <th>Product Name</th>
+                        <th>Variant</th>
+                        <th>Available Stock</th>
+                        <th>Purchased Qty</th>
+                        <th>Sold Qty</th>
+                        <th>Total Purchase Cost</th>
+                        <th>Total Sales Revenue</th>
+                        <th>Estimated Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Loaded dynamically via DataTables AJAX -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/reports.js" asp-append-version="true"></script>
+}
