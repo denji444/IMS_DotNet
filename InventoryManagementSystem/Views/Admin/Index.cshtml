@@ -1,111 +1,272 @@
-@model List<InventoryManagementSystem.Models.Sale>
+@model InventoryManagementSystem.Models.ViewModels.DashboardViewModel
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Admin Dashboard";
 }
 
 <div class="row mb-4">
-    <div class="col-12">
-        <h2 class="fw-light"><i class="fas fa-chart-line me-2"></i>Administration Dashboard</h2>
-        <hr />
+    <div class="col-12 d-flex justify-content-between align-items-center border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-line me-2 text-primary"></i>Administration Dashboard</h2>
+            <p class="text-muted mb-0">Real-time financial performance, inventory alerts, and sales analytics.</p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2 fw-normal">
+                <i class="fas fa-clock me-1 text-primary"></i> Last Updated: @DateTime.Now.ToString("dd MMM yyyy, hh:mm tt")
+            </span>
+        </div>
     </div>
 </div>
 
+<!-- Primary Financial KPIs -->
+<div class="row g-3 mb-4">
+    <!-- Total Revenue -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start border-success border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Total Sales</span>
+                <h4 class="fw-bold mb-0 text-success mt-1">PKR @Model.TotalSales.ToString("N0")</h4>
+                <small class="text-muted">Lifetime Revenue</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Purchases -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start border-danger border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Total Purchases</span>
+                <h4 class="fw-bold mb-0 text-danger mt-1">PKR @Model.TotalPurchases.ToString("N0")</h4>
+                <small class="text-muted">Stock Outlay Cost</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Profit -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start @(Model.NetProfit >= 0 ? "border-primary" : "border-danger") border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Net Margin</span>
+                <h4 class="fw-bold mb-0 @(Model.NetProfit >= 0 ? "text-primary" : "text-danger") mt-1">PKR @Model.NetProfit.ToString("N0")</h4>
+                <small class="text-muted">Sales minus Purchases</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Receivables -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start border-warning border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Receivables</span>
+                <h4 class="fw-bold mb-0 text-warning mt-1">PKR @Model.PendingReceivables.ToString("N0")</h4>
+                <small class="text-muted">Customer Installments</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Payables -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start border-secondary border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Payables</span>
+                <h4 class="fw-bold mb-0 text-secondary mt-1">PKR @Model.PendingPayables.ToString("N0")</h4>
+                <small class="text-muted">Supplier Installments</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-md-4 col-xl-2">
+        <div class="card shadow-sm border-0 border-start @(Model.LowStockCount > 0 ? "border-danger bg-danger bg-opacity-10" : "border-info") border-4 rounded h-100">
+            <div class="card-body p-3">
+                <span class="text-uppercase text-muted small fw-bold">Low Stock Items</span>
+                <h4 class="fw-bold mb-0 @(Model.LowStockCount > 0 ? "text-danger" : "text-info") mt-1">
+                    @Model.LowStockCount <small class="fs-6 fw-normal">Items</small>
+                </h4>
+                <small class="text-muted">Stock &le; 5 units</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+            <div>
+                <h6 class="text-uppercase text-muted small fw-bold mb-1">Products Active</h6>
+                <h3 class="fw-bold mb-0 text-dark">@Model.ProductCount</h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                <i class="fas fa-box fa-xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+            <div>
+                <h6 class="text-uppercase text-muted small fw-bold mb-1">Total Stock Value</h6>
+                <h3 class="fw-bold mb-0 text-dark">PKR @Model.TotalStockValue.ToString("N0")</h3>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+                <i class="fas fa-warehouse fa-xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+            <div>
+                <h6 class="text-uppercase text-muted small fw-bold mb-1">Active Suppliers</h6>
+                <h3 class="fw-bold mb-0 text-dark">@Model.SupplierCount</h3>
+            </div>
+            <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info">
+                <i class="fas fa-truck-field fa-xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+            <div>
+                <h6 class="text-uppercase text-muted small fw-bold mb-1">Registered Customers</h6>
+                <h3 class="fw-bold mb-0 text-dark">@Model.CustomerCount</h3>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
+                <i class="fas fa-users fa-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Analytics Charts Row -->
 <div class="row g-4 mb-4">
-    <!-- Total Products Card -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 border-start border-primary border-5 rounded">
-            <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase text-secondary small fw-bold mb-1">Total Products</h6>
-                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.ProductCount</h3>
-                </div>
-                <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                    <i class="fas fa-box fa-2x"></i>
-                </div>
+    <!-- Financial Trend Chart -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 rounded h-100">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar me-2"></i>6-Month Financial Trend (Sales vs Purchases)</h6>
             </div>
-            <div class="card-footer bg-white border-0 py-2 d-flex justify-content-between align-items-center">
-                <a asp-controller="Products" asp-action="Index" class="text-primary text-decoration-none small">Manage Products <i class="fas fa-arrow-right ms-1"></i></a>
+            <div class="card-body p-3">
+                <canvas id="financialTrendChart" style="max-height: 280px;"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Total Suppliers Card -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 border-start border-success border-5 rounded">
-            <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase text-secondary small fw-bold mb-1">Suppliers</h6>
-                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.SupplierCount</h3>
-                </div>
-                <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                    <i class="fas fa-truck-field fa-2x"></i>
-                </div>
+    <!-- Top Selling Products Chart -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 rounded h-100">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-fire me-2"></i>Top 5 Selling Products</h6>
             </div>
-            <div class="card-footer bg-white border-0 py-2 d-flex justify-content-between align-items-center">
-                <a asp-controller="Suppliers" asp-action="Index" class="text-success text-decoration-none small">Manage Suppliers <i class="fas fa-arrow-right ms-1"></i></a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Customers Card -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 border-start border-info border-5 rounded">
-            <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase text-secondary small fw-bold mb-1">Customers</h6>
-                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.CustomerCount</h3>
-                </div>
-                <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info">
-                    <i class="fas fa-users fa-2x"></i>
-                </div>
-            </div>
-            <div class="card-footer bg-white border-0 py-2 d-flex justify-content-between align-items-center">
-                <a asp-controller="Customers" asp-action="Index" class="text-info text-decoration-none small">Manage Customers <i class="fas fa-arrow-right ms-1"></i></a>
+            <div class="card-body p-3 d-flex align-items-center justify-content-center">
+                @if (Model.TopProductLabels.Any())
+                {
+                    <canvas id="topProductsChart" style="max-height: 280px;"></canvas>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-2 text-secondary"></i>
+                        <p class="mb-0">No sales data available to render chart.</p>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <!-- Recent Sales Table -->
-    <div class="col-12">
-        <div class="card shadow-sm border-0 mb-4 rounded">
-            <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Sales / Stock Out Activity</h5>
+<!-- Tables Row -->
+<div class="row g-4 mb-4">
+    <!-- Low Stock Inventory Alerts Table -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 rounded h-100">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-triangle-exclamation me-2 text-warning"></i>Low Stock Inventory Alerts</h6>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-outline-light btn-sm">Manage Stock</a>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>Invoice No</th>
-                                <th>Product Name</th>
-                                <th>Customer Name</th>
-                                <th>Quantity</th>
-                                <th>Total Cost</th>
-                                <th>Sale Date</th>
+                                <th>Product</th>
+                                <th>Variant</th>
+                                <th class="text-center">Stock</th>
+                                <th class="text-end">Price</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (Model.Any())
+                            @if (Model.LowStockProducts.Any())
                             {
-                                foreach (var sale in Model)
+                                foreach (var prod in Model.LowStockProducts)
                                 {
                                     <tr>
-                                        <td><strong>@sale.InvoiceNo</strong></td>
-                                        <td>@(sale.Product?.Name ?? "N/A")</td>
-                                        <td>@(sale.Customer?.FullName ?? "N/A")</td>
-                                        <td>@sale.Quantity</td>
-                                        <td>PKR @sale.TotalAmount.ToString("F2")</td>
-                                        <td>@sale.SaleDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            <div class="fw-bold text-dark">@prod.Name</div>
+                                            <small class="text-muted">SKU: @prod.Sku</small>
+                                        </td>
+                                        <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
+                                        <td class="text-center">
+                                            <span class="badge @(prod.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                                @prod.StockQuantity Units
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold">PKR @prod.Price.ToString("N2")</td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-3">No recent sales activity found.</td>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-check-circle text-success me-1"></i> All stock levels are healthy!
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales Activity Table -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 rounded h-100">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Recent Sales Activity</h6>
+                <a asp-controller="Sales" asp-action="Index" class="btn btn-outline-light btn-sm">View All Sales</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Product</th>
+                                <th>Customer</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentSales.Any())
+                            {
+                                foreach (var sale in Model.RecentSales)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">@sale.InvoiceNo</div>
+                                            <small class="text-muted">@sale.SaleDate.ToString("dd MMM yyyy")</small>
+                                        </td>
+                                        <td>@(sale.Product != null ? (string.IsNullOrEmpty(sale.Product.Variant) ? sale.Product.Name : $"{sale.Product.Name} ({sale.Product.Variant})") : "N/A")</td>
+                                        <td>@(sale.Customer?.FullName ?? "Guest")</td>
+                                        <td class="text-end fw-bold text-success">PKR @sale.TotalAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">No recent sales found.</td>
                                 </tr>
                             }
                         </tbody>
@@ -115,3 +276,91 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Financial Trend Chart
+            var trendCtx = document.getElementById('financialTrendChart').getContext('2d');
+            var trendChart = new Chart(trendCtx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyLabels)),
+                    datasets: [
+                        {
+                            label: 'Sales Revenue (PKR)',
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlySalesData)),
+                            backgroundColor: 'rgba(25, 135, 84, 0.75)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Purchase Cost (PKR)',
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyPurchasesData)),
+                            backgroundColor: 'rgba(220, 53, 69, 0.75)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': PKR ' + parseFloat(context.raw).toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'PKR ' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Top Products Chart
+            @if (Model.TopProductLabels.Any())
+            {
+                <text>
+                var topCtx = document.getElementById('topProductsChart').getContext('2d');
+                var topChart = new Chart(topCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopProductLabels)),
+                        datasets: [{
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopProductQuantities)),
+                            backgroundColor: [
+                                '#0d6efd',
+                                '#198754',
+                                '#ffc107',
+                                '#0dcaf0',
+                                '#6c757d'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                </text>
+            }
+        });
+    </script>
+}
