@@ -1,4 +1,5 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<InventoryManagementSystem.Models.ApplicationUser> UserManager
+@inject InventoryManagementSystem.Data.InventoryDbContext DbContext
 @{
     InventoryManagementSystem.Models.ApplicationUser? currentUser = null;
     if (User.Identity?.IsAuthenticated == true)
@@ -73,16 +74,38 @@
                         </a>
                         <div class="collapse @(currentController == "MasterSettings" ? "show" : "")" id="masterSettingsCollapse">
                             <div class="sidebar-submenu py-1 ms-3 border-start border-secondary" style="border-width: 2px !important;">
-                                <a asp-controller="MasterSettings" asp-action="Index" asp-route-tab="employees" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && (Context.Request.Query["tab"] == "employees" || string.IsNullOrEmpty(Context.Request.Query["tab"])) ? "active-sublink" : "")">
+                                <a id="side-nav-employees" asp-controller="MasterSettings" asp-action="Index" asp-route-tab="employees" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && (Context.Request.Query["tab"] == "employees" || string.IsNullOrEmpty(Context.Request.Query["tab"])) ? "active-sublink" : "")">
                                     <i class="fas fa-users-cog me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Employee Directory</span>
                                 </a>
-                                <a asp-controller="MasterSettings" asp-action="Index" asp-route-tab="departments" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "departments" ? "active-sublink" : "")">
-                                    <i class="fas fa-sitemap me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Departments</span>
+                                
+                                <!-- Departments Sub-dropdown -->
+                                <a id="side-nav-departments" href="#deptSubmenuCollapse" data-bs-toggle="collapse" class="list-group-item list-group-item-action py-2 ps-4 d-flex align-items-center justify-content-between @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "departments" ? "active-sublink" : "")" aria-expanded="@(currentController == "MasterSettings" && Context.Request.Query["tab"] == "departments" ? "true" : "false")">
+                                    <div>
+                                        <i class="fas fa-sitemap me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Departments</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down nav-text ms-auto transition-transform" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a asp-controller="MasterSettings" asp-action="Index" asp-route-tab="attendance" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "attendance" ? "active-sublink" : "")">
+                                <div class="collapse @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "departments" ? "show" : "")" id="deptSubmenuCollapse">
+                                    <div class="sidebar-submenu py-1 ms-3 border-start border-secondary">
+                                        <a id="side-nav-departments-all" asp-controller="MasterSettings" asp-action="Index" asp-route-tab="departments" class="list-group-item list-group-item-action py-1.5 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "departments" && string.IsNullOrEmpty(Context.Request.Query["deptId"]) ? "active-sublink" : "")">
+                                            <i class="fas fa-list me-2" style="font-size: 0.8rem;"></i><span class="nav-text" style="font-size: 0.85rem;">All Departments</span>
+                                        </a>
+                                        @{
+                                            var deptsList = DbContext.Departments.OrderBy(d => d.Name).ToList();
+                                            foreach (var dept in deptsList)
+                                            {
+                                                <a id="side-nav-dept-@dept.Id" asp-controller="MasterSettings" asp-action="Index" asp-route-tab="departments" asp-route-deptId="@dept.Id" class="list-group-item list-group-item-action py-1.5 ps-4 side-dept-item @(currentController == "MasterSettings" && Context.Request.Query["deptId"] == dept.Id.ToString() ? "active-sublink" : "")">
+                                                    <i class="fas fa-folder me-2" style="font-size: 0.8rem; min-width: 14px;"></i><span class="nav-text" style="font-size: 0.82rem; white-space: normal; line-height: 1.25; word-break: break-word;">@dept.Name</span>
+                                                </a>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+
+                                <a id="side-nav-attendance" asp-controller="MasterSettings" asp-action="Index" asp-route-tab="attendance" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "attendance" ? "active-sublink" : "")">
                                     <i class="fas fa-user-clock me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Attendance Log</span>
                                 </a>
-                                <a asp-controller="MasterSettings" asp-action="Index" asp-route-tab="leaves" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "leaves" ? "active-sublink" : "")">
+                                <a id="side-nav-leaves" asp-controller="MasterSettings" asp-action="Index" asp-route-tab="leaves" class="list-group-item list-group-item-action py-2 ps-4 @(currentController == "MasterSettings" && Context.Request.Query["tab"] == "leaves" ? "active-sublink" : "")">
                                     <i class="fas fa-calendar-times me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Leave Requests</span>
                                 </a>
                             </div>
@@ -104,8 +127,8 @@
                             <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold me-md-2" style="width: 36px; height: 36px; font-size: 1.1rem; min-width: 36px;">
                                 @initialLetter
                             </div>
-                            <div class="text-start text-truncate nav-text" style="line-height: 1.2;">
-                                <div class="fw-bold text-truncate text-white" style="max-width: 150px;">@displayName</div>
+                            <div class="text-start nav-text" style="line-height: 1.2;">
+                                <div class="fw-bold text-truncate text-white" style="max-width: 180px;">@displayName</div>
                                 <span class="badge bg-light text-dark px-2 py-0.5 mt-1 small" style="font-size: 0.6rem;">Admin</span>
                             </div>
                         </button>

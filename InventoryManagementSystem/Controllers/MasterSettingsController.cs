@@ -25,7 +25,7 @@ namespace InventoryManagementSystem.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Seed the 5 standard inventory departments if none exist
+            // Seed standard inventory departments if none exist
             if (!await _context.Departments.AnyAsync())
             {
                 _context.Departments.AddRange(
@@ -306,6 +306,31 @@ namespace InventoryManagementSystem.Controllers
             return Json(new { success = true, message = "Employee and their user account deleted successfully." });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeesJson(string? q)
+        {
+            var query = _context.Employees
+                .Include(e => e.User)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = query.Where(e =>
+                    (e.User != null && (e.User.FullName.Contains(q) || (e.User.Email != null && e.User.Email.Contains(q)))) ||
+                    e.Designation.Contains(q));
+            }
+
+            var data = await query
+                .Select(e => new
+                {
+                    id = e.Id,
+                    text = e.User != null ? $"{e.User.FullName} ({e.Designation})" : $"Employee #{e.Id}"
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
         #endregion
 
         #region Attendance AJAX Endpoints
@@ -313,20 +338,22 @@ namespace InventoryManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAttendanceData()
         {
-            var data = await _context.EmployeeAttendances
+            var rawData = await _context.EmployeeAttendances
                 .Include(ea => ea.Employee)
                 .ThenInclude(e => e!.User)
-                .Select(ea => new
-                {
-                    ea.Id,
-                    ea.EmployeeId,
-                    EmployeeName = ea.Employee != null && ea.Employee.User != null ? ea.Employee.User.FullName : "Unknown",
-                    Date = ea.Date.ToString("yyyy-MM-dd"),
-                    ClockIn = ea.ClockIn.HasValue ? ea.ClockIn.Value.ToString(@"hh\:mm") : "-",
-                    ClockOut = ea.ClockOut.HasValue ? ea.ClockOut.Value.ToString(@"hh\:mm") : "-",
-                    ea.Status
-                })
+                .OrderByDescending(ea => ea.Date)
                 .ToListAsync();
+
+            var data = rawData.Select(ea => new
+            {
+                ea.Id,
+                ea.EmployeeId,
+                EmployeeName = ea.Employee != null && ea.Employee.User != null ? ea.Employee.User.FullName : "Unknown",
+                Date = ea.Date.ToString("yyyy-MM-dd"),
+                ClockIn = ea.ClockIn.HasValue ? DateTime.Today.Add(ea.ClockIn.Value).ToString("hh:mm tt") : "-",
+                ClockOut = ea.ClockOut.HasValue ? DateTime.Today.Add(ea.ClockOut.Value).ToString("hh:mm tt") : "-",
+                ea.Status
+            }).ToList();
 
             return Json(new { data });
         }
@@ -362,6 +389,11 @@ namespace InventoryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveAttendance([FromBody] AttendanceInputModel model)
         {
+            if (model.EmployeeId <= 0)
+            {
+                return Json(new { success = false, message = "Please select a valid employee." });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Invalid data submitted." });
@@ -373,13 +405,23 @@ namespace InventoryManagementSystem.Controllers
             TimeSpan? clockOutTime = null;
             if (TimeSpan.TryParse(model.ClockOut, out TimeSpan outTime)) clockOutTime = outTime;
 
+            if (clockInTime.HasValue && clockOutTime.HasValue && clockInTime.Value >= clockOutTime.Value)
+            {
+                return Json(new { success = false, message = "Clock Out time must be after Clock In time." });
+            }
+
             if (model.Id == 0)
             {
-                // Check if attendance already logged for employee on this date
-                var exists = await _context.EmployeeAttendances.AnyAsync(ea => ea.EmployeeId == model.EmployeeId && ea.Date.Date == model.Date.Date);
-                if (exists)
+                // Check if attendance/leave already logged for employee on this date
+                var existing = await _context.EmployeeAttendances.FirstOrDefaultAsync(ea => ea.EmployeeId == model.EmployeeId && ea.Date.Date == model.Date.Date);
+                if (existing != null)
                 {
-                    return Json(new { success = false, message = "Attendance already logged for this employee on this date." });
+                    if (!string.IsNullOrEmpty(existing.Status) && existing.Status.StartsWith("On Leave"))
+                    {
+                        return Json(new { success = false, message = $"An approved leave is already recorded for this employee on this date ({existing.Status}). Attendance cannot be overwritten directly. Please use the Edit button in the table if you wish to modify it." });
+                    }
+
+                    return Json(new { success = false, message = $"Attendance is already marked for this employee on this date (Status: {existing.Status}). Please use the Edit button in the table if you wish to modify it." });
                 }
 
                 var att = new EmployeeAttendance
@@ -396,6 +438,13 @@ namespace InventoryManagementSystem.Controllers
             {
                 var att = await _context.EmployeeAttendances.FindAsync(model.Id);
                 if (att == null) return Json(new { success = false, message = "Record not found." });
+
+                // Check if another attendance record exists for this employee on this date
+                var duplicate = await _context.EmployeeAttendances.AnyAsync(ea => ea.EmployeeId == model.EmployeeId && ea.Date.Date == model.Date.Date && ea.Id != model.Id);
+                if (duplicate)
+                {
+                    return Json(new { success = false, message = "Another attendance record already exists for this employee on the selected date." });
+                }
 
                 att.EmployeeId = model.EmployeeId;
                 att.Date = model.Date;
@@ -470,6 +519,11 @@ namespace InventoryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveLeave([FromBody] EmployeeLeave model)
         {
+            if (model.EmployeeId <= 0)
+            {
+                return Json(new { success = false, message = "Please select a valid employee." });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Invalid data submitted." });
@@ -478,6 +532,25 @@ namespace InventoryManagementSystem.Controllers
             if (model.StartDate > model.EndDate)
             {
                 return Json(new { success = false, message = "Start date must be before or equal to End date." });
+            }
+
+            // Check if an active/pending/approved leave request already exists for this employee covering the date range
+            var hasOverlap = await _context.EmployeeLeaves.AnyAsync(l =>
+                l.EmployeeId == model.EmployeeId &&
+                l.Id != model.Id &&
+                l.Status != "Rejected" &&
+                l.StartDate.Date <= model.EndDate.Date &&
+                l.EndDate.Date >= model.StartDate.Date);
+
+            if (hasOverlap)
+            {
+                return Json(new { success = false, message = "A leave request already exists for this employee covering the selected date(s)." });
+            }
+
+            EmployeeLeave? existingLeave = null;
+            if (model.Id != 0)
+            {
+                existingLeave = await _context.EmployeeLeaves.AsNoTracking().FirstOrDefaultAsync(l => l.Id == model.Id);
             }
 
             if (model.Id == 0)
@@ -490,6 +563,26 @@ namespace InventoryManagementSystem.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            // If existing leave was previously Approved, clear old attendance records first if dates/status changed
+            if (existingLeave != null && string.Equals(existingLeave.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                var oldLogs = await _context.EmployeeAttendances
+                    .Where(a => a.EmployeeId == existingLeave.EmployeeId 
+                             && a.Date >= existingLeave.StartDate.Date 
+                             && a.Date <= existingLeave.EndDate.Date 
+                             && a.Status.StartsWith("On Leave"))
+                    .ToListAsync();
+                if (oldLogs.Any())
+                {
+                    _context.EmployeeAttendances.RemoveRange(oldLogs);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            // Sync new leave status to attendance logs
+            await SyncLeaveToAttendanceAsync(model);
+
             return Json(new { success = true, message = "Leave request saved successfully!" });
         }
 
@@ -500,34 +593,79 @@ namespace InventoryManagementSystem.Controllers
             var leave = await _context.EmployeeLeaves.FindAsync(id);
             if (leave == null) return Json(new { success = false, message = "Leave request not found." });
 
+            if (string.Equals(leave.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                var leaveLogs = await _context.EmployeeAttendances
+                    .Where(a => a.EmployeeId == leave.EmployeeId 
+                             && a.Date >= leave.StartDate.Date 
+                             && a.Date <= leave.EndDate.Date 
+                             && a.Status.StartsWith("On Leave"))
+                    .ToListAsync();
+                if (leaveLogs.Any())
+                {
+                    _context.EmployeeAttendances.RemoveRange(leaveLogs);
+                }
+            }
+
             _context.EmployeeLeaves.Remove(leave);
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Leave request deleted." });
         }
 
-        #endregion
-
-        #region Autocomplete API
-
-        [HttpGet]
-        public async Task<IActionResult> GetEmployeesJson(string? q)
+        private async Task SyncLeaveToAttendanceAsync(EmployeeLeave leave)
         {
-            var query = _context.Employees
-                .Include(e => e.User)
-                .AsQueryable();
+            var startDate = leave.StartDate.Date;
+            var endDate = leave.EndDate.Date;
+            var leaveStatusLabel = string.IsNullOrEmpty(leave.LeaveType) ? "On Leave" : $"On Leave ({leave.LeaveType})";
 
-            if (!string.IsNullOrEmpty(q))
+            if (string.Equals(leave.Status, "Approved", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(e => e.User != null && e.User.FullName.Contains(q));
+                var existingAttendances = await _context.EmployeeAttendances
+                    .Where(a => a.EmployeeId == leave.EmployeeId && a.Date >= startDate && a.Date <= endDate)
+                    .ToListAsync();
+
+                var existingMap = existingAttendances.ToDictionary(a => a.Date.Date);
+
+                for (var date = startDate; date <= endDate; date = date.AddDays(1))
+                {
+                    if (existingMap.TryGetValue(date, out var att))
+                    {
+                        // Only overwrite status if there are no active manual clock-in/out times recorded
+                        if (att.ClockIn == null && att.ClockOut == null)
+                        {
+                            att.Status = leaveStatusLabel;
+                            _context.Entry(att).State = EntityState.Modified;
+                        }
+                    }
+                    else
+                    {
+                        _context.EmployeeAttendances.Add(new EmployeeAttendance
+                        {
+                            EmployeeId = leave.EmployeeId,
+                            Date = date,
+                            ClockIn = null,
+                            ClockOut = null,
+                            Status = leaveStatusLabel
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
             }
+            else
+            {
+                var autoLeaveLogs = await _context.EmployeeAttendances
+                    .Where(a => a.EmployeeId == leave.EmployeeId && a.Date >= startDate && a.Date <= endDate && a.Status.StartsWith("On Leave"))
+                    .ToListAsync();
 
-            var data = await query
-                .Select(e => new { id = e.Id, text = e.User != null ? $"{e.User.FullName} ({e.Designation})" : "Unknown" })
-                .ToListAsync();
-
-            return Json(data);
+                if (autoLeaveLogs.Any())
+                {
+                    _context.EmployeeAttendances.RemoveRange(autoLeaveLogs);
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
 
         #endregion
+
     }
 }

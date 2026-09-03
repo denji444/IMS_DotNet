@@ -2,8 +2,11 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace InventoryManagementSystem.Models
 {
+    [Index(nameof(EmployeeId), nameof(Date), IsUnique = true)]
     public class EmployeeAttendance
     {
         public int Id { get; set; }
