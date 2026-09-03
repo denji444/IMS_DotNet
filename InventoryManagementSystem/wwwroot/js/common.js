@@ -40,7 +40,170 @@ if (window.jQuery && $.fn && $.fn.dataTable) {
                     {
                         extend: 'print',
                         text: '<i class="fas fa-print me-2 text-dark"></i>Print',
-                        exportOptions: defaultExportOptions
+                        exportOptions: defaultExportOptions,
+                        title: '',
+                        customize: function (win) {
+                            var doc = win.document;
+                            var now = new Date();
+                            var dateStr = now.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+
+                            var rawTitle = document.title || 'System Report';
+                            var pageTitle = rawTitle.split('-')[0].trim();
+                            var rowCount = $(doc.body).find('table.dataTable tbody tr').length;
+
+                            // Inject custom B&W Print CSS
+                            $(doc.head).append(`
+                                <style>
+                                    body {
+                                        color: #000000 !important;
+                                        margin: 15px !important;
+                                        padding: 0 !important;
+                                        background: #ffffff !important;
+                                    }
+                                    .print-container {
+                                        width: 100%;
+                                    }
+                                    .print-header {
+                                        border-bottom: 3px double #000000;
+                                        padding-bottom: 10px;
+                                        margin-bottom: 15px;
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: flex-end;
+                                    }
+                                    .print-brand {
+                                        font-size: 22px;
+                                        font-weight: 800;
+                                        color: #000000;
+                                        text-transform: uppercase;
+                                        letter-spacing: 1px;
+                                        line-height: 1.1;
+                                    }
+                                    .print-sub {
+                                        font-size: 13px;
+                                        color: #333333;
+                                        margin-top: 4px;
+                                        font-weight: 600;
+                                    }
+                                    .print-meta-box {
+                                        border: 1px solid #000000;
+                                        padding: 6px 12px;
+                                        font-size: 11px;
+                                        line-height: 1.5;
+                                        background-color: #fafafa;
+                                    }
+                                    .print-summary-bar {
+                                        display: flex;
+                                        justify-content: space-between;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: #000000;
+                                        margin-bottom: 8px;
+                                        padding: 4px 0;
+                                        border-bottom: 1px solid #000000;
+                                    }
+                                    table.dataTable {
+                                        width: 100% !important;
+                                        border-collapse: collapse !important;
+                                        margin-top: 10px !important;
+                                        margin-bottom: 20px !important;
+                                    }
+                                    table.dataTable thead {
+                                        display: table-header-group !important;
+                                    }
+                                    table.dataTable thead th {
+                                        background-color: #f1f5f9 !important;
+                                        color: #000000 !important;
+                                        font-weight: 700 !important;
+                                        font-size: 11px !important;
+                                        text-transform: uppercase !important;
+                                        letter-spacing: 0.5px !important;
+                                        padding: 8px 10px !important;
+                                        border-top: 2px solid #000000 !important;
+                                        border-bottom: 2px solid #000000 !important;
+                                        border-left: 1px solid #cbd5e1 !important;
+                                        border-right: 1px solid #cbd5e1 !important;
+                                    }
+                                    table.dataTable tbody tr {
+                                        page-break-inside: avoid !important;
+                                    }
+                                    table.dataTable tbody td {
+                                        padding: 7px 10px !important;
+                                        font-size: 11px !important;
+                                        border: 1px solid #cbd5e1 !important;
+                                        color: #000000 !important;
+                                    }
+                                    table.dataTable tbody tr:nth-child(even) {
+                                        background-color: #f8fafc !important;
+                                    }
+                                    .print-sign-row {
+                                        margin-top: 40px;
+                                        display: flex;
+                                        justify-content: space-between;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: #000000;
+                                    }
+                                    .print-sign-line {
+                                        border-top: 1px solid #000000;
+                                        width: 200px;
+                                        text-align: center;
+                                        padding-top: 4px;
+                                    }
+                                    .print-footer {
+                                        margin-top: 25px;
+                                        padding-top: 8px;
+                                        border-top: 1px solid #000000;
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                        font-size: 10px;
+                                        color: #475569;
+                                    }
+                                    @media print {
+                                        body { margin: 0 !important; }
+                                    }
+                                </style>
+                            `);
+
+                            // Inject Header Banner & Meta Summary
+                            $(doc.body).prepend(`
+                                <div class="print-container">
+                                    <div class="print-header">
+                                        <div>
+                                            <div class="print-brand">IMS PORTAL</div>
+                                            <div class="print-sub">INVENTORY MANAGEMENT SYSTEM &bull; ${pageTitle.toUpperCase()}</div>
+                                        </div>
+                                        <div class="print-meta-box">
+                                            <div><strong>DATE:</strong> ${dateStr}</div>
+                                            <div><strong>DOCUMENT:</strong> OFFICIAL SYSTEM REPORT</div>
+                                        </div>
+                                    </div>
+                                    <div class="print-summary-bar">
+                                        <div>REPORT: ${pageTitle.toUpperCase()}</div>
+                                        <div>TOTAL ENTRIES: ${rowCount}</div>
+                                    </div>
+                                </div>
+                            `);
+
+                            // Inject Signature Block & Footer
+                            $(doc.body).append(`
+                                <div class="print-sign-row">
+                                    <div class="print-sign-line">PREPARED BY</div>
+                                    <div class="print-sign-line">AUTHORIZED SIGNATURE</div>
+                                </div>
+                                <div class="print-footer">
+                                    <div>CONFIDENTIAL &bull; INVENTORY MANAGEMENT SYSTEM &bull; AUDIT REPORT</div>
+                                    <div>SYSTEM GENERATED DOCUMENT</div>
+                                </div>
+                            `);
+                        }
                     }
                 ]
             }
