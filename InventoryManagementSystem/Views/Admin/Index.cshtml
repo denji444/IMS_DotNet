@@ -210,7 +210,7 @@
                                                 @prod.StockQuantity Units
                                             </span>
                                         </td>
-                                        <td class="text-end fw-bold">PKR @prod.Price.ToString("N2")</td>
+                                        <td class="text-end fw-bold">@(prod.Price.HasValue ? $"PKR {prod.Price.Value.ToString("N2")}" : "N/A")</td>
                                     </tr>
                                 }
                             }

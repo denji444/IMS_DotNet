@@ -21,6 +21,9 @@ namespace InventoryManagementSystem.Data
         public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
         public DbSet<PurchaseInstallment> PurchaseInstallments { get; set; }
         public DbSet<SaleInstallment> SaleInstallments { get; set; }
+        public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<ProductCategoryTypeOption> ProductCategoryTypeOptions { get; set; }
+        public DbSet<SmtpSetting> SmtpSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

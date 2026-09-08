@@ -45,6 +45,12 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = "Invalid credentials format." });
             }
 
+            var existingUser = await _userManager.FindByNameAsync(model.Username) ?? await _userManager.FindByEmailAsync(model.Username);
+            if (existingUser != null && await _userManager.IsLockedOutAsync(existingUser))
+            {
+                return Json(new { success = false, message = "Your user account has been restricted. Please contact system administrator." });
+            }
+
             var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {

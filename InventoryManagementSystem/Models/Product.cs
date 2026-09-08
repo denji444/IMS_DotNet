@@ -23,10 +23,15 @@ namespace InventoryManagementSystem.Models
         [StringLength(100, ErrorMessage = "Variant cannot exceed 100 characters")]
         public string Variant { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Price is required")]
-        [Range(0.01, 1000000.00, ErrorMessage = "Price must be greater than 0")]
+        [StringLength(100)]
+        public string? CategoryName { get; set; }
+
+        [StringLength(100)]
+        public string? ProductType { get; set; }
+
+        [Range(0.00, 1000000.00, ErrorMessage = "Price must be non-negative")]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; }
 
         [Required(ErrorMessage = "Stock quantity is required")]
         [Range(0, 1000000, ErrorMessage = "Stock quantity cannot be negative")]

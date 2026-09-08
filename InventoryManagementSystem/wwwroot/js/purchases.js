@@ -27,6 +27,12 @@ $(document).ready(function () {
                 }
             },
             { "data": "purchaseDate" },
+            { 
+                "data": "batchNumber",
+                "render": function(d) {
+                    return (d && d !== "N/A") ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${d}</span>` : '<span class="badge bg-light text-secondary">N/A</span>';
+                }
+            },
             { "data": "notes" },
             {
                 "data": "id",
@@ -129,8 +135,8 @@ $(document).ready(function () {
         }
     });
 
-    // Update total cost automatically when Quantity changes
-    $("#purchaseQty").on("input", function () {
+    // Update total cost automatically when Quantity or Unit Price changes
+    $("#purchaseQty, #unitPrice").on("input change", function () {
         calculateTotalCost();
     });
 
@@ -219,6 +225,7 @@ $(document).ready(function () {
             Quantity: parseInt($("#purchaseQty").val()),
             UnitPrice: parseFloat($("#unitPrice").val()),
             TotalCost: parseFloat($("#totalCost").val()),
+            BatchNumber: $("#batchNumber").val(),
             Notes: $("#notes").val(),
             PaymentMode: parseInt($("#paymentMode").val()),
             DownPayment: parseFloat($("#downPayment").val()) || 0,
@@ -294,6 +301,7 @@ function openCreateModal() {
     $("#newSupplierFields").addClass("d-none");
     clearNewSupplierFields();
     $("#productSelect").val(null).trigger('change');
+    $("#batchNumber").val("");
     $(".text-danger").text("");
     $("#paymentMode").val("0").trigger('change').prop('disabled', false);
     $("#purchaseModalLabel").text("New Purchase / Stock In");
@@ -317,6 +325,7 @@ function openEditModal(id) {
             $("#purchaseQty").val(data.quantity);
             $("#unitPrice").val(data.unitPrice);
             $("#totalCost").val(data.totalCost.toFixed(2));
+            $("#batchNumber").val(data.batchNumber === "N/A" ? "" : (data.batchNumber || ""));
             $("#notes").val(data.notes);
 
             // Set Supplier

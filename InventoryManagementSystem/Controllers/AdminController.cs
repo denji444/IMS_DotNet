@@ -40,7 +40,7 @@ namespace InventoryManagementSystem.Controllers
             viewModel.LowStockCount = await _context.Products.CountAsync(p => p.StockQuantity <= 5);
 
             // Financial KPIs
-            viewModel.TotalStockValue = await _context.Products.SumAsync(p => (decimal?)p.StockQuantity * p.Price) ?? 0m;
+            viewModel.TotalStockValue = await _context.Products.SumAsync(p => (decimal?)p.StockQuantity * (p.Price ?? 0m)) ?? 0m;
             viewModel.TotalSales = await _context.Sales.SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
             viewModel.TotalPurchases = await _context.Purchases.SumAsync(p => (decimal?)p.TotalCost) ?? 0m;
             viewModel.NetProfit = viewModel.TotalSales - viewModel.TotalPurchases;

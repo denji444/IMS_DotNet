@@ -23,6 +23,7 @@
                         <th>Unit Price</th>
                         <th>Total Amount</th>
                         <th>Sale Date</th>
+                        <th>Batch</th>
                         <th>Notes</th>
                         <th class="text-center">Actions</th>
                     </tr>
@@ -107,6 +108,14 @@
                             <div>Available Stock: <span id="availableStockQty" class="fw-bold">0</span></div>
                             <div id="setUnitPriceContainer" class="mt-1">Set Unit Price: <span id="setUnitPriceValue" class="fw-bold text-dark">PKR 0.00</span></div>
                         </div>
+                    </div>
+
+                    <div class="mb-3" id="batchSelectContainer">
+                        <label for="saleBatchSelect" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Select Stock Batch (Optional)</label>
+                        <select asp-for="BatchNumber" class="form-select" id="saleBatchSelect">
+                            <option value="">-- General / Unbatched Stock --</option>
+                        </select>
+                        <span class="text-muted extra-small" style="font-size: 0.8rem;"><i class="fas fa-info-circle me-1"></i>Select specific purchase batch or leave blank.</span>
                     </div>
 
                     <div class="row">

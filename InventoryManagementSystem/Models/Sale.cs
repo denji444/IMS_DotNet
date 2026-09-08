@@ -45,6 +45,9 @@ namespace InventoryManagementSystem.Models
         [StringLength(500)]
         public string? Notes { get; set; } = string.Empty;
 
+        [StringLength(100)]
+        public string? BatchNumber { get; set; }
+
         [Required]
         public PaymentMode PaymentMode { get; set; } = PaymentMode.FullPayment;
 

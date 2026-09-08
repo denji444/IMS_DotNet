@@ -52,6 +52,7 @@ namespace InventoryManagementSystem.Controllers
                     s.TotalAmount,
                     SaleDate = s.SaleDate.ToString("yyyy-MM-dd HH:mm"),
                     s.Notes,
+                    BatchNumber = string.IsNullOrEmpty(s.BatchNumber) ? "N/A" : s.BatchNumber,
                     PaymentMode = (int)s.PaymentMode
                 })
                 .ToListAsync();
@@ -84,6 +85,7 @@ namespace InventoryManagementSystem.Controllers
                 sale.UnitPrice,
                 sale.TotalAmount,
                 sale.Notes,
+                BatchNumber = sale.BatchNumber ?? "",
                 PaymentMode = (int)sale.PaymentMode,
                 sale.DownPayment,
                 sale.InstallmentsCount,

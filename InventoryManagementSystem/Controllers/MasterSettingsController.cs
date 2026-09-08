@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models;
+using InventoryManagementSystem.Models.Configuration;
 using InventoryManagementSystem.Exceptions;
 
 namespace InventoryManagementSystem.Controllers
@@ -16,11 +18,16 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly InventoryDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IOptions<SmtpSettings> _smtpFallbackOptions;
 
-        public MasterSettingsController(InventoryDbContext context, UserManager<ApplicationUser> userManager)
+        public MasterSettingsController(
+            InventoryDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IOptions<SmtpSettings> smtpFallbackOptions)
         {
             _context = context;
             _userManager = userManager;
+            _smtpFallbackOptions = smtpFallbackOptions;
         }
 
         public async Task<IActionResult> Index()
@@ -329,6 +336,134 @@ namespace InventoryManagementSystem.Controllers
                 .ToListAsync();
 
             return Json(data);
+        }
+
+        public class ResetPasswordInputModel
+        {
+            public int EmployeeId { get; set; }
+        }
+
+        public class AccountStatusToggleModel
+        {
+            public int EmployeeId { get; set; }
+            public bool IsRestricted { get; set; }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeUserAccount(int id)
+        {
+            var employee = await _context.Employees
+                .Include(e => e.User)
+                .Include(e => e.Department)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (employee == null)
+            {
+                return Json(new { success = false, message = "Employee record not found." });
+            }
+
+            if (employee.User == null)
+            {
+                return Json(new { success = false, message = "No user account linked to this employee." });
+            }
+
+            bool isRestricted = await _userManager.IsLockedOutAsync(employee.User);
+
+            return Json(new
+            {
+                success = true,
+                employeeId = employee.Id,
+                fullName = employee.User.FullName,
+                email = employee.User.Email ?? "",
+                userName = employee.User.UserName ?? "",
+                designation = employee.Designation,
+                departmentName = employee.Department?.Name ?? "Unassigned",
+                defaultPassword = "Default@123",
+                isRestricted = isRestricted,
+                lockoutEnd = employee.User.LockoutEnd.HasValue && employee.User.LockoutEnd.Value > DateTimeOffset.UtcNow
+                    ? employee.User.LockoutEnd.Value.ToString("yyyy-MM-dd HH:mm")
+                    : null
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetEmployeePassword([FromBody] ResetPasswordInputModel model)
+        {
+            var employee = await _context.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
+
+            if (employee == null || employee.User == null)
+            {
+                return Json(new { success = false, message = "Employee or linked user account not found." });
+            }
+
+            var user = employee.User;
+            string defaultPassword = "Default@123";
+
+            var removeResult = await _userManager.RemovePasswordAsync(user);
+            if (!removeResult.Succeeded && await _userManager.HasPasswordAsync(user))
+            {
+                string errors = string.Join(" ", removeResult.Errors.Select(e => e.Description));
+                return Json(new { success = false, message = "Failed to clear existing password: " + errors });
+            }
+
+            var addResult = await _userManager.AddPasswordAsync(user, defaultPassword);
+            if (!addResult.Succeeded)
+            {
+                string errors = string.Join(" ", addResult.Errors.Select(e => e.Description));
+                return Json(new { success = false, message = "Failed to set default password: " + errors });
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = $"Password for {user.FullName} has been reset to default.",
+                defaultPassword = defaultPassword
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleEmployeeAccountStatus([FromBody] AccountStatusToggleModel model)
+        {
+            var employee = await _context.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
+
+            if (employee == null || employee.User == null)
+            {
+                return Json(new { success = false, message = "Employee or linked user account not found." });
+            }
+
+            var user = employee.User;
+
+            if (model.IsRestricted)
+            {
+                await _userManager.SetLockoutEnabledAsync(user, true);
+                var lockoutResult = await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
+                if (!lockoutResult.Succeeded)
+                {
+                    string errors = string.Join(" ", lockoutResult.Errors.Select(e => e.Description));
+                    return Json(new { success = false, message = "Failed to restrict account: " + errors });
+                }
+            }
+            else
+            {
+                var lockoutResult = await _userManager.SetLockoutEndDateAsync(user, null);
+                if (!lockoutResult.Succeeded)
+                {
+                    string errors = string.Join(" ", lockoutResult.Errors.Select(e => e.Description));
+                    return Json(new { success = false, message = "Failed to activate account: " + errors });
+                }
+            }
+
+            string statusMsg = model.IsRestricted
+                ? $"Account for {user.FullName} has been restricted."
+                : $"Account for {user.FullName} has been activated.";
+
+            return Json(new { success = true, isRestricted = model.IsRestricted, message = statusMsg });
         }
 
         #endregion
@@ -662,6 +797,307 @@ namespace InventoryManagementSystem.Controllers
                     _context.EmployeeAttendances.RemoveRange(autoLeaveLogs);
                     await _context.SaveChangesAsync();
                 }
+            }
+        }
+
+        #endregion
+
+        #region Categories & Types AJAX Endpoints
+
+        [HttpGet]
+        public async Task<IActionResult> GetCategoriesData()
+        {
+            var categories = await _context.ProductCategories
+                .Include(c => c.TypeOptions)
+                .ToListAsync();
+
+            var data = categories.Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.Description,
+                TypeOptions = c.TypeOptions.Select(t => t.TypeName).ToList(),
+                ProductCount = _context.Products.Count(p => p.CategoryName == c.Name)
+            }).ToList();
+
+            return Json(new { data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCategory(int id)
+        {
+            var category = await _context.ProductCategories
+                .Include(c => c.TypeOptions)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null) return NotFound();
+
+            return Json(new
+            {
+                category.Id,
+                category.Name,
+                category.Description,
+                typeOptions = category.TypeOptions.Select(t => t.TypeName).ToList()
+            });
+        }
+
+        public class CategoryInputModel
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? Description { get; set; }
+            public List<string> TypeOptions { get; set; } = new List<string>();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveCategory([FromBody] CategoryInputModel model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                return Json(new { success = false, message = "Category Name is required." });
+            }
+
+            model.Name = model.Name.Trim();
+
+            var nameExists = await _context.ProductCategories.AnyAsync(c => c.Name == model.Name && c.Id != model.Id);
+            if (nameExists)
+            {
+                return Json(new { success = false, message = $"Category '{model.Name}' already exists." });
+            }
+
+            // Clean up type options (distinct, non-empty, trimmed)
+            var cleanTypes = (model.TypeOptions ?? new List<string>())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (model.Id == 0)
+            {
+                var category = new ProductCategory
+                {
+                    Name = model.Name,
+                    Description = model.Description?.Trim(),
+                    TypeOptions = cleanTypes.Select(t => new ProductCategoryTypeOption { TypeName = t }).ToList()
+                };
+
+                _context.ProductCategories.Add(category);
+            }
+            else
+            {
+                var category = await _context.ProductCategories
+                    .Include(c => c.TypeOptions)
+                    .FirstOrDefaultAsync(c => c.Id == model.Id);
+
+                if (category == null)
+                {
+                    return Json(new { success = false, message = "Category not found." });
+                }
+
+                // If category name changed, update existing products with old category name
+                var oldCategoryName = category.Name;
+                if (!string.Equals(oldCategoryName, model.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var linkedProducts = await _context.Products.Where(p => p.CategoryName == oldCategoryName).ToListAsync();
+                    foreach (var p in linkedProducts)
+                    {
+                        p.CategoryName = model.Name;
+                    }
+                }
+
+                category.Name = model.Name;
+                category.Description = model.Description?.Trim();
+
+                // Sync TypeOptions
+                _context.ProductCategoryTypeOptions.RemoveRange(category.TypeOptions);
+                category.TypeOptions = cleanTypes.Select(t => new ProductCategoryTypeOption
+                {
+                    ProductCategoryId = category.Id,
+                    TypeName = t
+                }).ToList();
+
+                _context.Entry(category).State = EntityState.Modified;
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Category and dynamic types saved successfully!" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.ProductCategories
+                .Include(c => c.TypeOptions)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null)
+            {
+                return Json(new { success = false, message = "Category not found." });
+            }
+
+            var hasProducts = await _context.Products.AnyAsync(p => p.CategoryName == category.Name);
+            if (hasProducts)
+            {
+                return Json(new { success = false, message = $"Cannot delete category '{category.Name}' because there are products currently assigned to it in inventory. Please reassign or delete those products first." });
+            }
+
+            _context.ProductCategoryTypeOptions.RemoveRange(category.TypeOptions);
+            _context.ProductCategories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Category and its type options deleted successfully!" });
+        }
+
+        #endregion
+
+        #region SMTP Settings AJAX Endpoints
+
+        [HttpGet]
+        public async Task<IActionResult> GetSmtpSettingsData()
+        {
+            var dbSmtp = await _context.SmtpSettings.OrderByDescending(s => s.Id).FirstOrDefaultAsync();
+
+            if (dbSmtp != null)
+            {
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        dbSmtp.Id,
+                        dbSmtp.Server,
+                        dbSmtp.Port,
+                        dbSmtp.SenderName,
+                        dbSmtp.SenderEmail,
+                        dbSmtp.Username,
+                        dbSmtp.Password,
+                        dbSmtp.EnableSsl,
+                        isFromDatabase = true,
+                        updatedAt = dbSmtp.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss UTC")
+                    }
+                });
+            }
+
+            // Fallback to appsettings.json
+            var fallback = _smtpFallbackOptions.Value;
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    id = 0,
+                    server = fallback?.Server ?? "smtp.gmail.com",
+                    port = fallback?.Port ?? 587,
+                    senderName = fallback?.SenderName ?? "Inventory App",
+                    senderEmail = fallback?.SenderEmail ?? "",
+                    username = fallback?.Username ?? "",
+                    password = fallback?.Password ?? "",
+                    enableSsl = fallback?.EnableSsl ?? true,
+                    isFromDatabase = false,
+                    updatedAt = "Not saved (Using appsettings.json defaults)"
+                }
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveSmtpSettings([FromBody] SmtpSetting model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = errors });
+            }
+
+            var existing = await _context.SmtpSettings.FirstOrDefaultAsync();
+            if (existing == null)
+            {
+                model.UpdatedAt = DateTime.UtcNow;
+                _context.SmtpSettings.Add(model);
+            }
+            else
+            {
+                existing.Server = model.Server?.Trim() ?? string.Empty;
+                existing.Port = model.Port;
+                existing.SenderName = model.SenderName?.Trim() ?? string.Empty;
+                existing.SenderEmail = model.SenderEmail?.Trim() ?? string.Empty;
+                existing.Username = model.Username?.Trim() ?? string.Empty;
+                existing.Password = model.Password ?? string.Empty;
+                existing.EnableSsl = model.EnableSsl;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                _context.Entry(existing).State = EntityState.Modified;
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "SMTP Configuration saved successfully!" });
+        }
+
+        public class TestSmtpInputModel
+        {
+            public string Server { get; set; } = string.Empty;
+            public int Port { get; set; } = 587;
+            public string SenderName { get; set; } = string.Empty;
+            public string SenderEmail { get; set; } = string.Empty;
+            public string Username { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+            public bool EnableSsl { get; set; } = true;
+            public string TestEmail { get; set; } = string.Empty;
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> TestSmtpConnection([FromBody] TestSmtpInputModel model)
+        {
+            if (string.IsNullOrWhiteSpace(model.TestEmail))
+            {
+                return Json(new { success = false, message = "Please enter a valid recipient email address for testing." });
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Server) || string.IsNullOrWhiteSpace(model.SenderEmail))
+            {
+                return Json(new { success = false, message = "SMTP Server Host and Sender Email are required to send a test email." });
+            }
+
+            try
+            {
+                using (var client = new System.Net.Mail.SmtpClient(model.Server, model.Port))
+                {
+                    if (!string.IsNullOrWhiteSpace(model.Username) || !string.IsNullOrWhiteSpace(model.Password))
+                    {
+                        client.Credentials = new System.Net.NetworkCredential(model.Username, model.Password);
+                    }
+                    client.EnableSsl = model.EnableSsl;
+                    client.Timeout = 12000; // 12 seconds timeout for test
+
+                    var mailMessage = new System.Net.Mail.MailMessage
+                    {
+                        From = new System.Net.Mail.MailAddress(model.SenderEmail, string.IsNullOrWhiteSpace(model.SenderName) ? "Inventory App" : model.SenderName),
+                        Subject = "SMTP Dynamic Configuration Test",
+                        Body = $@"
+                            <div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;'>
+                                <h3 style='color: #28a745;'>SMTP Test Connection Successful!</h3>
+                                <p>Your SMTP settings in Inventory Management System are operating properly.</p>
+                                <hr />
+                                <p><strong>Server:</strong> {model.Server}:{model.Port}</p>
+                                <p><strong>Sender Email:</strong> {model.SenderEmail}</p>
+                                <p><strong>SSL Enabled:</strong> {(model.EnableSsl ? "Yes" : "No")}</p>
+                                <p><strong>Tested At:</strong> {DateTime.Now:yyyy-MM-dd HH:mm:ss}</p>
+                            </div>",
+                        IsBodyHtml = true
+                    };
+                    mailMessage.To.Add(model.TestEmail);
+
+                    await client.SendMailAsync(mailMessage);
+                }
+
+                return Json(new { success = true, message = $"Test email successfully delivered to {model.TestEmail}!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"SMTP Connection Test Failed: {ex.Message}" });
             }
         }
 

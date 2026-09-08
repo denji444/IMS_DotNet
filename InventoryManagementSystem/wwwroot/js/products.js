@@ -12,11 +12,26 @@ $(document).ready(function () {
             { "data": "id", "width": "5%" },
             { "data": "sku" },
             { "data": "name" },
+            { 
+                "data": "categoryName", 
+                "render": function(d) {
+                    return `<span class="badge bg-secondary">${d || 'General Stock'}</span>`;
+                }
+            },
+            { 
+                "data": "productType", 
+                "render": function(d) {
+                    return `<span class="badge bg-primary text-white"><i class="fas fa-tag me-1"></i>${d || 'Standard'}</span>`;
+                }
+            },
             { "data": "variant", "render": function(data) { return data ? data : "N/A"; } },
             { "data": "description" },
             { 
                 "data": "price",
                 "render": function(data) {
+                    if (data === null || data === undefined || data === "" || isNaN(parseFloat(data))) {
+                        return 'N/A';
+                    }
                     return "PKR " + parseFloat(data).toFixed(2);
                 }
             },
@@ -42,6 +57,15 @@ $(document).ready(function () {
         "language": {
             "emptyTable": "No products found. Click 'Add Product' to create one."
         }
+    });
+
+    // Fetch categories with dynamic type options on page load
+    loadCategories();
+
+    // Dynamic type options when Category changes
+    $("#productCategorySelect").on("change", function () {
+        var catName = $(this).val();
+        populateProductTypeOptions(catName);
     });
 
     // Dynamic row addition events for additional variants
@@ -105,13 +129,18 @@ $(document).ready(function () {
             return false;
         }
 
+        var priceRaw = $("#price").val();
+        var priceVal = (priceRaw !== "" && !isNaN(parseFloat(priceRaw))) ? parseFloat(priceRaw) : null;
+
         var productData = {
             Id: id,
             Sku: mainSku,
             Name: $("#productName").val(),
+            CategoryName: $("#productCategorySelect").val(),
+            ProductType: $("#productTypeSelect").val(),
             Variant: mainVariant,
             Description: $("#description").val(),
-            Price: parseFloat($("#price").val()),
+            Price: priceVal,
             StockQuantity: parseInt($("#stockQuantity").val()),
             MultipleVariants: multipleVariants.length > 0 ? multipleVariants : null
         };
@@ -189,16 +218,61 @@ function addVariantRow(sku = "", name = "") {
     $("#additionalVariantsContainer").append(row);
 }
 
+var categoriesData = [];
+
+function loadCategories(callback) {
+    $.get("/Products/GetCategoriesWithTypes", function (categories) {
+        categoriesData = categories;
+        var $catSelect = $("#productCategorySelect");
+        var curr = $catSelect.val();
+        $catSelect.empty();
+        $catSelect.append('<option value="">-- Select Category --</option>');
+        $.each(categories, function (i, cat) {
+            $catSelect.append(new Option(cat.name, cat.name));
+        });
+        if (curr) $catSelect.val(curr);
+        if (callback) callback();
+    });
+}
+
+function populateProductTypeOptions(categoryName, selectedType) {
+    var $typeSelect = $("#productTypeSelect");
+    $typeSelect.empty();
+
+    if (!categoryName) {
+        $typeSelect.append('<option value="">Select Category First</option>');
+        return;
+    }
+
+    var catObj = categoriesData.find(c => c.name === categoryName);
+    var options = catObj ? catObj.typeOptions : [];
+
+    $typeSelect.append('<option value="">-- Select Type / Condition --</option>');
+    if (options && options.length > 0) {
+        $.each(options, function (i, opt) {
+            $typeSelect.append(new Option(opt, opt));
+        });
+    } else {
+        $typeSelect.append('<option value="Standard">Standard</option>');
+    }
+
+    if (selectedType) {
+        $typeSelect.val(selectedType);
+    }
+}
+
 function openCreateModal() {
     $("#productForm")[0].reset();
     $("#productId").val(0);
     $(".text-danger").text("");
-
-    // Clear optional variant rows
     $("#additionalVariantsContainer").empty();
 
-    $("#productModalLabel").text("Add Product");
-    $("#productModal").modal("show");
+    loadCategories(function() {
+        $("#productCategorySelect").val("");
+        populateProductTypeOptions("");
+        $("#productModalLabel").text("Add Product");
+        $("#productModal").modal("show");
+    });
 }
 
 function openEditModal(id) {
@@ -214,11 +288,15 @@ function openEditModal(id) {
             $("#productName").val(data.name);
             $("#productVariant").val(data.variant);
             $("#description").val(data.description);
-            $("#price").val(data.price);
+            $("#price").val(data.price !== null && data.price !== undefined ? data.price : "");
             $("#stockQuantity").val(data.stockQuantity);
 
-            $("#productModalLabel").text("Edit Product");
-            $("#productModal").modal("show");
+            loadCategories(function() {
+                $("#productCategorySelect").val(data.categoryName || "");
+                populateProductTypeOptions(data.categoryName, data.productType || "");
+                $("#productModalLabel").text("Edit Product");
+                $("#productModal").modal("show");
+            });
         },
         error: function () {
             Swal.fire({

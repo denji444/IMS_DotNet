@@ -36,6 +36,16 @@
             <i class="fas fa-calendar-times me-2"></i> Leave Requests
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab" aria-controls="categories" aria-selected="false">
+            <i class="fas fa-tags me-2"></i> Product Categories & Types
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="smtp-tab" data-bs-toggle="tab" data-bs-target="#smtp" type="button" role="tab" aria-controls="smtp" aria-selected="false">
+            <i class="fas fa-envelope-open-text me-2"></i> SMTP Settings
+        </button>
+    </li>
 </ul>
 
 <!-- Tab Content -->
@@ -63,6 +73,7 @@
                                 <th>Hire Date</th>
                                 <th>Salary</th>
                                 <th>Status</th>
+                                <th class="text-center">Profile</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -160,10 +171,256 @@
         </div>
     </div>
 
+    <!-- Categories & Types Tab -->
+    <div class="tab-pane fade" id="categories" role="tabpanel" aria-labelledby="categories-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Manage Product Categories & Dynamic Types</h5>
+                <button class="btn btn-primary btn-sm" onclick="openCategoryModal(0)">
+                    <i class="fas fa-plus me-1"></i> Add Category
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped w-100" id="categoriesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Description</th>
+                                <th>Available Dynamic Types</th>
+                                <th class="text-center">Products Count</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMTP Settings Tab Pane -->
+    <div class="tab-pane fade" id="smtp" role="tabpanel" aria-labelledby="smtp-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="fas fa-envelope-open-text me-2"></i>Configure Dynamic SMTP & Email Gateway</h5>
+                <span class="badge bg-info text-dark" id="smtpConfigSourceBadge">Checking Source...</span>
+            </div>
+            <div class="card-body p-4">
+                <form id="smtpForm">
+                    <input type="hidden" id="smtpId" value="0" />
+
+                    <div class="alert alert-info d-flex align-items-center mb-4 shadow-sm" role="alert">
+                        <i class="fas fa-info-circle fa-2x me-3 text-info"></i>
+                        <div>
+                            <strong>Dynamic Email Gateway:</strong> Configure your SMTP outgoing mail server here. Changes take effect immediately across all email features (Email Confirmation, Sales Invoices, Purchase Orders, and Notifications) without needing app restarts.
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold"><i class="fas fa-server me-1 text-primary"></i> SMTP Host / Server</label>
+                            <input type="text" class="form-control" id="smtpServer" placeholder="e.g. smtp.gmail.com or smtp.office365.com" required />
+                            <div class="form-text">Address of your outgoing SMTP mail server provider.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold"><i class="fas fa-plug me-1 text-primary"></i> SMTP Port</label>
+                            <input type="number" class="form-control" id="smtpPort" placeholder="e.g. 587 or 465" required min="1" max="65535" />
+                            <div class="form-text">Standard ports: 587 (TLS/STARTTLS), 465 (SSL), 25 (Unencrypted).</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="fas fa-id-card me-1 text-primary"></i> Sender Display Name</label>
+                            <input type="text" class="form-control" id="smtpSenderName" placeholder="e.g. Inventory Management System" required />
+                            <div class="form-text">The friendly 'From' name shown in recipient inboxes.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="fas fa-at me-1 text-primary"></i> Sender Email Address</label>
+                            <input type="email" class="form-control" id="smtpSenderEmail" placeholder="e.g. no-reply@yourcompany.com" required />
+                            <div class="form-text">The official email address sending outgoing emails.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="fas fa-user-lock me-1 text-primary"></i> Authentication Username</label>
+                            <input type="text" class="form-control" id="smtpUsername" placeholder="e.g. your-email@gmail.com" />
+                            <div class="form-text">Leave blank if SMTP server does not require authentication.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="fas fa-key me-1 text-primary"></i> Authentication Password / App Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="smtpPassword" placeholder="Enter SMTP password or App Password" />
+                                <button class="btn btn-outline-secondary" type="button" id="btnToggleSmtpPassword" onclick="togglePasswordVisibility('#smtpPassword', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">For Gmail, use a 16-character App Password (requires 2FA).</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4 align-items-center">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch card p-3 border shadow-sm">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="smtpEnableSsl" checked style="transform: scale(1.3);" />
+                                <label class="form-check-label fw-bold text-dark" for="smtpEnableSsl">
+                                    <i class="fas fa-shield-alt text-success me-1"></i> Enable SSL / TLS Encryption
+                                </label>
+                                <span class="small text-muted d-block mt-1">Encrypt outgoing mail sessions (recommended for Gmail, Outlook, Amazon SES).</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="small text-muted d-block mb-1"><i class="fas fa-history me-1"></i> Last Saved: <strong id="smtpLastUpdated">-</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <button type="button" class="btn btn-outline-primary px-4 py-2 fw-bold" onclick="openTestSmtpModal()">
+                            <i class="fas fa-paper-plane me-2"></i> Send Test Email
+                        </button>
+                        <button type="submit" class="btn btn-success px-5 py-2 fw-bold shadow-sm" id="btnSaveSmtp">
+                            <i class="fas fa-save me-2"></i> Save SMTP Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Test SMTP Modal -->
+<div class="modal fade" id="testSmtpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold" id="testSmtpModalLabel">
+                    <i class="fas fa-paper-plane me-2"></i>Test SMTP Email Gateway
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="testSmtpForm">
+                <div class="modal-body p-4">
+                    <p class="text-muted small">Send a test email using the settings currently entered on the SMTP configuration form to verify connection and delivery live.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Recipient Test Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fas fa-envelope text-primary"></i></span>
+                            <input type="email" class="form-control" id="testRecipientEmail" placeholder="e.g. admin@example.com" required />
+                        </div>
+                        <div class="form-text">A test confirmation email will be dispatched to this inbox.</div>
+                    </div>
+                    <div id="testSmtpResultAlert" class="d-none"></div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary fw-bold" id="btnSendTestEmail">
+                        <i class="fas fa-paper-plane me-1"></i> Send Test Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Account & User Profile Control Modal -->
+<div class="modal fade" id="employeeAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title fw-bold" id="empAccountModalLabel">
+                    <i class="fas fa-user-shield me-2 text-info"></i>Employee User Account
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="empAccEmployeeId" value="0" />
+                
+                <!-- Employee Summary Header -->
+                <div class="d-flex align-items-center bg-light p-3 rounded mb-4 border">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px; font-size: 22px;">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" id="empAccFullName">Employee Name</h5>
+                        <p class="text-muted small mb-0"><span id="empAccDesignation">Designation</span> &bull; <span class="badge bg-secondary" id="empAccDepartment">Department</span></p>
+                    </div>
+                </div>
+
+                <!-- Credentials Info Section -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-envelope text-primary"></i></span>
+                        <input type="text" class="form-control bg-light" id="empAccEmail" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#empAccEmail', 'Email copied!')" title="Copy Email">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-user text-primary"></i></span>
+                        <input type="text" class="form-control bg-light" id="empAccUsername" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#empAccUsername', 'Username copied!')" title="Copy Username">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Password & Credentials Control</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-white"><i class="fas fa-lock text-primary"></i></span>
+                        <input type="password" class="form-control bg-light" id="empAccPassword" value="Default@123" readonly />
+                        <button class="btn btn-outline-secondary" type="button" id="btnToggleShowPassword" onclick="togglePasswordVisibility()" title="Show/Hide Password">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted extra-small" style="font-size: 0.8rem;"><i class="fas fa-info-circle me-1"></i>Default Password: <strong>Default@123</strong></span>
+                        <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-bold" id="btnResetPassword" onclick="resetEmployeePassword()">
+                            <i class="fas fa-key me-1"></i> Reset to Default
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <!-- Account Access Status Control -->
+                <div class="p-3 rounded border bg-light">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">
+                                <i class="fas fa-shield-alt me-1 text-primary"></i> Account Access Status
+                            </h6>
+                            <p class="text-muted extra-small mb-0" style="font-size: 0.82rem;" id="accountStatusHelpText">
+                                Toggle to Restrict or Activate user system access.
+                            </p>
+                        </div>
+                        <div class="form-check form-switch form-switch-md ms-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="empAccRestrictedToggle" style="width: 2.5em; height: 1.25em; cursor: pointer;" onchange="toggleAccountRestriction(this)">
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <span class="badge bg-success py-1 px-3" id="empAccStatusBadge">ACCOUNT ACTIVE</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer bg-light border-0 py-3">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Employee Modal -->
-<div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="employeeModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
@@ -229,7 +486,7 @@
 </div>
 
 <!-- Department Modal -->
-<div class="modal fade" id="deptModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="deptModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
@@ -258,7 +515,7 @@
 </div>
 
 <!-- Attendance Modal -->
-<div class="modal fade" id="attendanceModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="attendanceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
@@ -306,7 +563,7 @@
 </div>
 
 <!-- Leave Modal -->
-<div class="modal fade" id="leaveModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="leaveModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
@@ -363,12 +620,67 @@
     </div>
 </div>
 
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="categoryModalLabel"><i class="fas fa-tags me-2 text-primary"></i>Add Category</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="categoryForm">
+                <input type="hidden" id="catId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="catName" placeholder="e.g. Mobile Phones, Laptops & Computers, Wearables" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea class="form-control" id="catDescription" placeholder="Optional category description or notes..." style="height: 70px;"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="fas fa-list-ul me-1 text-primary"></i> Dynamic Types / Conditions / Options</span>
+                            <small class="text-muted fw-normal">Type and press Enter or click 'Add Type'</small>
+                        </label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-white"><i class="fas fa-tag text-muted"></i></span>
+                            <input type="text" class="form-control" id="catTypeInput" placeholder="e.g. PTA Approved, JV, CPID, Grade A Refurbished..." />
+                            <button type="button" class="btn btn-primary fw-bold" id="btnAddTypeTag" onclick="addTypeTagFromInput()">
+                                <i class="fas fa-plus me-1"></i> Add Type
+                            </button>
+                        </div>
+                        
+                        <div class="card border shadow-sm">
+                            <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                                <span class="small fw-bold text-uppercase text-secondary"><i class="fas fa-list me-1"></i> Configured Types (<span id="typeCountBadge">0</span>)</span>
+                                <span class="text-muted" style="font-size: 0.75rem;">Items will appear as dropdown options for this category</span>
+                            </div>
+                            <div class="list-group list-group-flush" id="typeTagsContainer" style="max-height: 220px; overflow-y: auto;">
+                                <div class="list-group-item text-center py-3 text-muted small" id="noTypesNotice">
+                                    <i class="fas fa-info-circle me-1"></i> No types added yet. Use the input above to append options.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveCategory">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 @section Scripts {
     <script>
-        var empTable, deptTable, attTable, leaveTable;
+        var empTable, deptTable, attTable, leaveTable, categoryTable;
         var token = $('input[name="__RequestVerificationToken"]').val();
+        var currentTypeTags = [];
 
         $(document).ready(function () {
             // Setup CSRF header for Ajax
@@ -405,6 +717,11 @@
                     $('#side-nav-attendance').addClass('active-sublink');
                 } else if (tabId === 'leaves') {
                     $('#side-nav-leaves').addClass('active-sublink');
+                } else if (tabId === 'categories') {
+                    $('#side-nav-categories').addClass('active-sublink');
+                } else if (tabId === 'smtp') {
+                    $('#side-nav-smtp').addClass('active-sublink');
+                    loadSmtpSettings();
                 }
             }
 
@@ -434,6 +751,10 @@
                     attTable.ajax.reload(null, false);
                 } else if (targetId === 'leaves') {
                     leaveTable.ajax.reload(null, false);
+                } else if (targetId === 'categories') {
+                    categoryTable.ajax.reload(null, false);
+                } else if (targetId === 'smtp') {
+                    loadSmtpSettings();
                 }
             });
 
@@ -506,7 +827,7 @@
                     { 
                         "data": "salary", 
                         "render": function(d) { return 'PKR ' + parseFloat(d).toFixed(2); },
-                        "width": "10%" 
+                        "width": "9%" 
                     },
                     { 
                         "data": "status",
@@ -517,7 +838,21 @@
                             else if (d === "Terminated") badge = "bg-danger";
                             return `<span class="badge ${badge}">${d}</span>`;
                         },
-                        "width": "10%" 
+                        "width": "8%" 
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center">
+                                    <button class="btn btn-sm btn-outline-info rounded-circle shadow-sm" style="width: 34px; height: 34px; padding: 0; line-height: 32px;" onclick="openEmployeeAccountModal(${data})" title="User Credentials & Access Control">
+                                        <i class="fas fa-user-tie"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "6%"
                     },
                     {
                         "data": "id",
@@ -534,7 +869,7 @@
                             `;
                         },
                         "orderable": false,
-                        "width": "8%"
+                        "width": "6%"
                     }
                 ]
             });
@@ -716,6 +1051,68 @@
                 ],
                 "order": [[0, "desc"]]
             });
+            // Categories & Dynamic Types Table
+            categoryTable = $("#categoriesTable").DataTable({
+                "ajax": {
+                    "url": "/MasterSettings/GetCategoriesData",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { 
+                        "data": "name", 
+                        "width": "20%",
+                        "render": function(d) {
+                            return `<strong class="text-dark"><i class="fas fa-folder text-warning me-2"></i>${d}</strong>`;
+                        }
+                    },
+                    { 
+                        "data": "description", 
+                        "width": "25%",
+                        "render": function(d) {
+                            return d ? d : '<span class="text-muted fst-italic">No description</span>';
+                        }
+                    },
+                    { 
+                        "data": "typeOptions",
+                        "width": "35%",
+                        "render": function(types) {
+                            if (!types || types.length === 0) {
+                                return '<span class="text-muted fst-italic small">No dynamic types configured</span>';
+                            }
+                            var listItems = types.map(function(t) {
+                                return `<li class="py-1 d-flex align-items-center text-dark"><i class="fas fa-check-circle text-primary me-2" style="font-size: 0.78rem;"></i><span>${t}</span></li>`;
+                            }).join('');
+                            return `<ul class="list-unstyled mb-0 small">${listItems}</ul>`;
+                        }
+                    },
+                    { 
+                        "data": "productCount",
+                        "className": "text-center",
+                        "render": function(d) { 
+                            return `<span class="badge ${d > 0 ? 'bg-info text-dark' : 'bg-secondary'}">${d} Product(s)</span>`; 
+                        },
+                        "width": "10%" 
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `
+                                <div class="text-center text-nowrap">
+                                    <button class="btn btn-sm btn-dark me-1" onclick="openCategoryModal(${data})" title="Edit Category & Types">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${data})" title="Delete Category">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        "orderable": false,
+                        "width": "10%"
+                    }
+                ]
+            });
         }
 
         function setupFormHandlers() {
@@ -747,6 +1144,30 @@
                 };
 
                 submitForm("/MasterSettings/SaveDepartment", model, "#deptModal", deptTable, "#btnSaveDept");
+            });
+
+            // Category Form Save
+            $("#categoryForm").on("submit", function (e) {
+                e.preventDefault();
+                var name = $("#catName").val().trim();
+                if (!name) {
+                    Swal.fire({
+                        title: 'Required Field Missing',
+                        text: 'Category Name is required.',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return;
+                }
+
+                var model = {
+                    Id: parseInt($("#catId").val()) || 0,
+                    Name: name,
+                    Description: $("#catDescription").val().trim(),
+                    TypeOptions: currentTypeTags
+                };
+
+                submitForm("/MasterSettings/SaveCategory", model, "#categoryModal", categoryTable, "#btnSaveCategory");
             });
 
             // Attendance Form Save
@@ -811,6 +1232,114 @@
                 };
 
                 submitForm("/MasterSettings/SaveLeave", model, "#leaveModal", leaveTable, "#btnSaveLeave");
+            });
+
+            // SMTP Form Save
+            $("#smtpForm").on("submit", function (e) {
+                e.preventDefault();
+
+                var data = {
+                    Id: parseInt($("#smtpId").val()) || 0,
+                    Server: $("#smtpServer").val().trim(),
+                    Port: parseInt($("#smtpPort").val()) || 587,
+                    SenderName: $("#smtpSenderName").val().trim(),
+                    SenderEmail: $("#smtpSenderEmail").val().trim(),
+                    Username: $("#smtpUsername").val().trim(),
+                    Password: $("#smtpPassword").val(),
+                    EnableSsl: $("#smtpEnableSsl").is(":checked")
+                };
+
+                var btn = $("#btnSaveSmtp");
+                btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-2"></i> Saving Settings...');
+
+                $.ajax({
+                    url: "/MasterSettings/SaveSmtpSettings",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function (res) {
+                        btn.prop("disabled", false).html('<i class="fas fa-save me-2"></i> Save SMTP Configuration');
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Saved!',
+                                text: res.message,
+                                icon: 'success',
+                                confirmButtonColor: '#28a745'
+                            });
+                            loadSmtpSettings();
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: res.message,
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.prop("disabled", false).html('<i class="fas fa-save me-2"></i> Save SMTP Configuration');
+                        var msg = xhr.responseJSON?.message || "Failed to save SMTP configuration.";
+                        Swal.fire({
+                            title: 'Error!',
+                            text: msg,
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                });
+            });
+
+            // Test SMTP Form Submit
+            $("#testSmtpForm").on("submit", function (e) {
+                e.preventDefault();
+
+                var recipientEmail = $("#testRecipientEmail").val().trim();
+                if (!recipientEmail) return;
+
+                var testData = {
+                    Server: $("#smtpServer").val().trim(),
+                    Port: parseInt($("#smtpPort").val()) || 587,
+                    SenderName: $("#smtpSenderName").val().trim(),
+                    SenderEmail: $("#smtpSenderEmail").val().trim(),
+                    Username: $("#smtpUsername").val().trim(),
+                    Password: $("#smtpPassword").val(),
+                    EnableSsl: $("#smtpEnableSsl").is(":checked"),
+                    TestEmail: recipientEmail
+                };
+
+                var btn = $("#btnSendTestEmail");
+                var alertDiv = $("#testSmtpResultAlert");
+
+                btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-2"></i> Testing Connection...');
+                alertDiv.removeClass("d-none alert-success alert-danger")
+                        .addClass("alert alert-info")
+                        .html('<i class="fas fa-sync fa-spin me-2"></i> Connecting to SMTP server and sending test email... Please wait.');
+
+                $.ajax({
+                    url: "/MasterSettings/TestSmtpConnection",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(testData),
+                    success: function (res) {
+                        btn.prop("disabled", false).html('<i class="fas fa-paper-plane me-1"></i> Send Test Email');
+                        if (res.success) {
+                            alertDiv.removeClass("alert-info alert-danger")
+                                    .addClass("alert alert-success")
+                                    .html('<i class="fas fa-check-circle me-2"></i>' + res.message);
+                        } else {
+                            alertDiv.removeClass("alert-info alert-success")
+                                    .addClass("alert alert-danger")
+                                    .html('<i class="fas fa-exclamation-triangle me-2"></i>' + res.message);
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.prop("disabled", false).html('<i class="fas fa-paper-plane me-1"></i> Send Test Email');
+                        var msg = xhr.responseJSON?.message || "Error testing SMTP connection.";
+                        alertDiv.removeClass("alert-info alert-success")
+                                .addClass("alert alert-danger")
+                                .html('<i class="fas fa-exclamation-triangle me-2"></i>' + msg);
+                    }
+                });
             });
         }
 
@@ -980,6 +1509,92 @@
             confirmDelete("/MasterSettings/DeleteLeave/" + id, leaveTable, "This leave record will be permanently deleted.");
         }
 
+        function deleteCategory(id) {
+            confirmDelete("/MasterSettings/DeleteCategory/" + id, categoryTable, "This will delete the category and its dynamic type options.");
+        }
+
+        // Category Tag Management & Modal
+        function openCategoryModal(id) {
+            $("#categoryForm")[0].reset();
+            $("#catId").val(0);
+            $("#catTypeInput").val("");
+            currentTypeTags = [];
+            renderTypeTags();
+            $("#categoryModalLabel").html('<i class="fas fa-tags me-2 text-primary"></i>Add Category');
+
+            if (id > 0) {
+                $.get("/MasterSettings/GetCategory/" + id, function (data) {
+                    $("#catId").val(data.id);
+                    $("#catName").val(data.name);
+                    $("#catDescription").val(data.description || "");
+                    currentTypeTags = data.typeOptions || [];
+                    renderTypeTags();
+
+                    $("#categoryModalLabel").html('<i class="fas fa-edit me-2 text-primary"></i>Edit Category');
+                    $("#categoryModal").modal("show");
+                });
+            } else {
+                $("#categoryModal").modal("show");
+            }
+        }
+
+        function renderTypeTags() {
+            var container = $("#typeTagsContainer");
+            container.empty();
+            $("#typeCountBadge").text(currentTypeTags ? currentTypeTags.length : 0);
+
+            if (!currentTypeTags || currentTypeTags.length === 0) {
+                container.html(`
+                    <div class="list-group-item text-center py-3 text-muted small" id="noTypesNotice">
+                        <i class="fas fa-info-circle me-1"></i> No types added yet. Use the input above to append options.
+                    </div>
+                `);
+                return;
+            }
+
+            currentTypeTags.forEach(function (tag, index) {
+                var item = $(`
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 bg-white">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary rounded-pill me-2 text-white" style="font-size: 0.75rem; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;">${index + 1}</span>
+                            <span class="fw-medium text-dark">${tag}</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-circle" onclick="removeTypeTag(${index})" title="Remove Option" style="width: 28px; height: 28px; line-height: 26px;">
+                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
+                `);
+                container.append(item);
+            });
+        }
+
+        function addTypeTagFromInput() {
+            var input = $("#catTypeInput");
+            var val = input.val().trim();
+            if (!val) return;
+
+            // Prevent duplicate tag
+            var exists = currentTypeTags.some(function (t) { return t.toLowerCase() === val.toLowerCase(); });
+            if (!exists) {
+                currentTypeTags.push(val);
+                renderTypeTags();
+            }
+            input.val("").focus();
+        }
+
+        function removeTypeTag(index) {
+            currentTypeTags.splice(index, 1);
+            renderTypeTags();
+        }
+
+        // Handle Enter key inside Type input
+        $(document).on("keydown", "#catTypeInput", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                addTypeTagFromInput();
+            }
+        });
+
         function confirmDelete(url, tableRef, warningText) {
             Swal.fire({
                 title: 'Are you sure?',
@@ -1024,6 +1639,279 @@
                     });
                 }
             });
+        }
+        // User Profile & Employee Account Modal Handlers
+        function openEmployeeAccountModal(id) {
+            $("#empAccEmployeeId").val(id);
+            $("#empAccFullName").text("Loading...");
+            $("#empAccDesignation").text("");
+            $("#empAccDepartment").text("");
+            $("#empAccEmail").val("");
+            $("#empAccUsername").val("");
+            $("#empAccPassword").val("Default@123").attr("type", "password");
+            $("#eyeIcon").removeClass("fa-eye-slash").addClass("fa-eye");
+
+            $.get("/MasterSettings/GetEmployeeUserAccount/" + id, function (response) {
+                if (!response.success) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                    return;
+                }
+
+                $("#empAccFullName").text(response.fullName);
+                $("#empAccDesignation").text(response.designation);
+                $("#empAccDepartment").text(response.departmentName);
+                $("#empAccEmail").val(response.email);
+                $("#empAccUsername").val(response.userName);
+                $("#empAccPassword").val(response.defaultPassword);
+
+                var isRestricted = response.isRestricted;
+                $("#empAccRestrictedToggle").prop("checked", isRestricted);
+                updateStatusBadge(isRestricted);
+
+                $("#employeeAccountModal").modal("show");
+            }).fail(function () {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Unable to load employee user account profile.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            });
+        }
+
+        function updateStatusBadge(isRestricted) {
+            var badge = $("#empAccStatusBadge");
+            var helpText = $("#accountStatusHelpText");
+            if (isRestricted) {
+                badge.removeClass("bg-success").addClass("bg-danger").text("ACCOUNT RESTRICTED");
+                helpText.text("Account is currently restricted/locked out. Employee cannot log in.");
+            } else {
+                badge.removeClass("bg-danger").addClass("bg-success").text("ACCOUNT ACTIVE");
+                helpText.text("Account is active. Employee can log in with their credentials.");
+            }
+        }
+
+        function togglePasswordVisibility() {
+            var pwdInput = $("#empAccPassword");
+            var eyeIcon = $("#eyeIcon");
+            if (pwdInput.attr("type") === "password") {
+                pwdInput.attr("type", "text");
+                eyeIcon.removeClass("fa-eye").addClass("fa-eye-slash");
+            } else {
+                pwdInput.attr("type", "password");
+                eyeIcon.removeClass("fa-eye-slash").addClass("fa-eye");
+            }
+        }
+
+        function copyToClipboard(elementId, toastMsg) {
+            var text = $(elementId).val();
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(function () {
+                    showToast(toastMsg);
+                });
+            } else {
+                var input = $(elementId)[0];
+                input.select();
+                document.execCommand('copy');
+                showToast(toastMsg);
+            }
+        }
+
+        function showToast(msg) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: msg
+            });
+        }
+
+        function resetEmployeePassword() {
+            var empId = parseInt($("#empAccEmployeeId").val());
+            var empName = $("#empAccFullName").text();
+
+            Swal.fire({
+                title: 'Reset Password?',
+                text: `Are you sure you want to reset password for "${empName}" to default (Default@123)?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f0ad4e',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Reset Password'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var btn = $("#btnResetPassword");
+                    var origHtml = btn.html();
+                    btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-1"></span>Resetting...');
+
+                    $.ajax({
+                        url: "/MasterSettings/ResetEmployeePassword",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ employeeId: empId }),
+                        success: function (response) {
+                            btn.prop("disabled", false).html(origHtml);
+                            if (response.success) {
+                                $("#empAccPassword").val(response.defaultPassword);
+                                Swal.fire({
+                                    title: 'Password Reset!',
+                                    html: `Password for <strong>${empName}</strong> has been reset.<br/><br/>Default Password: <code class="fs-5">${response.defaultPassword}</code>`,
+                                    icon: 'success',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            btn.prop("disabled", false).html(origHtml);
+                            var msg = xhr.responseJSON?.message || "An error occurred while resetting password.";
+                            Swal.fire({
+                                title: 'Error!',
+                                text: msg,
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function toggleAccountRestriction(toggleElem) {
+            var empId = parseInt($("#empAccEmployeeId").val());
+            var isRestricted = $(toggleElem).is(":checked");
+            var empName = $("#empAccFullName").text();
+
+            var actionTitle = isRestricted ? "Restrict Account?" : "Activate Account?";
+            var actionText = isRestricted 
+                ? `Are you sure you want to RESTRICT access for "${empName}"? They will not be able to log into the system.`
+                : `Are you sure you want to ACTIVATE access for "${empName}"?`;
+
+            Swal.fire({
+                title: actionTitle,
+                text: actionText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: isRestricted ? '#d33' : '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: isRestricted ? 'Yes, Restrict' : 'Yes, Activate'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "/MasterSettings/ToggleEmployeeAccountStatus",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ employeeId: empId, isRestricted: isRestricted }),
+                        success: function (response) {
+                            if (response.success) {
+                                updateStatusBadge(response.isRestricted);
+                                Swal.fire({
+                                    title: 'Status Updated!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            } else {
+                                $(toggleElem).prop("checked", !isRestricted);
+                                updateStatusBadge(!isRestricted);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            $(toggleElem).prop("checked", !isRestricted);
+                            updateStatusBadge(!isRestricted);
+                            var msg = xhr.responseJSON?.message || "An error occurred while updating account status.";
+                            Swal.fire({
+                                title: 'Error!',
+                                text: msg,
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                } else {
+                    $(toggleElem).prop("checked", !isRestricted);
+                }
+            });
+        }
+
+        function loadSmtpSettings() {
+            $.ajax({
+                url: "/MasterSettings/GetSmtpSettingsData",
+                type: "GET",
+                success: function (res) {
+                    if (res.success && res.data) {
+                        var d = res.data;
+                        $("#smtpId").val(d.id || d.Id || 0);
+                        $("#smtpServer").val(d.server || d.Server || '');
+                        $("#smtpPort").val(d.port || d.Port || 587);
+                        $("#smtpSenderName").val(d.senderName || d.SenderName || '');
+                        $("#smtpSenderEmail").val(d.senderEmail || d.SenderEmail || '');
+                        $("#smtpUsername").val(d.username || d.Username || '');
+                        $("#smtpPassword").val(d.password || d.Password || '');
+                        $("#smtpEnableSsl").prop("checked", d.enableSsl !== undefined ? d.enableSsl : (d.EnableSsl !== undefined ? d.EnableSsl : true));
+                        $("#smtpLastUpdated").text(d.updatedAt || d.UpdatedAt || '-');
+
+                        if (d.isFromDatabase || d.IsFromDatabase) {
+                            $("#smtpConfigSourceBadge")
+                                .removeClass("bg-info bg-warning text-dark")
+                                .addClass("bg-success text-white")
+                                .html('<i class="fas fa-database me-1"></i> Active (Database Saved)');
+                        } else {
+                            $("#smtpConfigSourceBadge")
+                                .removeClass("bg-success text-white")
+                                .addClass("bg-warning text-dark")
+                                .html('<i class="fas fa-file-code me-1"></i> Default (appsettings.json)');
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Failed to load SMTP settings:", xhr);
+                }
+            });
+        }
+
+        function togglePasswordVisibility(inputSel, btnElem) {
+            var $input = $(inputSel);
+            var $icon = $(btnElem).find('i');
+            if ($input.attr('type') === 'password') {
+                $input.attr('type', 'text');
+                $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                $input.attr('type', 'password');
+                $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        }
+
+        function openTestSmtpModal() {
+            var senderEmail = $("#smtpSenderEmail").val();
+            if (senderEmail) {
+                $("#testRecipientEmail").val(senderEmail);
+            }
+            $("#testSmtpResultAlert").addClass("d-none alert-success alert-danger alert-info").html("");
+            var testModal = new bootstrap.Modal(document.getElementById('testSmtpModal'));
+            testModal.show();
         }
     </script>
 }

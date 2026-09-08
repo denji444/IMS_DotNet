@@ -26,6 +26,12 @@ $(document).ready(function () {
                 }
             },
             { "data": "saleDate" },
+            { 
+                "data": "batchNumber",
+                "render": function(d) {
+                    return (d && d !== "N/A") ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${d}</span>` : '<span class="badge bg-light text-secondary">N/A</span>';
+                }
+            },
             { "data": "notes" },
             {
                 "data": "id",
@@ -112,11 +118,17 @@ $(document).ready(function () {
                     // Show real-time quantity
                     $("#availableStockQty").text(data.stockQuantity);
                     
+                    var hasPrice = (data.price !== null && data.price !== undefined && !isNaN(parseFloat(data.price)));
+                    var priceFormatted = hasPrice ? parseFloat(data.price).toFixed(2) : "";
+
                     // Show set unit price
-                    $("#setUnitPriceValue").text("PKR " + data.price.toFixed(2));
+                    if (hasPrice) {
+                        $("#setUnitPriceValue").text("PKR " + priceFormatted);
+                    } else {
+                        $("#setUnitPriceValue").text("N/A");
+                    }
                     
-                    // Set the min attribute on the unit price input so it can't be less than the set price
-                    $("#unitPrice").attr("min", data.price.toFixed(2));
+                    $("#unitPrice").removeAttr("min");
                     
                     // Set color based on stock availability
                     if (data.stockQuantity > 0) {
@@ -133,8 +145,30 @@ $(document).ready(function () {
 
                     // Only prefill unit price if we are creating a new sale (i.e. saleId is 0)
                     if (parseInt($("#saleId").val()) === 0) {
-                        $("#unitPrice").val(data.price.toFixed(2));
+                        if (hasPrice) {
+                            $("#unitPrice").val(priceFormatted);
+                        }
                         calculateTotalAmount();
+                    }
+                }
+            });
+
+            // Fetch active batches for selected product
+            $.ajax({
+                url: "/Purchases/GetAvailableBatchesForProduct?productId=" + id,
+                type: "GET",
+                success: function (batches) {
+                    var $batchSelect = $("#saleBatchSelect");
+                    var currentVal = $batchSelect.val();
+                    $batchSelect.empty();
+                    $batchSelect.append('<option value="">-- General / Unbatched Stock --</option>');
+                    if (batches && batches.length > 0) {
+                        $.each(batches, function (i, b) {
+                            $batchSelect.append(new Option(b.displayName, b.batchNumber));
+                        });
+                    }
+                    if (currentVal) {
+                        $batchSelect.val(currentVal);
                     }
                 }
             });
@@ -145,6 +179,7 @@ $(document).ready(function () {
             $("#availableStockQty").text("0");
             $("#setUnitPriceValue").text("PKR 0.00");
             $("#unitPrice").attr("min", "0.01");
+            $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
         }
     });
 
@@ -252,6 +287,7 @@ $(document).ready(function () {
             Quantity: parseInt($("#saleQty").val()),
             UnitPrice: parseFloat($("#unitPrice").val()),
             TotalAmount: parseFloat($("#totalAmount").val()),
+            BatchNumber: $("#saleBatchSelect").val(),
             Notes: $("#notes").val(),
             NewCustomerFirstName: newCustomerFirstName,
             NewCustomerLastName: newCustomerLastName,
@@ -330,6 +366,7 @@ function openCreateModal() {
     $("#newCustomerFields").addClass("d-none");
     clearNewCustomerFields();
     $("#productSelect").val(null).trigger('change');
+    $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
     $("#availableStockContainer").addClass("d-none");
     $("#availableStockQty").text("0");
     $(".text-danger").text("");
@@ -367,6 +404,11 @@ function openEditModal(id) {
             if (data.productId) {
                 var prodOpt = new Option(data.productName, data.productId, true, true);
                 $("#productSelect").append(prodOpt).trigger('change');
+                if (data.batchNumber && data.batchNumber !== "N/A") {
+                    setTimeout(function() {
+                        $("#saleBatchSelect").val(data.batchNumber);
+                    }, 300);
+                }
             } else {
                 $("#productSelect").val(null).trigger('change');
             }

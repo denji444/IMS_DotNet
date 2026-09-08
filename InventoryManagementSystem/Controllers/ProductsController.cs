@@ -35,12 +35,47 @@ namespace InventoryManagementSystem.Controllers
                     p.Sku,
                     p.Name,
                     p.Variant,
+                    CategoryName = string.IsNullOrEmpty(p.CategoryName) ? "General Stock" : p.CategoryName,
+                    ProductType = string.IsNullOrEmpty(p.ProductType) ? "Standard" : p.ProductType,
                     p.Description,
                     p.Price,
                     p.StockQuantity
                 })
                 .ToListAsync();
             return Json(new { data = products });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCategoriesWithTypes()
+        {
+            var categories = await _context.ProductCategories
+                .Include(c => c.TypeOptions)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    c.Description,
+                    typeOptions = c.TypeOptions.Select(t => t.TypeName).ToList()
+                })
+                .ToListAsync();
+
+            return Json(categories);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTypesByCategory(string categoryName)
+        {
+            if (string.IsNullOrWhiteSpace(categoryName))
+            {
+                return Json(new System.Collections.Generic.List<string>());
+            }
+
+            var types = await _context.ProductCategoryTypeOptions
+                .Where(t => t.Category != null && t.Category.Name == categoryName)
+                .Select(t => t.TypeName)
+                .ToListAsync();
+
+            return Json(types);
         }
 
         // Select2 Endpoint for autocomplete
@@ -52,7 +87,35 @@ namespace InventoryManagementSystem.Controllers
             {
                 query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q) || p.Variant.Contains(q));
             }
-            var data = await query.Select(p => new { id = p.Id, text = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]", price = p.Price }).ToListAsync();
+            var products = await query.ToListAsync();
+
+            var productIds = products.Select(p => p.Id).ToList();
+            var latestPurchasePrices = await _context.Purchases
+                .Where(p => productIds.Contains(p.ProductId))
+                .GroupBy(p => p.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    UnitPrice = g.OrderByDescending(p => p.PurchaseDate).Select(p => p.UnitPrice).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.ProductId, x => x.UnitPrice);
+
+            var data = products.Select(p =>
+            {
+                decimal? price = p.Price;
+                if ((!price.HasValue || price.Value == 0) && latestPurchasePrices.TryGetValue(p.Id, out var purcPrice))
+                {
+                    price = purcPrice;
+                }
+
+                return new
+                {
+                    id = p.Id,
+                    text = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]",
+                    price = price
+                };
+            }).ToList();
+
             return Json(data);
         }
 
@@ -67,14 +130,27 @@ namespace InventoryManagementSystem.Controllers
                 return NotFound();
             }
 
+            decimal? effectivePrice = product.Price;
+            if (!effectivePrice.HasValue || effectivePrice.Value == 0)
+            {
+                // Fallback to latest purchase unit price
+                effectivePrice = await _context.Purchases
+                    .Where(p => p.ProductId == id)
+                    .OrderByDescending(p => p.PurchaseDate)
+                    .Select(p => (decimal?)p.UnitPrice)
+                    .FirstOrDefaultAsync();
+            }
+
             return Json(new
             {
                 product.Id,
                 product.Sku,
                 product.Name,
                 product.Variant,
+                CategoryName = product.CategoryName ?? "",
+                ProductType = product.ProductType ?? "",
                 product.Description,
-                product.Price,
+                Price = effectivePrice,
                 product.StockQuantity
             });
         }
@@ -143,6 +219,8 @@ namespace InventoryManagementSystem.Controllers
                                 Sku = variant.Sku.Trim(),
                                 Name = product.Name.Trim(),
                                 Variant = variant.Variant.Trim(),
+                                CategoryName = product.CategoryName,
+                                ProductType = product.ProductType,
                                 Description = product.Description,
                                 Price = product.Price,
                                 StockQuantity = product.StockQuantity

@@ -46,6 +46,7 @@ namespace InventoryManagementSystem.Controllers
                     p.TotalCost,
                     PurchaseDate = p.PurchaseDate.ToString("yyyy-MM-dd HH:mm"),
                     p.Notes,
+                    BatchNumber = string.IsNullOrEmpty(p.BatchNumber) ? "N/A" : p.BatchNumber,
                     PaymentMode = (int)p.PaymentMode
                 })
                 .ToListAsync();
@@ -78,11 +79,46 @@ namespace InventoryManagementSystem.Controllers
                 purchase.UnitPrice,
                 purchase.TotalCost,
                 purchase.Notes,
+                BatchNumber = purchase.BatchNumber ?? "",
                 PaymentMode = (int)purchase.PaymentMode,
                 purchase.DownPayment,
                 purchase.InstallmentsCount,
                 purchase.InstallmentFrequency
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableBatchesForProduct(int productId)
+        {
+            var purchases = await _context.Purchases
+                .Where(p => p.ProductId == productId)
+                .ToListAsync();
+
+            var sales = await _context.Sales
+                .Where(s => s.ProductId == productId)
+                .ToListAsync();
+
+            var batchGroups = purchases
+                .GroupBy(p => string.IsNullOrWhiteSpace(p.BatchNumber) ? "Unbatched / General Stock" : p.BatchNumber.Trim())
+                .Select(g => {
+                    string batchName = g.Key;
+                    int totalPurchased = g.Sum(p => p.Quantity);
+                    int totalSold = sales
+                        .Where(s => (string.IsNullOrWhiteSpace(s.BatchNumber) ? "Unbatched / General Stock" : s.BatchNumber.Trim()) == batchName)
+                        .Sum(s => s.Quantity);
+                    int availableQty = Math.Max(0, totalPurchased - totalSold);
+
+                    return new
+                    {
+                        batchNumber = batchName == "Unbatched / General Stock" ? "" : batchName,
+                        displayName = batchName == "Unbatched / General Stock" ? $"General / Unbatched Stock ({availableQty} available)" : $"{batchName} ({availableQty} available)",
+                        availableQuantity = availableQty
+                    };
+                })
+                .Where(b => b.availableQuantity > 0)
+                .ToList();
+
+            return Json(batchGroups);
         }
 
         [HttpPost]

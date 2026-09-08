@@ -19,6 +19,8 @@
                         <th>ID</th>
                         <th>SKU</th>
                         <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Type / Condition</th>
                         <th>Variant</th>
                         <th>Description</th>
 
@@ -52,6 +54,22 @@
                         <input asp-for="Name" class="form-control" id="productName" placeholder="Product Name" required />
                         <label asp-for="Name"></label>
                         <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <!-- Category & Product Type / Condition -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="CategoryName" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-sitemap me-1 text-primary"></i>Category</label>
+                            <select asp-for="CategoryName" class="form-select" id="productCategorySelect">
+                                <option value="">Loading categories...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ProductType" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-tags me-1 text-primary"></i>Type / Condition</label>
+                            <select asp-for="ProductType" class="form-select" id="productTypeSelect">
+                                <option value="">Select Category First</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Main SKU & Variant fields (Always visible) -->
@@ -92,8 +110,8 @@
 
 
                     <div class="form-floating mb-3">
-                        <input asp-for="Price" class="form-control" type="number" step="0.01" id="price" placeholder="Price" required />
-                        <label asp-for="Price"></label>
+                        <input asp-for="Price" class="form-control" type="number" step="0.01" id="price" placeholder="Price (Optional)" />
+                        <label asp-for="Price">Price (Optional)</label>
                         <span asp-validation-for="Price" class="text-danger"></span>
                     </div>
 
