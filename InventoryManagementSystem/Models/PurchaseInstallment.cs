@@ -33,5 +33,15 @@ namespace InventoryManagementSystem.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Paid, Overdue
+
+        public PaymentMethod? PaymentMethod { get; set; }
+
+        [StringLength(100)]
+        public string? PaymentReference { get; set; }
+
+        [StringLength(100)]
+        public string? BankName { get; set; }
+
+        public DateTime? CheckDate { get; set; }
     }
 }

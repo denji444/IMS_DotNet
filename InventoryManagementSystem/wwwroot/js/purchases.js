@@ -1,70 +1,130 @@
 var table;
 var isModalLoading = false;
+var voucherItems = [];
 
 $(document).ready(function () {
+    loadCategoryAndTypeFilters();
+
     // Initialize DataTable
     table = $("#purchasesTable").DataTable({
+        "autoWidth": false,
         "ajax": {
             "url": "/Purchases/GetPurchasesData",
             "type": "GET",
             "datatype": "json"
         },
         "columns": [
-            { "data": "purchaseNo" },
-            { "data": "productName" },
-            { "data": "supplierName" },
-            { "data": "quantity" },
             { 
-                "data": "unitPrice",
+                "data": "purchaseNo",
+                "width": "18%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data, type, row) {
+                    var dt = row.purchaseDate ? row.purchaseDate.split(' ')[0] : '';
+                    return `<div>
+                                <div class="fw-bold text-dark fs-6">${data}</div>
+                                ${dt ? `<small class="text-muted d-block">${dt}</small>` : ''}
+                            </div>`;
+                }
+            },
+            { 
+                "data": "productName",
+                "width": "30%",
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
+                    
+                    var items = data.split(', ');
+                    var itemsHtml = '';
+                    if (items.length > 1) {
+                        itemsHtml = `<ul class="list-unstyled mb-0 text-start d-inline-block small">` +
+                            items.map(function(item) {
+                                var safeItem = item.replace(/"/g, '&quot;');
+                                return `<li class="fw-semibold text-dark mb-1"><i class="fas fa-box text-primary me-1 small"></i><span title="${safeItem}">${item}</span></li>`;
+                            }).join('') +
+                            `</ul>`;
+                    } else {
+                        var safeTitle = data.replace(/"/g, '&quot;');
+                        itemsHtml = `<div class="fw-bold text-dark text-wrap mx-auto" style="max-width: 300px;" title="${safeTitle}">${data}</div>`;
+                    }
+
+                    var batchBadge = (row.batchNumber && row.batchNumber !== "N/A") 
+                        ? `<div class="mt-1"><span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${row.batchNumber}</span></div>` 
+                        : '';
+                        
+                    return `<div>${itemsHtml}${batchBadge}</div>`;
+                }
+            },
+            { 
+                "data": "supplierName",
+                "width": "14%",
+                "className": "text-center align-middle",
                 "render": function(data) {
-                    return "PKR " + parseFloat(data).toFixed(2);
+                    return `<span class="fw-medium text-dark text-truncate d-block mx-auto" style="max-width: 130px;" title="${data}">${data}</span>`;
+                }
+            },
+            { 
+                "data": "quantity",
+                "width": "6%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    return `<span class="badge bg-secondary fs-6">${data}</span>`;
                 }
             },
             { 
                 "data": "totalCost",
-                "render": function(data) {
-                    return "PKR " + parseFloat(data).toFixed(2);
+                "width": "15%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data, type, row) {
+                    var unitP = parseFloat(row.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    var totalP = parseFloat(data || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return `<div>
+                                <div class="fw-bold text-dark">PKR ${totalP}</div>
+                                <small class="text-muted d-block">Unit: PKR ${unitP}</small>
+                            </div>`;
                 }
             },
-            { "data": "purchaseDate" },
             { 
-                "data": "batchNumber",
-                "render": function(d) {
-                    return (d && d !== "N/A") ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${d}</span>` : '<span class="badge bg-light text-secondary">N/A</span>';
+                "data": "notes",
+                "width": "15%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
+                    var safeNotes = data.replace(/"/g, '&quot;');
+                    return `<small class="text-muted d-block text-truncate mx-auto" style="max-width: 140px;" title="${safeNotes}">${data}</small>`;
                 }
             },
-            { "data": "notes" },
             {
                 "data": "id",
+                "width": "12%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function (data, type, row) {
                     var leaseBtn = "";
                     if (row.paymentMode === 1) {
                         leaseBtn = `
-                            <button class="btn btn-sm btn-warning text-dark me-1" onclick="openLeaseModal(${data}, '${row.purchaseNo}', ${row.totalCost}, ${row.downPayment || 0})">
+                            <button class="btn btn-sm btn-warning text-dark" onclick="openLeaseModal(${data}, '${row.purchaseNo}', ${row.totalCost}, ${row.downPayment || 0})" title="Lease Schedule">
                                 <i class="fas fa-calendar-alt"></i> Lease
                             </button>
                         `;
                     }
                     return `
-                        <div class="text-center text-nowrap">
+                        <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEditModal(${data})">
+                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Purchase">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="btn btn-sm btn-info text-white me-1" onclick="printVoucher(${data})">
+                            <button class="btn btn-sm btn-info text-white" onclick="printVoucher(${data})" title="Print Voucher">
                                 <i class="fas fa-print"></i> Print
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePurchase(${data})">
+                            <button class="btn btn-sm btn-danger" onclick="deletePurchase(${data})" title="Delete Purchase">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     `;
                 },
-                "orderable": false,
-                "width": "25%"
+                "orderable": false
             }
         ],
-        "order": [[6, "desc"]], // Sort by date desc
+        "order": [[0, "desc"]], // Sort by date desc
         "language": {
             "emptyTable": "No purchase history found. Click 'New Purchase' to stock in."
         }
@@ -104,19 +164,20 @@ $(document).ready(function () {
         }
     });
 
-
-    // Initialize Product Select2
+    // Initialize Product Select2 with Category & Type Filter support
     $("#productSelect").select2({
         dropdownParent: $("#purchaseModal"),
         placeholder: "Search & Select Product SKU",
         allowClear: true,
         ajax: {
-            url: "/Products/GetProductsJson",
+            url: "/Products/GetProductsFiltered",
             dataType: 'json',
             delay: 250,
             data: function (params) {
                 return { 
-                    q: params.term
+                    q: params.term,
+                    categoryName: $("#itemCategoryFilter").val(),
+                    productType: $("#itemTypeFilter").val()
                 };
             },
             processResults: function (data) {
@@ -126,18 +187,88 @@ $(document).ready(function () {
         }
     });
 
-    // Listen to product selection to automatically populate unit price
+    // Handle Category & Product Type filter changes
+    $("#itemCategoryFilter").on("change", function() {
+        var catName = $(this).val();
+        var $typeSelect = $("#itemTypeFilter");
+        $typeSelect.empty().append('<option value="">-- All Product Types --</option>');
+        
+        if (catName) {
+            $.ajax({
+                url: "/Products/GetTypesByCategory?categoryName=" + encodeURIComponent(catName),
+                type: "GET",
+                success: function(types) {
+                    if (types && types.length > 0) {
+                        $.each(types, function(i, t) {
+                            $typeSelect.append(new Option(t, t));
+                        });
+                    }
+                }
+            });
+        }
+        $("#productSelect").val(null).trigger('change');
+    });
+
+    $("#itemTypeFilter").on("change", function() {
+        $("#productSelect").val(null).trigger('change');
+    });
+
+    // Listen to product selection to automatically populate unit cost and check overbought stock
     $("#productSelect").on("select2:select", function (e) {
         var data = e.params.data;
         if (data && data.price) {
             $("#unitPrice").val(parseFloat(data.price).toFixed(2));
-            calculateTotalCost();
+        }
+        if (data && data.stockQuantity !== undefined && parseInt(data.stockQuantity) >= 50) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: `Overbought Notice: '${data.name || 'Product'}' has ${data.stockQuantity} units in stock.`,
+                showConfirmButton: false,
+                timer: 4500,
+                timerProgressBar: true
+            });
         }
     });
 
-    // Update total cost automatically when Quantity or Unit Price changes
-    $("#purchaseQty, #unitPrice").on("input change", function () {
-        calculateTotalCost();
+    // Add Item to Voucher Draft Array
+    $("#btnAddPurchaseItem").on("click", function() {
+        var productId = parseInt($("#productSelect").val());
+        var productText = $("#productSelect option:selected").text();
+        var batchNumber = $("#batchNumber").val().trim();
+        var qty = parseInt($("#purchaseQty").val()) || 0;
+        var unitPrice = parseFloat($("#unitPrice").val()) || 0;
+
+        if (!productId) {
+            Swal.fire({ title: 'Warning!', text: 'Please select a product first.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (qty <= 0) {
+            Swal.fire({ title: 'Warning!', text: 'Quantity must be at least 1.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (unitPrice <= 0) {
+            Swal.fire({ title: 'Warning!', text: 'Unit Cost must be greater than 0.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+
+        voucherItems.push({
+            id: 0,
+            productId: productId,
+            productName: productText,
+            batchNumber: batchNumber,
+            quantity: qty,
+            unitPrice: unitPrice,
+            totalCost: qty * unitPrice
+        });
+
+        // Clear product inputs
+        $("#productSelect").val(null).trigger('change');
+        $("#purchaseQty").val(1);
+        $("#unitPrice").val("");
+
+        renderPurchaseItemsTable();
     });
 
     $("#paymentMode").on("change", function() {
@@ -158,6 +289,18 @@ $(document).ready(function () {
         }
     });
 
+    $("#paymentMethod").on("change", function() {
+        var val = $(this).val();
+        $(".payment-method-fields").addClass("d-none");
+        if (val === "0") {
+            $("#cashFields").removeClass("d-none");
+        } else if (val === "1") {
+            $("#checkFields").removeClass("d-none");
+        } else if (val === "2") {
+            $("#onlineTransferFields").removeClass("d-none");
+        }
+    });
+
     // Handle form submit
     $("#purchaseForm").on("submit", function (e) {
         e.preventDefault();
@@ -166,12 +309,21 @@ $(document).ready(function () {
             return false;
         }
 
+        if (!voucherItems || voucherItems.length === 0) {
+            Swal.fire({
+                title: 'Validation Error!',
+                text: 'Please add at least one item to the purchase voucher.',
+                icon: 'warning',
+                confirmButtonColor: '#3085d6'
+            });
+            return false;
+        }
+
         var isNewSupplier = $("#newSupplierToggle").is(":checked");
         var supplierId = isNewSupplier ? 0 : parseInt($("#supplierSelect").val());
         var newSupplier = null;
 
         if (isNewSupplier) {
-            // Frontend validation for new supplier fields
             $("#newSupplierFields .text-danger").text("");
             var hasErrors = false;
 
@@ -202,6 +354,8 @@ $(document).ready(function () {
                 hasErrors = true;
             }
 
+            var cnic = $("#newSupplierCnic").val().trim();
+
             if (hasErrors) {
                 return false;
             }
@@ -210,6 +364,7 @@ $(document).ready(function () {
                 Name: name,
                 Email: email,
                 Phone: phone,
+                Cnic: cnic || null,
                 Address: address
             };
         }
@@ -217,20 +372,41 @@ $(document).ready(function () {
         var id = parseInt($("#purchaseId").val());
         var url = id === 0 ? "/Purchases/Create" : "/Purchases/Edit/" + id;
 
+        var paymentMethodVal = parseInt($("#paymentMethod").val());
+        var payRef = null;
+        var bankName = null;
+        var checkDate = null;
+
+        if (paymentMethodVal === 0) {
+            payRef = $("#cashReference").val().trim() || null;
+        } else if (paymentMethodVal === 1) {
+            bankName = $("#checkBankName").val().trim() || null;
+            payRef = $("#checkNumber").val().trim() || null;
+            checkDate = $("#checkDate").val() || null;
+        } else if (paymentMethodVal === 2) {
+            bankName = $("#transferBankName").val().trim() || null;
+            payRef = $("#transferTxnId").val().trim() || null;
+        }
+
         var purchaseData = {
             Id: id,
             SupplierId: supplierId,
             NewSupplier: newSupplier,
-            ProductId: parseInt($("#productSelect").val()),
-            Quantity: parseInt($("#purchaseQty").val()),
-            UnitPrice: parseFloat($("#unitPrice").val()),
+            ProductId: voucherItems.length > 0 ? voucherItems[0].productId : 0,
+            Quantity: voucherItems.reduce((acc, c) => acc + c.quantity, 0),
+            UnitPrice: voucherItems.length === 1 ? voucherItems[0].unitPrice : 0,
             TotalCost: parseFloat($("#totalCost").val()),
-            BatchNumber: $("#batchNumber").val(),
+            BatchNumber: voucherItems.length > 0 ? voucherItems[0].batchNumber : "",
             Notes: $("#notes").val(),
             PaymentMode: parseInt($("#paymentMode").val()),
+            PaymentMethod: paymentMethodVal,
+            PaymentReference: payRef,
+            BankName: bankName,
+            CheckDate: checkDate,
             DownPayment: parseFloat($("#downPayment").val()) || 0,
             InstallmentsCount: parseInt($("#installmentsCount").val()) || 0,
-            InstallmentFrequency: $("#installmentFrequency").val()
+            InstallmentFrequency: $("#installmentFrequency").val(),
+            Items: voucherItems
         };
 
         var btn = $("#btnSavePurchase");
@@ -282,17 +458,71 @@ $(document).ready(function () {
     });
 });
 
-function calculateTotalCost() {
-    var qty = parseInt($("#purchaseQty").val()) || 0;
-    var price = parseFloat($("#unitPrice").val()) || 0.0;
-    var total = qty * price;
-    $("#totalCost").val(total.toFixed(2)).trigger('change');
+function loadCategoryAndTypeFilters() {
+    $.ajax({
+        url: "/Products/GetCategoriesWithTypes",
+        type: "GET",
+        success: function(categories) {
+            var $cat = $("#itemCategoryFilter");
+            $cat.empty().append('<option value="">-- All Categories --</option>');
+            if (categories && categories.length > 0) {
+                $.each(categories, function(i, c) {
+                    $cat.append(new Option(c.name, c.name));
+                });
+            }
+        }
+    });
+}
+
+function renderPurchaseItemsTable() {
+    var $tbody = $("#purchaseItemsTableBody");
+    $tbody.empty();
+    var grandTotal = 0;
+
+    if (!voucherItems || voucherItems.length === 0) {
+        $tbody.html('<tr id="emptyPurchaseItemsRow"><td colspan="6" class="text-muted small py-3">No items added to voucher yet. Select a product and click "Add Item".</td></tr>');
+        $("#totalCost").val("0.00").trigger('change');
+        return;
+    }
+
+    $.each(voucherItems, function(index, item) {
+        var lineTotal = item.quantity * item.unitPrice;
+        grandTotal += lineTotal;
+        var batchBadge = item.batchNumber ? `<span class="badge bg-primary text-white">${item.batchNumber}</span>` : '<span class="badge bg-light text-secondary">General</span>';
+
+        var rowHtml = `
+            <tr>
+                <td class="text-start fw-bold small">${item.productName}</td>
+                <td>${batchBadge}</td>
+                <td>${item.quantity}</td>
+                <td>PKR ${parseFloat(item.unitPrice).toFixed(2)}</td>
+                <td class="fw-bold text-dark">PKR ${lineTotal.toFixed(2)}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removePurchaseItem(${index})" title="Remove Item">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $tbody.append(rowHtml);
+    });
+
+    $("#totalCost").val(grandTotal.toFixed(2)).trigger('change');
+}
+
+function removePurchaseItem(index) {
+    voucherItems.splice(index, 1);
+    renderPurchaseItemsTable();
 }
 
 function openCreateModal() {
     isModalLoading = true;
+    voucherItems = [];
+    renderPurchaseItemsTable();
     $("#purchaseForm")[0].reset();
     $("#purchaseId").val(0);
+    $("#itemCategoryFilter").val("").trigger('change');
+    $("#itemTypeFilter").val("");
     $("#supplierSelect").val(null).trigger('change');
     $("#supplierSelect").attr("required", "required");
     $("#supplierSelectContainer").removeClass("d-none");
@@ -304,6 +534,8 @@ function openCreateModal() {
     $("#batchNumber").val("");
     $(".text-danger").text("");
     $("#paymentMode").val("0").trigger('change').prop('disabled', false);
+    $("#paymentMethod").val("0").trigger('change');
+    $("#cashReference, #checkBankName, #checkNumber, #checkDate, #transferBankName, #transferTxnId").val("");
     $("#purchaseModalLabel").text("New Purchase / Stock In");
     $("#purchaseModal").modal("show");
     isModalLoading = false;
@@ -322,11 +554,26 @@ function openEditModal(id) {
         type: "GET",
         success: function (data) {
             $("#purchaseId").val(data.id);
-            $("#purchaseQty").val(data.quantity);
-            $("#unitPrice").val(data.unitPrice);
             $("#totalCost").val(data.totalCost.toFixed(2));
             $("#batchNumber").val(data.batchNumber === "N/A" ? "" : (data.batchNumber || ""));
             $("#notes").val(data.notes);
+
+            if (data.items && data.items.length > 0) {
+                voucherItems = data.items.map(function(i) {
+                    return {
+                        id: i.id || 0,
+                        productId: i.productId,
+                        productName: i.productName || ("Product #" + i.productId),
+                        batchNumber: i.batchNumber || "",
+                        quantity: i.quantity,
+                        unitPrice: i.unitPrice,
+                        totalCost: i.totalCost || (i.quantity * i.unitPrice)
+                    };
+                });
+            } else {
+                voucherItems = [];
+            }
+            renderPurchaseItemsTable();
 
             // Set Supplier
             if (data.supplierId) {
@@ -336,16 +583,21 @@ function openEditModal(id) {
                 $("#supplierSelect").val(null).trigger('change');
             }
 
-            // Set Product
-            if (data.productId) {
-                var prodOpt = new Option(data.productName, data.productId, true, true);
-                $("#productSelect").append(prodOpt).trigger('change');
-            } else {
-                $("#productSelect").val(null).trigger('change');
-            }
-
             // Set Payment Mode and lease values
             $("#paymentMode").val(data.paymentMode).trigger('change').prop('disabled', true);
+            $("#paymentMethod").val(data.paymentMethod !== undefined ? data.paymentMethod : 0).trigger('change');
+            $("#cashReference, #checkBankName, #checkNumber, #checkDate, #transferBankName, #transferTxnId").val("");
+            if (data.paymentMethod === 0) {
+                $("#cashReference").val(data.paymentReference || "");
+            } else if (data.paymentMethod === 1) {
+                $("#checkBankName").val(data.bankName || "");
+                $("#checkNumber").val(data.paymentReference || "");
+                $("#checkDate").val(data.checkDate || "");
+            } else if (data.paymentMethod === 2) {
+                $("#transferBankName").val(data.bankName || "");
+                $("#transferTxnId").val(data.paymentReference || "");
+            }
+
             if (data.paymentMode === 1) {
                 $("#downPayment").val(data.downPayment.toFixed(2));
                 $("#installmentsCount").val(data.installmentsCount);
@@ -430,6 +682,7 @@ function clearNewSupplierFields() {
     $("#newSupplierName").val("");
     $("#newSupplierEmail").val("");
     $("#newSupplierPhone").val("");
+    $("#newSupplierCnic").val("");
     $("#newSupplierAddress").val("");
     $("#newSupplierFields .text-danger").text("");
 }
@@ -492,13 +745,28 @@ function loadLeaseSchedule(purchaseId) {
                             actionButton = '<span class="text-success fw-bold"><i class="fas fa-check-circle"></i> Complete</span>';
                         }
 
+                        var methodBadge = "";
+                        if (item.status === "Paid") {
+                            if (item.paymentMethod === 0) {
+                                methodBadge = `<span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>Cash ${item.paymentReference ? '(' + item.paymentReference + ')' : ''}</span>`;
+                            } else if (item.paymentMethod === 1) {
+                                methodBadge = `<span class="badge bg-warning text-dark"><i class="fas fa-money-check me-1"></i>Check ${item.bankName ? item.bankName : ''} ${item.paymentReference ? '#' + item.paymentReference : ''}</span>`;
+                            } else if (item.paymentMethod === 2) {
+                                methodBadge = `<span class="badge bg-info text-white"><i class="fas fa-university me-1"></i>Online ${item.bankName ? item.bankName : ''} ${item.paymentReference ? '(' + item.paymentReference + ')' : ''}</span>`;
+                            } else {
+                                methodBadge = `<span class="badge bg-success">Complete</span>`;
+                            }
+                        } else {
+                            methodBadge = `<span class="badge bg-light text-secondary">-</span>`;
+                        }
+
                         html += `
                             <tr>
                                 <td>Installment #${item.installmentNumber}</td>
                                 <td>${item.dueDate}</td>
                                 <td class="fw-bold">PKR ${parseFloat(item.amount).toFixed(2)}</td>
                                 <td class="text-success">PKR ${parseFloat(item.paidAmount).toFixed(2)}</td>
-                                <td>${item.paymentDate}</td>
+                                <td>${item.paymentDate} <br/>${methodBadge}</td>
                                 <td><span class="badge ${badgeClass}">${item.status}</span></td>
                                 <td class="text-center">${actionButton}</td>
                             </tr>
@@ -519,26 +787,109 @@ function loadLeaseSchedule(purchaseId) {
 function payLeaseInstallment(installmentId, remainingAmount) {
     Swal.fire({
         title: 'Pay Installment',
-        text: 'Enter the amount you wish to pay (Max: PKR ' + remainingAmount.toFixed(2) + '):',
-        input: 'number',
-        inputValue: remainingAmount.toFixed(2),
-        inputAttributes: {
-            min: 0.01,
-            max: remainingAmount.toFixed(2),
-            step: 0.01
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Payment Amount (Max: PKR ${remainingAmount.toFixed(2)})</label>
+                    <input type="number" id="swalInstallmentAmount" class="form-control" value="${remainingAmount.toFixed(2)}" min="0.01" max="${remainingAmount.toFixed(2)}" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Payment Method</label>
+                    <select id="swalPaymentMethod" class="form-select">
+                        <option value="0">Cash</option>
+                        <option value="1">Check</option>
+                        <option value="2">Online Transfer</option>
+                    </select>
+                </div>
+                <div id="swalCashFields">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Cash Receipt / Ref # (Optional)</label>
+                        <input type="text" id="swalCashRef" class="form-control" placeholder="Receipt #" />
+                    </div>
+                </div>
+                <div id="swalCheckFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Bank Name</label>
+                        <input type="text" id="swalCheckBank" class="form-control" placeholder="e.g. HBL, Meezan Bank" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Check Number</label>
+                        <input type="text" id="swalCheckNum" class="form-control" placeholder="e.g. CHK-12345" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Check Date</label>
+                        <input type="date" id="swalCheckDate" class="form-control" />
+                    </div>
+                </div>
+                <div id="swalOnlineFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Bank / Platform Name</label>
+                        <input type="text" id="swalTransferBank" class="form-control" placeholder="e.g. Meezan Bank, JazzCash" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Transaction / Ref ID</label>
+                        <input type="text" id="swalTransferTxn" class="form-control" placeholder="e.g. TRX-987654" />
+                    </div>
+                </div>
+            </div>
+        `,
+        didOpen: () => {
+            $('#swalPaymentMethod').on('change', function() {
+                var method = $(this).val();
+                if (method == '0') {
+                    $('#swalCashFields').removeClass('d-none');
+                    $('#swalCheckFields, #swalOnlineFields').addClass('d-none');
+                } else if (method == '1') {
+                    $('#swalCheckFields').removeClass('d-none');
+                    $('#swalCashFields, #swalOnlineFields').addClass('d-none');
+                } else {
+                    $('#swalOnlineFields').removeClass('d-none');
+                    $('#swalCashFields, #swalCheckFields').addClass('d-none');
+                }
+            });
         },
         showCancelButton: true,
         confirmButtonText: 'Pay Now',
         showLoaderOnConfirm: true,
-        preConfirm: (amount) => {
-            if (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > remainingAmount) {
-                Swal.showValidationMessage('Please enter a valid amount up to PKR ' + remainingAmount.toFixed(2));
+        preConfirm: () => {
+            var amount = parseFloat($('#swalInstallmentAmount').val());
+            if (!amount || amount <= 0 || amount > remainingAmount) {
+                Swal.showValidationMessage('Please enter a valid payment amount up to PKR ' + remainingAmount.toFixed(2));
                 return false;
             }
+            var method = parseInt($('#swalPaymentMethod').val());
+            var ref = null;
+            var bank = null;
+            var date = null;
+
+            if (method === 0) {
+                ref = $('#swalCashRef').val().trim() || null;
+            } else if (method === 1) {
+                bank = $('#swalCheckBank').val().trim();
+                ref = $('#swalCheckNum').val().trim();
+                date = $('#swalCheckDate').val() || null;
+                if (!bank || !ref) {
+                    Swal.showValidationMessage('Bank Name and Check Number are required for Check payment.');
+                    return false;
+                }
+            } else if (method === 2) {
+                bank = $('#swalTransferBank').val().trim();
+                ref = $('#swalTransferTxn').val().trim();
+                if (!bank || !ref) {
+                    Swal.showValidationMessage('Bank/Platform Name and Transaction ID are required for Online Transfer.');
+                    return false;
+                }
+            }
+
             var data = {
                 InstallmentId: installmentId,
-                Amount: parseFloat(amount)
+                Amount: amount,
+                PaymentMethod: method,
+                PaymentReference: ref,
+                BankName: bank,
+                CheckDate: date
             };
+
             return $.ajax({
                 url: "/Purchases/PayInstallment",
                 type: "POST",
@@ -568,3 +919,25 @@ function payLeaseInstallment(installmentId, remainingAmount) {
         }
     });
 }
+
+function formatCnic(val) {
+    if (!val) return "";
+    var digits = val.replace(/\D/g, "").substring(0, 13);
+    var formatted = "";
+    if (digits.length > 0) {
+        formatted += digits.substring(0, 5);
+    }
+    if (digits.length > 5) {
+        formatted += "-" + digits.substring(5, 12);
+    }
+    if (digits.length > 12) {
+        formatted += "-" + digits.substring(12, 13);
+    }
+    return formatted;
+}
+
+$(document).on("input", ".cnic-input", function () {
+    var formatted = formatCnic(this.value);
+    this.value = formatted;
+});
+

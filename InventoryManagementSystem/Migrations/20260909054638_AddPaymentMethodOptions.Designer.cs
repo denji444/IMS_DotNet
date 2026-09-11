@@ -4,6 +4,7 @@ using InventoryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventoryManagementSystem.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909054638_AddPaymentMethodOptions")]
+    partial class AddPaymentMethodOptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,9 +32,6 @@ namespace InventoryManagementSystem.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
-
-                    b.Property<string>("Cnic")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -373,7 +373,7 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("ProductId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("PurchaseDate")
@@ -460,42 +460,6 @@ namespace InventoryManagementSystem.Migrations
                     b.ToTable("PurchaseInstallments");
                 });
 
-            modelBuilder.Entity("InventoryManagementSystem.Models.PurchaseItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BatchNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PurchaseId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("PurchaseId");
-
-                    b.ToTable("PurchaseItems");
-                });
-
             modelBuilder.Entity("InventoryManagementSystem.Models.Sale", b =>
                 {
                     b.Property<int>("Id")
@@ -548,7 +512,7 @@ namespace InventoryManagementSystem.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("ProductId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -627,42 +591,6 @@ namespace InventoryManagementSystem.Migrations
                     b.ToTable("SaleInstallments");
                 });
 
-            modelBuilder.Entity("InventoryManagementSystem.Models.SaleItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BatchNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SaleId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("SaleId");
-
-                    b.ToTable("SaleItems");
-                });
-
             modelBuilder.Entity("InventoryManagementSystem.Models.SmtpSetting", b =>
                 {
                     b.Property<int>("Id")
@@ -722,10 +650,6 @@ namespace InventoryManagementSystem.Migrations
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Cnic")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ContactName")
                         .IsRequired()
@@ -955,7 +879,8 @@ namespace InventoryManagementSystem.Migrations
                     b.HasOne("InventoryManagementSystem.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("InventoryManagementSystem.Models.Supplier", "Supplier")
                         .WithMany()
@@ -979,25 +904,6 @@ namespace InventoryManagementSystem.Migrations
                     b.Navigation("Purchase");
                 });
 
-            modelBuilder.Entity("InventoryManagementSystem.Models.PurchaseItem", b =>
-                {
-                    b.HasOne("InventoryManagementSystem.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("InventoryManagementSystem.Models.Purchase", "Purchase")
-                        .WithMany("Items")
-                        .HasForeignKey("PurchaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Purchase");
-                });
-
             modelBuilder.Entity("InventoryManagementSystem.Models.Sale", b =>
                 {
                     b.HasOne("InventoryManagementSystem.Models.ApplicationUser", "Customer")
@@ -1009,7 +915,8 @@ namespace InventoryManagementSystem.Migrations
                     b.HasOne("InventoryManagementSystem.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Customer");
 
@@ -1023,25 +930,6 @@ namespace InventoryManagementSystem.Migrations
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Sale");
-                });
-
-            modelBuilder.Entity("InventoryManagementSystem.Models.SaleItem", b =>
-                {
-                    b.HasOne("InventoryManagementSystem.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("InventoryManagementSystem.Models.Sale", "Sale")
-                        .WithMany("Items")
-                        .HasForeignKey("SaleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
 
                     b.Navigation("Sale");
                 });
@@ -1115,15 +1003,11 @@ namespace InventoryManagementSystem.Migrations
             modelBuilder.Entity("InventoryManagementSystem.Models.Purchase", b =>
                 {
                     b.Navigation("Installments");
-
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("InventoryManagementSystem.Models.Sale", b =>
                 {
                     b.Navigation("Installments");
-
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

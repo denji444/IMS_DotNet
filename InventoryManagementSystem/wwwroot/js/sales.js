@@ -1,69 +1,121 @@
 var table;
+var invoiceItems = [];
 
 $(document).ready(function () {
+    loadCategoryAndTypeFilters();
+
     // Initialize DataTable
     table = $("#salesTable").DataTable({
+        "autoWidth": false,
         "ajax": {
             "url": "/Sales/GetSalesData",
             "type": "GET",
             "datatype": "json"
         },
         "columns": [
-            { "data": "invoiceNo" },
-            { "data": "productName" },
-            { "data": "customerName" },
-            { "data": "quantity" },
             { 
-                "data": "unitPrice",
+                "data": "invoiceNo",
+                "width": "18%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data, type, row) {
+                    var dt = row.saleDate ? row.saleDate.split(' ')[0] : '';
+                    return `<div>
+                                <div class="fw-bold text-dark fs-6">${data}</div>
+                                ${dt ? `<small class="text-muted d-block">${dt}</small>` : ''}
+                            </div>`;
+                }
+            },
+            { 
+                "data": "productName",
+                "width": "35%",
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
+                    
+                    var items = data.split(', ');
+                    var itemsHtml = '';
+                    if (items.length > 1) {
+                        itemsHtml = `<ul class="list-unstyled mb-0 text-start d-inline-block small">` +
+                            items.map(function(item) {
+                                var safeItem = item.replace(/"/g, '&quot;');
+                                return `<li class="fw-semibold text-dark mb-1"><i class="fas fa-box text-primary me-1 small"></i><span title="${safeItem}">${item}</span></li>`;
+                            }).join('') +
+                            `</ul>`;
+                    } else {
+                        var safeTitle = data.replace(/"/g, '&quot;');
+                        itemsHtml = `<div class="fw-bold text-dark text-wrap mx-auto" style="max-width: 320px;" title="${safeTitle}">${data}</div>`;
+                    }
+
+                    var batchBadge = (row.batchNumber && row.batchNumber !== "N/A") 
+                        ? `<div class="mt-1"><span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${row.batchNumber}</span></div>` 
+                        : '';
+                        
+                    return `<div>${itemsHtml}${batchBadge}</div>`;
+                }
+            },
+            { 
+                "data": "customerName",
+                "width": "15%",
+                "className": "text-center align-middle",
                 "render": function(data) {
-                    return "PKR " + parseFloat(data).toFixed(2);
+                    if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
+                    var safeCust = data.replace(/"/g, '&quot;');
+                    return `<span class="fw-medium text-dark text-wrap d-block mx-auto" style="max-width: 160px;" title="${safeCust}">${data}</span>`;
                 }
             },
             { 
                 "data": "totalAmount",
+                "width": "15%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function(data) {
-                    return "PKR " + parseFloat(data).toFixed(2);
+                    var totalP = parseFloat(data || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return `<div>
+                                <div class="fw-bold text-dark">PKR ${totalP}</div>
+                            </div>`;
                 }
             },
-            { "data": "saleDate" },
             { 
-                "data": "batchNumber",
-                "render": function(d) {
-                    return (d && d !== "N/A") ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${d}</span>` : '<span class="badge bg-light text-secondary">N/A</span>';
+                "data": "notes",
+                "width": "10%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
+                    var safeNotes = data.replace(/"/g, '&quot;');
+                    return `<small class="text-muted d-block text-truncate mx-auto" style="max-width: 120px;" title="${safeNotes}">${data}</small>`;
                 }
             },
-            { "data": "notes" },
             {
                 "data": "id",
+                "width": "7%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function (data, type, row) {
                     var leaseBtn = "";
                     if (row.paymentMode === 1) {
                         leaseBtn = `
-                            <button class="btn btn-sm btn-warning text-dark me-1" onclick="openLeaseModal(${data}, '${row.invoiceNo}', ${row.totalAmount}, ${row.downPayment || 0})">
+                            <button class="btn btn-sm btn-warning text-dark" onclick="openLeaseModal(${data}, '${row.invoiceNo}', ${row.totalAmount}, ${row.downPayment || 0})" title="Lease Schedule">
                                 <i class="fas fa-calendar-alt"></i> Lease
                             </button>
                         `;
                     }
                     return `
-                        <div class="text-center text-nowrap">
+                        <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEditModal(${data})">
+                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Sale">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="btn btn-sm btn-info text-white me-1" onclick="printInvoice(${data})">
+                            <button class="btn btn-sm btn-info text-white" onclick="printInvoice(${data})" title="Print Invoice">
                                 <i class="fas fa-print"></i> Invoice
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteSale(${data})">
+                            <button class="btn btn-sm btn-danger" onclick="deleteSale(${data})" title="Delete Sale">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     `;
                 },
-                "orderable": false,
-                "width": "25%"
+                "orderable": false
             }
         ],
-        "order": [[6, "desc"]], // Order by date desc
+        "order": [[0, "desc"]], // Order by date desc
         "language": {
             "emptyTable": "No sales record found. Click 'Record Sale' to process a stock out."
         }
@@ -88,23 +140,53 @@ $(document).ready(function () {
         }
     });
 
-    // Initialize Product Select2
+    // Initialize Product Select2 with Category & Type Filter support
     $("#productSelect").select2({
         dropdownParent: $("#saleModal"),
         placeholder: "Search & Select Product SKU",
         allowClear: true,
         ajax: {
-            url: "/Products/GetProductsJson",
+            url: "/Products/GetProductsFiltered",
             dataType: 'json',
             delay: 250,
             data: function (params) {
-                return { q: params.term };
+                return { 
+                    q: params.term,
+                    categoryName: $("#itemCategoryFilter").val(),
+                    productType: $("#itemTypeFilter").val()
+                };
             },
             processResults: function (data) {
                 return { results: data };
             },
             cache: true
         }
+    });
+
+    // Handle Category & Product Type filter changes
+    $("#itemCategoryFilter").on("change", function() {
+        var catName = $(this).val();
+        var $typeSelect = $("#itemTypeFilter");
+        $typeSelect.empty().append('<option value="">-- All Product Types --</option>');
+        
+        if (catName) {
+            $.ajax({
+                url: "/Products/GetTypesByCategory?categoryName=" + encodeURIComponent(catName),
+                type: "GET",
+                success: function(types) {
+                    if (types && types.length > 0) {
+                        $.each(types, function(i, t) {
+                            $typeSelect.append(new Option(t, t));
+                        });
+                    }
+                }
+            });
+        }
+        $("#productSelect").val(null).trigger('change');
+    });
+
+    $("#itemTypeFilter").on("change", function() {
+        $("#productSelect").val(null).trigger('change');
     });
 
     // Prefill price and update stock info when Product changes
@@ -115,22 +197,19 @@ $(document).ready(function () {
                 url: "/Products/GetProduct/" + id,
                 type: "GET",
                 success: function (data) {
-                    // Show real-time quantity
                     $("#availableStockQty").text(data.stockQuantity);
                     
                     var hasPrice = (data.price !== null && data.price !== undefined && !isNaN(parseFloat(data.price)));
                     var priceFormatted = hasPrice ? parseFloat(data.price).toFixed(2) : "";
 
-                    // Show set unit price
                     if (hasPrice) {
                         $("#setUnitPriceValue").text("PKR " + priceFormatted);
+                        $("#unitPrice").val(priceFormatted);
                     } else {
                         $("#setUnitPriceValue").text("N/A");
+                        $("#unitPrice").val("");
                     }
                     
-                    $("#unitPrice").removeAttr("min");
-                    
-                    // Set color based on stock availability
                     if (data.stockQuantity > 0) {
                         $("#availableStockContainer")
                             .removeClass("text-danger")
@@ -142,14 +221,6 @@ $(document).ready(function () {
                     }
                     
                     $("#availableStockContainer").removeClass("d-none");
-
-                    // Only prefill unit price if we are creating a new sale (i.e. saleId is 0)
-                    if (parseInt($("#saleId").val()) === 0) {
-                        if (hasPrice) {
-                            $("#unitPrice").val(priceFormatted);
-                        }
-                        calculateTotalAmount();
-                    }
                 }
             });
 
@@ -178,9 +249,50 @@ $(document).ready(function () {
                 .removeClass("text-success text-danger");
             $("#availableStockQty").text("0");
             $("#setUnitPriceValue").text("PKR 0.00");
-            $("#unitPrice").attr("min", "0.01");
+            $("#unitPrice").val("");
             $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
         }
+    });
+
+    // Add Item to Invoice Draft Array
+    $("#btnAddSaleItem").on("click", function() {
+        var productId = parseInt($("#productSelect").val());
+        var productText = $("#productSelect option:selected").text();
+        var batchNumber = $("#saleBatchSelect").val() || "";
+        var qty = parseInt($("#saleQty").val()) || 0;
+        var unitPrice = parseFloat($("#unitPrice").val()) || 0;
+
+        if (!productId) {
+            Swal.fire({ title: 'Warning!', text: 'Please select a product first.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (qty <= 0) {
+            Swal.fire({ title: 'Warning!', text: 'Quantity must be at least 1.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (unitPrice <= 0) {
+            Swal.fire({ title: 'Warning!', text: 'Unit Price must be greater than 0.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+
+        invoiceItems.push({
+            id: 0,
+            productId: productId,
+            productName: productText,
+            batchNumber: batchNumber,
+            quantity: qty,
+            unitPrice: unitPrice,
+            totalAmount: qty * unitPrice
+        });
+
+        // Clear product inputs
+        $("#productSelect").val(null).trigger('change');
+        $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
+        $("#saleQty").val(1);
+        $("#unitPrice").val("");
+        $("#availableStockContainer").addClass("d-none");
+
+        renderSaleItemsTable();
     });
 
     // Toggle for New Customer inline fields
@@ -196,11 +308,6 @@ $(document).ready(function () {
             $("#newCustomerFields").addClass("d-none");
             clearNewCustomerFields();
         }
-    });
-
-    // Calculate total amount automatically when Qty or Unit Price changes
-    $("#saleQty, #unitPrice").on("input", function () {
-        calculateTotalAmount();
     });
 
     $("#paymentMode").on("change", function() {
@@ -221,11 +328,33 @@ $(document).ready(function () {
         }
     });
 
+    $("#paymentMethod").on("change", function() {
+        var val = $(this).val();
+        $(".payment-method-fields").addClass("d-none");
+        if (val === "0") {
+            $("#cashFields").removeClass("d-none");
+        } else if (val === "1") {
+            $("#checkFields").removeClass("d-none");
+        } else if (val === "2") {
+            $("#onlineTransferFields").removeClass("d-none");
+        }
+    });
+
     // Handle Form Submit
     $("#saleForm").on("submit", function (e) {
         e.preventDefault();
         var form = $(this);
         if (!form.valid()) {
+            return false;
+        }
+
+        if (!invoiceItems || invoiceItems.length === 0) {
+            Swal.fire({
+                title: 'Validation Error!',
+                text: 'Please add at least one item to the sale invoice.',
+                icon: 'warning',
+                confirmButtonColor: '#3085d6'
+            });
             return false;
         }
 
@@ -235,6 +364,7 @@ $(document).ready(function () {
         var newCustomerLastName = null;
         var newCustomerEmail = null;
         var newCustomerPhone = null;
+        var newCustomerCnic = null;
 
         if (isNewCustomer) {
             $("#newCustomerFields .text-danger").text("");
@@ -267,6 +397,8 @@ $(document).ready(function () {
                 hasErrors = true;
             }
 
+            var cnic = $("#newCustomerCnic").val().trim();
+
             if (hasErrors) {
                 return false;
             }
@@ -275,28 +407,51 @@ $(document).ready(function () {
             newCustomerLastName = lastName;
             newCustomerEmail = email;
             newCustomerPhone = phone;
+            newCustomerCnic = cnic || null;
         }
 
         var id = parseInt($("#saleId").val());
         var url = id === 0 ? "/Sales/Create" : "/Sales/Edit/" + id;
 
+        var paymentMethodVal = parseInt($("#paymentMethod").val());
+        var payRef = null;
+        var bankName = null;
+        var checkDate = null;
+
+        if (paymentMethodVal === 0) {
+            payRef = $("#cashReference").val().trim() || null;
+        } else if (paymentMethodVal === 1) {
+            bankName = $("#checkBankName").val().trim() || null;
+            payRef = $("#checkNumber").val().trim() || null;
+            checkDate = $("#checkDate").val() || null;
+        } else if (paymentMethodVal === 2) {
+            bankName = $("#transferBankName").val().trim() || null;
+            payRef = $("#transferTxnId").val().trim() || null;
+        }
+
         var saleData = {
             Id: id,
             CustomerId: customerId,
-            ProductId: parseInt($("#productSelect").val()),
-            Quantity: parseInt($("#saleQty").val()),
-            UnitPrice: parseFloat($("#unitPrice").val()),
+            ProductId: invoiceItems.length > 0 ? invoiceItems[0].productId : 0,
+            Quantity: invoiceItems.reduce((acc, c) => acc + c.quantity, 0),
+            UnitPrice: invoiceItems.length === 1 ? invoiceItems[0].unitPrice : 0,
             TotalAmount: parseFloat($("#totalAmount").val()),
-            BatchNumber: $("#saleBatchSelect").val(),
+            BatchNumber: invoiceItems.length > 0 ? invoiceItems[0].batchNumber : "",
             Notes: $("#notes").val(),
             NewCustomerFirstName: newCustomerFirstName,
             NewCustomerLastName: newCustomerLastName,
             NewCustomerEmail: newCustomerEmail,
             NewCustomerPhone: newCustomerPhone,
+            NewCustomerCnic: newCustomerCnic,
             PaymentMode: parseInt($("#paymentMode").val()),
+            PaymentMethod: paymentMethodVal,
+            PaymentReference: payRef,
+            BankName: bankName,
+            CheckDate: checkDate,
             DownPayment: parseFloat($("#downPayment").val()) || 0,
             InstallmentsCount: parseInt($("#installmentsCount").val()) || 0,
-            InstallmentFrequency: $("#installmentFrequency").val()
+            InstallmentFrequency: $("#installmentFrequency").val(),
+            Items: invoiceItems
         };
 
         var btn = $("#btnSaveSale");
@@ -348,16 +503,70 @@ $(document).ready(function () {
     });
 });
 
-function calculateTotalAmount() {
-    var qty = parseInt($("#saleQty").val()) || 0;
-    var price = parseFloat($("#unitPrice").val()) || 0.0;
-    var total = qty * price;
-    $("#totalAmount").val(total.toFixed(2)).trigger('change');
+function loadCategoryAndTypeFilters() {
+    $.ajax({
+        url: "/Products/GetCategoriesWithTypes",
+        type: "GET",
+        success: function(categories) {
+            var $cat = $("#itemCategoryFilter");
+            $cat.empty().append('<option value="">-- All Categories --</option>');
+            if (categories && categories.length > 0) {
+                $.each(categories, function(i, c) {
+                    $cat.append(new Option(c.name, c.name));
+                });
+            }
+        }
+    });
+}
+
+function renderSaleItemsTable() {
+    var $tbody = $("#saleItemsTableBody");
+    $tbody.empty();
+    var grandTotal = 0;
+
+    if (!invoiceItems || invoiceItems.length === 0) {
+        $tbody.html('<tr id="emptySaleItemsRow"><td colspan="6" class="text-muted small py-3">No items added to invoice yet. Select a product and click "Add Item".</td></tr>');
+        $("#totalAmount").val("0.00").trigger('change');
+        return;
+    }
+
+    $.each(invoiceItems, function(index, item) {
+        var lineTotal = item.quantity * item.unitPrice;
+        grandTotal += lineTotal;
+        var batchBadge = item.batchNumber ? `<span class="badge bg-primary text-white">${item.batchNumber}</span>` : '<span class="badge bg-light text-secondary">General</span>';
+
+        var rowHtml = `
+            <tr>
+                <td class="text-start fw-bold small">${item.productName}</td>
+                <td>${batchBadge}</td>
+                <td>${item.quantity}</td>
+                <td>PKR ${parseFloat(item.unitPrice).toFixed(2)}</td>
+                <td class="fw-bold text-dark">PKR ${lineTotal.toFixed(2)}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeSaleItem(${index})" title="Remove Item">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $tbody.append(rowHtml);
+    });
+
+    $("#totalAmount").val(grandTotal.toFixed(2)).trigger('change');
+}
+
+function removeSaleItem(index) {
+    invoiceItems.splice(index, 1);
+    renderSaleItemsTable();
 }
 
 function openCreateModal() {
+    invoiceItems = [];
+    renderSaleItemsTable();
     $("#saleForm")[0].reset();
     $("#saleId").val(0);
+    $("#itemCategoryFilter").val("").trigger('change');
+    $("#itemTypeFilter").val("");
     $("#customerSelect").val(null).trigger('change');
     $("#customerSelect").attr("required", "required");
     $("#customerSelectContainer").removeClass("d-none");
@@ -371,6 +580,8 @@ function openCreateModal() {
     $("#availableStockQty").text("0");
     $(".text-danger").text("");
     $("#paymentMode").val("0").trigger('change').prop('disabled', false);
+    $("#paymentMethod").val("0").trigger('change');
+    $("#cashReference, #checkBankName, #checkNumber, #checkDate, #transferBankName, #transferTxnId").val("");
     $("#saleModalLabel").text("Record Sale / Stock Out");
     $("#saleModal").modal("show");
 }
@@ -387,10 +598,25 @@ function openEditModal(id) {
         type: "GET",
         success: function (data) {
             $("#saleId").val(data.id);
-            $("#saleQty").val(data.quantity);
-            $("#unitPrice").val(data.unitPrice);
             $("#totalAmount").val(data.totalAmount.toFixed(2));
             $("#notes").val(data.notes);
+
+            if (data.items && data.items.length > 0) {
+                invoiceItems = data.items.map(function(i) {
+                    return {
+                        id: i.id || 0,
+                        productId: i.productId,
+                        productName: i.productName || ("Product #" + i.productId),
+                        batchNumber: i.batchNumber || "",
+                        quantity: i.quantity,
+                        unitPrice: i.unitPrice,
+                        totalAmount: i.totalAmount || (i.quantity * i.unitPrice)
+                    };
+                });
+            } else {
+                invoiceItems = [];
+            }
+            renderSaleItemsTable();
 
             // Set Customer Select2
             if (data.customerId) {
@@ -400,21 +626,21 @@ function openEditModal(id) {
                 $("#customerSelect").val(null).trigger('change');
             }
 
-            // Set Product Select2
-            if (data.productId) {
-                var prodOpt = new Option(data.productName, data.productId, true, true);
-                $("#productSelect").append(prodOpt).trigger('change');
-                if (data.batchNumber && data.batchNumber !== "N/A") {
-                    setTimeout(function() {
-                        $("#saleBatchSelect").val(data.batchNumber);
-                    }, 300);
-                }
-            } else {
-                $("#productSelect").val(null).trigger('change');
-            }
-
             // Set Payment Mode and lease values
             $("#paymentMode").val(data.paymentMode).trigger('change').prop('disabled', true);
+            $("#paymentMethod").val(data.paymentMethod !== undefined ? data.paymentMethod : 0).trigger('change');
+            $("#cashReference, #checkBankName, #checkNumber, #checkDate, #transferBankName, #transferTxnId").val("");
+            if (data.paymentMethod === 0) {
+                $("#cashReference").val(data.paymentReference || "");
+            } else if (data.paymentMethod === 1) {
+                $("#checkBankName").val(data.bankName || "");
+                $("#checkNumber").val(data.paymentReference || "");
+                $("#checkDate").val(data.checkDate || "");
+            } else if (data.paymentMethod === 2) {
+                $("#transferBankName").val(data.bankName || "");
+                $("#transferTxnId").val(data.paymentReference || "");
+            }
+
             if (data.paymentMode === 1) {
                 $("#downPayment").val(data.downPayment.toFixed(2));
                 $("#installmentsCount").val(data.installmentsCount);
@@ -444,6 +670,7 @@ function clearNewCustomerFields() {
     $("#newCustomerLastName").val("");
     $("#newCustomerEmail").val("");
     $("#newCustomerPhone").val("");
+    $("#newCustomerCnic").val("");
     $("#newCustomerFields .text-danger").text("");
 }
 
@@ -508,13 +735,28 @@ function loadLeaseSchedule(saleId) {
                             actionButton = '<span class="text-success fw-bold"><i class="fas fa-check-circle"></i> Collected</span>';
                         }
 
+                        var methodBadge = "";
+                        if (item.status === "Paid") {
+                            if (item.paymentMethod === 0) {
+                                methodBadge = `<span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>Cash ${item.paymentReference ? '(' + item.paymentReference + ')' : ''}</span>`;
+                            } else if (item.paymentMethod === 1) {
+                                methodBadge = `<span class="badge bg-warning text-dark"><i class="fas fa-money-check me-1"></i>Check ${item.bankName ? item.bankName : ''} ${item.paymentReference ? '#' + item.paymentReference : ''}</span>`;
+                            } else if (item.paymentMethod === 2) {
+                                methodBadge = `<span class="badge bg-info text-white"><i class="fas fa-university me-1"></i>Online ${item.bankName ? item.bankName : ''} ${item.paymentReference ? '(' + item.paymentReference + ')' : ''}</span>`;
+                            } else {
+                                methodBadge = `<span class="badge bg-success">Collected</span>`;
+                            }
+                        } else {
+                            methodBadge = `<span class="badge bg-light text-secondary">-</span>`;
+                        }
+
                         html += `
                             <tr>
                                 <td>Installment #${item.installmentNumber}</td>
                                 <td>${item.dueDate}</td>
                                 <td class="fw-bold">PKR ${parseFloat(item.amount).toFixed(2)}</td>
                                 <td class="text-success">PKR ${parseFloat(item.paidAmount).toFixed(2)}</td>
-                                <td>${item.paymentDate}</td>
+                                <td>${item.paymentDate} <br/>${methodBadge}</td>
                                 <td><span class="badge ${badgeClass}">${item.status}</span></td>
                                 <td class="text-center">${actionButton}</td>
                             </tr>
@@ -535,26 +777,109 @@ function loadLeaseSchedule(saleId) {
 function collectLeaseInstallment(installmentId, remainingAmount) {
     Swal.fire({
         title: 'Collect Installment',
-        text: 'Enter the amount collected (Max: PKR ' + remainingAmount.toFixed(2) + '):',
-        input: 'number',
-        inputValue: remainingAmount.toFixed(2),
-        inputAttributes: {
-            min: 0.01,
-            max: remainingAmount.toFixed(2),
-            step: 0.01
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Collection Amount (Max: PKR ${remainingAmount.toFixed(2)})</label>
+                    <input type="number" id="swalInstallmentAmount" class="form-control" value="${remainingAmount.toFixed(2)}" min="0.01" max="${remainingAmount.toFixed(2)}" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Payment Method</label>
+                    <select id="swalPaymentMethod" class="form-select">
+                        <option value="0">Cash</option>
+                        <option value="1">Check</option>
+                        <option value="2">Online Transfer</option>
+                    </select>
+                </div>
+                <div id="swalCashFields">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Cash Receipt / Ref # (Optional)</label>
+                        <input type="text" id="swalCashRef" class="form-control" placeholder="Receipt #" />
+                    </div>
+                </div>
+                <div id="swalCheckFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Bank Name</label>
+                        <input type="text" id="swalCheckBank" class="form-control" placeholder="e.g. HBL, Meezan Bank" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Check Number</label>
+                        <input type="text" id="swalCheckNum" class="form-control" placeholder="e.g. CHK-12345" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Check Date</label>
+                        <input type="date" id="swalCheckDate" class="form-control" />
+                    </div>
+                </div>
+                <div id="swalOnlineFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Bank / Platform Name</label>
+                        <input type="text" id="swalTransferBank" class="form-control" placeholder="e.g. Meezan Bank, JazzCash" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Transaction / Ref ID</label>
+                        <input type="text" id="swalTransferTxn" class="form-control" placeholder="e.g. TRX-987654" />
+                    </div>
+                </div>
+            </div>
+        `,
+        didOpen: () => {
+            $('#swalPaymentMethod').on('change', function() {
+                var method = $(this).val();
+                if (method == '0') {
+                    $('#swalCashFields').removeClass('d-none');
+                    $('#swalCheckFields, #swalOnlineFields').addClass('d-none');
+                } else if (method == '1') {
+                    $('#swalCheckFields').removeClass('d-none');
+                    $('#swalCashFields, #swalOnlineFields').addClass('d-none');
+                } else {
+                    $('#swalOnlineFields').removeClass('d-none');
+                    $('#swalCashFields, #swalCheckFields').addClass('d-none');
+                }
+            });
         },
         showCancelButton: true,
         confirmButtonText: 'Collect Now',
         showLoaderOnConfirm: true,
-        preConfirm: (amount) => {
-            if (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > remainingAmount) {
-                Swal.showValidationMessage('Please enter a valid amount up to PKR ' + remainingAmount.toFixed(2));
+        preConfirm: () => {
+            var amount = parseFloat($('#swalInstallmentAmount').val());
+            if (!amount || amount <= 0 || amount > remainingAmount) {
+                Swal.showValidationMessage('Please enter a valid collection amount up to PKR ' + remainingAmount.toFixed(2));
                 return false;
             }
+            var method = parseInt($('#swalPaymentMethod').val());
+            var ref = null;
+            var bank = null;
+            var date = null;
+
+            if (method === 0) {
+                ref = $('#swalCashRef').val().trim() || null;
+            } else if (method === 1) {
+                bank = $('#swalCheckBank').val().trim();
+                ref = $('#swalCheckNum').val().trim();
+                date = $('#swalCheckDate').val() || null;
+                if (!bank || !ref) {
+                    Swal.showValidationMessage('Bank Name and Check Number are required for Check payment.');
+                    return false;
+                }
+            } else if (method === 2) {
+                bank = $('#swalTransferBank').val().trim();
+                ref = $('#swalTransferTxn').val().trim();
+                if (!bank || !ref) {
+                    Swal.showValidationMessage('Bank/Platform Name and Transaction ID are required for Online Transfer.');
+                    return false;
+                }
+            }
+
             var data = {
                 InstallmentId: installmentId,
-                Amount: parseFloat(amount)
+                Amount: amount,
+                PaymentMethod: method,
+                PaymentReference: ref,
+                BankName: bank,
+                CheckDate: date
             };
+
             return $.ajax({
                 url: "/Sales/ReceiveInstallment",
                 type: "POST",
@@ -682,3 +1007,24 @@ function sendReminderEmail(installmentId) {
         }
     });
 }
+
+function formatCnic(val) {
+    if (!val) return "";
+    var digits = val.replace(/\D/g, "").substring(0, 13);
+    var formatted = "";
+    if (digits.length > 0) {
+        formatted += digits.substring(0, 5);
+    }
+    if (digits.length > 5) {
+        formatted += "-" + digits.substring(5, 12);
+    }
+    if (digits.length > 12) {
+        formatted += "-" + digits.substring(12, 13);
+    }
+    return formatted;
+}
+
+$(document).on("input", ".cnic-input", function () {
+    var formatted = formatCnic(this.value);
+    this.value = formatted;
+});

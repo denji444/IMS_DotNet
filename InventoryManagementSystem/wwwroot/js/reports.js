@@ -1,4 +1,4 @@
-var productTable, pnlTable, agingTable;
+var productTable, pnlTable, agingTable, customerReportTable;
 
 $(document).ready(function () {
     // 1. Initialize Product Performance Table
@@ -192,6 +192,121 @@ $(document).ready(function () {
             }
         ],
         "order": [[6, "desc"]]
+    });
+
+    // 4. Initialize Customer Statement Report Table
+    customerReportTable = $("#customerReportTable").DataTable({
+        "ajax": {
+            "url": "/Reports/GetCustomerTransactionReport",
+            "type": "GET",
+            "datatype": "json",
+            "data": function (d) {
+                d.customerId = $("#custReportSelect").val();
+                d.startDate = $("#custStartDate").val();
+                d.endDate = $("#custEndDate").val();
+            },
+            "dataSrc": function (json) {
+                if (json.customer) {
+                    $("#custProfileName").text(json.customer.fullName || "Select a Customer");
+                    $("#custProfileEmail").html(`<i class="fas fa-envelope me-1"></i>${json.customer.email || '-'}`);
+                    $("#custProfilePhone").html(`<i class="fas fa-phone me-1"></i>${json.customer.phone || '-'}`);
+                    $("#custProfileCnic").html(`<i class="fas fa-address-card me-1"></i>CNIC: ${json.customer.cnic || '-'}`);
+                }
+                if (json.summary) {
+                    $("#custTotalOrders").text(json.summary.totalTransactions);
+                    $("#custTotalSales").text("PKR " + parseFloat(json.summary.totalSalesAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    $("#custTotalPaid").text("PKR " + parseFloat(json.summary.totalPaidAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    $("#custBalanceDue").text("PKR " + parseFloat(json.summary.totalBalanceDue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                }
+                return json.transactions || [];
+            }
+        },
+        "columns": [
+            { 
+                "data": "invoiceNo",
+                "render": function(data) {
+                    return `<strong>${data}</strong>`;
+                }
+            },
+            { "data": "saleDate" },
+            { "data": "itemsSummary" },
+            { "data": "paymentMode" },
+            { "data": "paymentMethod" },
+            { 
+                "data": "totalAmount",
+                "className": "text-end fw-bold",
+                "render": function(data) {
+                    return "PKR " + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            },
+            { 
+                "data": "paidAmount",
+                "className": "text-end text-success",
+                "render": function(data) {
+                    return "PKR " + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            },
+            { 
+                "data": "balance",
+                "className": "text-end text-danger fw-bold",
+                "render": function(data) {
+                    return "PKR " + parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            },
+            { 
+                "data": "status",
+                "className": "text-center",
+                "render": function(data, type, row) {
+                    return `<span class="badge ${row.statusBadge}">${data}</span>`;
+                }
+            },
+            {
+                "data": "saleId",
+                "className": "text-center",
+                "render": function(data) {
+                    return `<a href="/Sales/PrintInvoice/${data}" target="_blank" class="btn btn-sm btn-outline-dark" title="Print Invoice">
+                                <i class="fas fa-print"></i>
+                            </a>`;
+                }
+            }
+        ],
+        "order": [[1, "desc"]]
+    });
+
+    // Populate Customers Dropdown
+    $.ajax({
+        url: "/Reports/GetCustomersList",
+        type: "GET",
+        success: function(customers) {
+            var select = $("#custReportSelect");
+            select.find("option:not(:first)").remove();
+            if (customers && customers.length > 0) {
+                customers.forEach(function(c) {
+                    select.append(`<option value="${c.id}">${c.fullName} (${c.email || c.phoneNumber || 'N/A'})</option>`);
+                });
+            }
+        }
+    });
+
+    // Customer Filter Events
+    $("#custReportSelect, #btnFilterCustReport").on("change click", function(e) {
+        if (e.type === "change" && this.id !== "custReportSelect") return;
+        customerReportTable.ajax.reload();
+    });
+
+    // Print Customer Statement Handler
+    $("#btnPrintCustStatement").click(function() {
+        var custId = $("#custReportSelect").val();
+        if (!custId) {
+            Swal.fire('Notice', 'Please select a customer first to print their account statement.', 'info');
+            return;
+        }
+        var start = $("#custStartDate").val();
+        var end = $("#custEndDate").val();
+        var url = `/Reports/PrintCustomerStatement?customerId=${encodeURIComponent(custId)}`;
+        if (start) url += `&startDate=${encodeURIComponent(start)}`;
+        if (end) url += `&endDate=${encodeURIComponent(end)}`;
+        window.open(url, '_blank');
     });
 
     // Fix DataTables column layout on tab switch

@@ -9,49 +9,92 @@ $(document).ready(function () {
             "datatype": "json"
         },
         "columns": [
-            { "data": "id", "width": "5%" },
-            { "data": "sku" },
-            { "data": "name" },
+            { 
+                "data": "sku",
+                "width": "14%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    return `<span class="fw-bold text-nowrap">${data}</span>`;
+                }
+            },
+            { 
+                "data": "name",
+                "width": "22%",
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    var variantText = (row.variant && row.variant !== 'N/A' && row.variant !== 'Standard') 
+                        ? `<small class="text-muted d-block mt-1">${row.variant}</small>` 
+                        : '';
+                    return `<div>
+                                <div class="fw-bold text-dark">${data}</div>
+                                ${variantText}
+                            </div>`;
+                }
+            },
             { 
                 "data": "categoryName", 
-                "render": function(d) {
-                    return `<span class="badge bg-secondary">${d || 'General Stock'}</span>`;
+                "width": "18%",
+                "className": "text-center align-middle",
+                "render": function(d, type, row) {
+                    var catBadge = `<span class="badge bg-secondary mb-1">${d || 'General Stock'}</span>`;
+                    var typeBadge = `<span class="badge bg-primary text-white d-block mx-auto" style="width: max-content;"><i class="fas fa-tag me-1"></i>${row.productType || 'Standard'}</span>`;
+                    return `<div class="d-flex flex-column align-items-center">${catBadge}${typeBadge}</div>`;
                 }
             },
             { 
-                "data": "productType", 
-                "render": function(d) {
-                    return `<span class="badge bg-primary text-white"><i class="fas fa-tag me-1"></i>${d || 'Standard'}</span>`;
+                "data": "description",
+                "width": "22%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    if (!data) return `<span class="text-muted small">N/A</span>`;
+                    return `<small class="text-muted d-block">${data}</small>`;
                 }
             },
-            { "data": "variant", "render": function(data) { return data ? data : "N/A"; } },
-            { "data": "description" },
             { 
                 "data": "price",
+                "width": "10%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function(data) {
                     if (data === null || data === undefined || data === "" || isNaN(parseFloat(data))) {
-                        return 'N/A';
+                        return '<span class="text-muted">N/A</span>';
                     }
-                    return "PKR " + parseFloat(data).toFixed(2);
+                    return `<span class="fw-bold text-dark">PKR ${parseFloat(data).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                 }
             },
-            { "data": "stockQuantity" },
+            { 
+                "data": "stockQuantity",
+                "width": "10%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data) {
+                    var qty = parseInt(data) || 0;
+                    if (qty === 0) {
+                        return `<span class="badge bg-danger"><i class="fas fa-circle-xmark me-1"></i>0 (Out of Stock)</span>`;
+                    } else if (qty <= 5) {
+                        return `<span class="badge bg-warning text-dark"><i class="fas fa-triangle-exclamation me-1"></i>${qty} (Low Stock)</span>`;
+                    } else if (qty >= 50) {
+                        return `<span class="badge bg-info text-dark fw-bold"><i class="fas fa-boxes-stacked me-1"></i>${qty} (Overbought)</span>`;
+                    } else {
+                        return `<span class="badge bg-success"><i class="fas fa-check me-1"></i>${qty} Units</span>`;
+                    }
+                }
+            },
             {
                 "data": "id",
+                "width": "8%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function (data) {
                     return `
-                        <div class="text-center">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEditModal(${data})">
-                                <i class="fas fa-edit"></i> Edit
+                        <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
+                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Product">
+                                <i class="fas fa-edit me-1"></i>Edit
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${data})">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${data})" title="Delete Product">
+                                <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
                     `;
                 },
-                "orderable": false,
-                "width": "20%"
+                "orderable": false
             }
         ],
         "language": {

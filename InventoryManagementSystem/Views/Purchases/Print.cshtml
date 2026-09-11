@@ -74,17 +74,41 @@
             <p class="mb-0"><strong>Email:</strong> @(Model.Supplier?.Email ?? "N/A")</p>
         </div>
         <div class="col-6 text-end">
-            <h6 class="text-uppercase fw-bold text-secondary">Payment Method:</h6>
+            <h6 class="text-uppercase fw-bold text-secondary">Payment Details:</h6>
             @if (Model.PaymentMode == PaymentMode.Lease)
             {
-                <p class="mb-0">Lease / Installments</p>
-                <p class="mb-0">Frequency: @Model.InstallmentFrequency</p>
-                <p class="mb-0">Installments: @Model.InstallmentsCount</p>
+                <p class="mb-0"><strong>Mode:</strong> Lease / Installments</p>
+                <p class="mb-0"><strong>Frequency:</strong> @Model.InstallmentFrequency (@Model.InstallmentsCount Installments)</p>
+                <p class="mb-0"><strong>Down Payment Method:</strong> @Model.PaymentMethod.ToString()</p>
+                if (!string.IsNullOrEmpty(Model.BankName))
+                {
+                    <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
+                }
+                if (!string.IsNullOrEmpty(Model.PaymentReference))
+                {
+                    <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
+                }
+                if (Model.CheckDate.HasValue)
+                {
+                    <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
+                }
             }
             else
             {
-                <p class="mb-0">Cash</p>
-                <p class="mb-0">Status: Fully Paid</p>
+                <p class="mb-0"><strong>Method:</strong> @Model.PaymentMethod.ToString()</p>
+                if (!string.IsNullOrEmpty(Model.BankName))
+                {
+                    <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
+                }
+                if (!string.IsNullOrEmpty(Model.PaymentReference))
+                {
+                    <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
+                }
+                if (Model.CheckDate.HasValue)
+                {
+                    <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
+                }
+                <p class="mb-0"><strong>Status:</strong> Fully Paid</p>
             }
         </div>
     </div>
@@ -94,21 +118,40 @@
             <tr>
                 <th>Item SKU</th>
                 <th>Product Name</th>
+                <th>Batch</th>
                 <th class="text-center">Quantity</th>
                 <th class="text-end">Unit Price</th>
                 <th class="text-end">Total Cost</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>@(Model.Product?.Sku ?? "N/A")</td>
-                <td>
-                    @(Model.Product != null ? (string.IsNullOrEmpty(Model.Product.Variant) ? Model.Product.Name : $"{Model.Product.Name} ({Model.Product.Variant})") : "N/A")
-                </td>
-                <td class="text-center">@Model.Quantity</td>
-                <td class="text-end">PKR @Model.UnitPrice.ToString("F2")</td>
-                <td class="text-end fw-bold">PKR @Model.TotalCost.ToString("F2")</td>
-            </tr>
+            @if (Model.Items != null && Model.Items.Any())
+            {
+                foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@(item.Product?.Sku ?? "N/A")</td>
+                        <td>@(item.Product != null ? (string.IsNullOrEmpty(item.Product.Variant) ? item.Product.Name : $"{item.Product.Name} ({item.Product.Variant})") : "N/A")</td>
+                        <td>@(string.IsNullOrEmpty(item.BatchNumber) ? "N/A" : item.BatchNumber)</td>
+                        <td class="text-center">@item.Quantity</td>
+                        <td class="text-end">PKR @item.UnitPrice.ToString("F2")</td>
+                        <td class="text-end fw-bold">PKR @item.TotalCost.ToString("F2")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td>@(Model.Product?.Sku ?? "N/A")</td>
+                    <td>
+                        @(Model.Product != null ? (string.IsNullOrEmpty(Model.Product.Variant) ? Model.Product.Name : $"{Model.Product.Name} ({Model.Product.Variant})") : "N/A")
+                    </td>
+                    <td>@(string.IsNullOrEmpty(Model.BatchNumber) ? "N/A" : Model.BatchNumber)</td>
+                    <td class="text-center">@Model.Quantity</td>
+                    <td class="text-end">PKR @Model.UnitPrice.ToString("F2")</td>
+                    <td class="text-end fw-bold">PKR @Model.TotalCost.ToString("F2")</td>
+                </tr>
+            }
         </tbody>
     </table>
 
@@ -137,7 +180,7 @@
                         <th>Due Date</th>
                         <th class="text-end">Amount</th>
                         <th class="text-end">Paid Amount</th>
-                        <th>Payment Date</th>
+                        <th>Payment Date & Method</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -147,7 +190,10 @@
                         <td>@Model.PurchaseDate.ToString("yyyy-MM-dd")</td>
                         <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
                         <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
-                        <td>@Model.PurchaseDate.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>
+                            @Model.PurchaseDate.ToString("yyyy-MM-dd HH:mm")<br/>
+                            <span class="badge bg-success text-white">@Model.PaymentMethod.ToString() @(string.IsNullOrEmpty(Model.PaymentReference) ? "" : $"({Model.PaymentReference})")</span>
+                        </td>
                         <td><span class="badge bg-success text-white">Paid</span></td>
                     </tr>
                     @if (Model.Installments != null && Model.Installments.Any())
@@ -159,7 +205,18 @@
                                 <td>@inst.DueDate.ToString("yyyy-MM-dd")</td>
                                 <td class="text-end">PKR @inst.Amount.ToString("F2")</td>
                                 <td class="text-end text-success">PKR @inst.PaidAmount.ToString("F2")</td>
-                                <td>@(inst.PaymentDate.HasValue ? inst.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-")</td>
+                                <td>
+                                    @(inst.PaymentDate.HasValue ? inst.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-")
+                                    @if (inst.PaymentMethod.HasValue)
+                                    {
+                                        <br/>
+                                        <span class="badge bg-info text-white">
+                                            @inst.PaymentMethod.Value.ToString()
+                                            @(string.IsNullOrEmpty(inst.BankName) ? "" : $" [{inst.BankName}]")
+                                            @(string.IsNullOrEmpty(inst.PaymentReference) ? "" : $" ({inst.PaymentReference})")
+                                        </span>
+                                    }
+                                </td>
                                 <td>
                                     @if (inst.Status == "Paid")
                                     {

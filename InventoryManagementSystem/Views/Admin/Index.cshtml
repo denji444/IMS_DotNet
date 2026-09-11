@@ -18,81 +18,132 @@
     </div>
 </div>
 
-<!-- Primary Financial KPIs -->
-<div class="row g-3 mb-4">
-    <!-- Total Revenue -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start border-success border-4 rounded h-100">
+<!-- Row 1: Primary Financial & Inventory Value Summary (4 Cards) -->
+<div class="row g-3 mb-3">
+    <!-- Total Sales -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start border-success border-4 rounded h-100 bg-white">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Total Sales</span>
-                <h4 class="fw-bold mb-0 text-success mt-1">PKR @Model.TotalSales.ToString("N0")</h4>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Total Sales</span>
+                    <i class="fas fa-dollar-sign text-success opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 text-success text-nowrap">PKR @Model.TotalSales.ToString("N0")</h4>
                 <small class="text-muted">Lifetime Revenue</small>
             </div>
         </div>
     </div>
 
     <!-- Total Purchases -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start border-danger border-4 rounded h-100">
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start border-danger border-4 rounded h-100 bg-white">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Total Purchases</span>
-                <h4 class="fw-bold mb-0 text-danger mt-1">PKR @Model.TotalPurchases.ToString("N0")</h4>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Total Purchases</span>
+                    <i class="fas fa-shopping-cart text-danger opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 text-danger text-nowrap">PKR @Model.TotalPurchases.ToString("N0")</h4>
                 <small class="text-muted">Stock Outlay Cost</small>
             </div>
         </div>
     </div>
 
-    <!-- Net Profit -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start @(Model.NetProfit >= 0 ? "border-primary" : "border-danger") border-4 rounded h-100">
+    <!-- Net Profit / Margin -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start @(Model.NetProfit >= 0 ? "border-primary" : "border-danger") border-4 rounded h-100 bg-white">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Net Margin</span>
-                <h4 class="fw-bold mb-0 @(Model.NetProfit >= 0 ? "text-primary" : "text-danger") mt-1">PKR @Model.NetProfit.ToString("N0")</h4>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Net Margin</span>
+                    <i class="fas fa-calculator @(Model.NetProfit >= 0 ? "text-primary" : "text-danger") opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 @(Model.NetProfit >= 0 ? "text-primary" : "text-danger") text-nowrap">PKR @Model.NetProfit.ToString("N0")</h4>
                 <small class="text-muted">Sales minus Purchases</small>
             </div>
         </div>
     </div>
 
-    <!-- Pending Receivables -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start border-warning border-4 rounded h-100">
+    <!-- Total Stock Value -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start border-info border-4 rounded h-100 bg-white">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Receivables</span>
-                <h4 class="fw-bold mb-0 text-warning mt-1">PKR @Model.PendingReceivables.ToString("N0")</h4>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Total Stock Value</span>
+                    <i class="fas fa-warehouse text-info opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 text-dark text-nowrap">PKR @Model.TotalStockValue.ToString("N0")</h4>
+                <small class="text-muted">Current Inventory Outlay</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Financial Obligations & Inventory Health Alerts (4 Cards) -->
+<div class="row g-3 mb-3">
+    <!-- Receivables -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start border-warning border-4 rounded h-100 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Receivables</span>
+                    <i class="fas fa-hand-holding-dollar text-warning opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 text-warning text-nowrap">PKR @Model.PendingReceivables.ToString("N0")</h4>
                 <small class="text-muted">Customer Installments</small>
             </div>
         </div>
     </div>
 
-    <!-- Pending Payables -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start border-secondary border-4 rounded h-100">
+    <!-- Payables -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start border-secondary border-4 rounded h-100 bg-white">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Payables</span>
-                <h4 class="fw-bold mb-0 text-secondary mt-1">PKR @Model.PendingPayables.ToString("N0")</h4>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Payables</span>
+                    <i class="fas fa-file-invoice-dollar text-secondary opacity-50 fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 text-secondary text-nowrap">PKR @Model.PendingPayables.ToString("N0")</h4>
                 <small class="text-muted">Supplier Installments</small>
             </div>
         </div>
     </div>
 
     <!-- Low Stock Alert -->
-    <div class="col-md-4 col-xl-2">
-        <div class="card shadow-sm border-0 border-start @(Model.LowStockCount > 0 ? "border-danger bg-danger bg-opacity-10" : "border-info") border-4 rounded h-100">
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start @(Model.LowStockCount > 0 ? "border-danger bg-danger bg-opacity-10" : "border-success") border-4 rounded h-100">
             <div class="card-body p-3">
-                <span class="text-uppercase text-muted small fw-bold">Low Stock Items</span>
-                <h4 class="fw-bold mb-0 @(Model.LowStockCount > 0 ? "text-danger" : "text-info") mt-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Low Stock Items</span>
+                    <i class="fas fa-triangle-exclamation @(Model.LowStockCount > 0 ? "text-danger" : "text-success") fs-5"></i>
+                </div>
+                <h4 class="fw-bold mb-0 @(Model.LowStockCount > 0 ? "text-danger" : "text-success") mt-1">
                     @Model.LowStockCount <small class="fs-6 fw-normal">Items</small>
                 </h4>
                 <small class="text-muted">Stock &le; 5 units</small>
             </div>
         </div>
     </div>
+
+    <!-- Overbought Alert -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0 border-start @(Model.HighStockCount > 0 ? "border-purple bg-purple bg-opacity-10" : "border-secondary") border-4 rounded h-100" style="border-left-color: #6f42c1 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase text-muted small fw-bold">Overbought Stock</span>
+                    <i class="fas fa-boxes-stacked fs-5" style="color: #6f42c1;"></i>
+                </div>
+                <h4 class="fw-bold mb-0 mt-1" style="color: #6f42c1;">
+                    @Model.HighStockCount <small class="fs-6 fw-normal text-muted">Items</small>
+                </h4>
+                <small class="text-muted">Stock &ge; 50 units</small>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Secondary Metrics Cards -->
+<!-- Row 3: Entity Directory Counters (3 Cards) -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded h-100">
             <div>
                 <h6 class="text-uppercase text-muted small fw-bold mb-1">Products Active</h6>
                 <h3 class="fw-bold mb-0 text-dark">@Model.ProductCount</h3>
@@ -102,19 +153,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
-            <div>
-                <h6 class="text-uppercase text-muted small fw-bold mb-1">Total Stock Value</h6>
-                <h3 class="fw-bold mb-0 text-dark">PKR @Model.TotalStockValue.ToString("N0")</h3>
-            </div>
-            <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                <i class="fas fa-warehouse fa-xl"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded h-100">
             <div>
                 <h6 class="text-uppercase text-muted small fw-bold mb-1">Active Suppliers</h6>
                 <h3 class="fw-bold mb-0 text-dark">@Model.SupplierCount</h3>
@@ -124,8 +164,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3 d-flex flex-row align-items-center justify-content-between rounded h-100">
             <div>
                 <h6 class="text-uppercase text-muted small fw-bold mb-1">Registered Customers</h6>
                 <h3 class="fw-bold mb-0 text-dark">@Model.CustomerCount</h3>
@@ -176,54 +216,114 @@
 
 <!-- Tables Row -->
 <div class="row g-4 mb-4">
-    <!-- Low Stock Inventory Alerts Table -->
+    <!-- Inventory Alerts Card (Low Stock & Overbought) -->
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 rounded h-100">
-            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-triangle-exclamation me-2 text-warning"></i>Low Stock Inventory Alerts</h6>
+            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                <ul class="nav nav-tabs card-header-tabs border-0" id="inventoryAlertTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active text-warning fw-bold border-0 bg-transparent py-2" id="low-stock-tab" data-bs-toggle="tab" data-bs-target="#low-stock-pane" type="button" role="tab" aria-controls="low-stock-pane" aria-selected="true">
+                            <i class="fas fa-triangle-exclamation me-1"></i>Low Stock (@Model.LowStockCount)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-light fw-bold border-0 bg-transparent py-2" id="high-stock-tab" data-bs-toggle="tab" data-bs-target="#high-stock-pane" type="button" role="tab" aria-controls="high-stock-pane" aria-selected="false">
+                            <i class="fas fa-boxes-stacked me-1 text-info"></i>Overbought (@Model.HighStockCount)
+                        </button>
+                    </li>
+                </ul>
                 <a asp-controller="Products" asp-action="Index" class="btn btn-outline-light btn-sm">Manage Stock</a>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Product</th>
-                                <th>Variant</th>
-                                <th class="text-center">Stock</th>
-                                <th class="text-end">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Model.LowStockProducts.Any())
-                            {
-                                foreach (var prod in Model.LowStockProducts)
-                                {
+                <div class="tab-content" id="inventoryAlertTabsContent">
+                    <!-- Low Stock Tab -->
+                    <div class="tab-pane fade show active" id="low-stock-pane" role="tabpanel" aria-labelledby="low-stock-tab">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>
-                                            <div class="fw-bold text-dark">@prod.Name</div>
-                                            <small class="text-muted">SKU: @prod.Sku</small>
-                                        </td>
-                                        <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
-                                        <td class="text-center">
-                                            <span class="badge @(prod.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
-                                                @prod.StockQuantity Units
-                                            </span>
-                                        </td>
-                                        <td class="text-end fw-bold">@(prod.Price.HasValue ? $"PKR {prod.Price.Value.ToString("N2")}" : "N/A")</td>
+                                        <th>Product</th>
+                                        <th>Variant</th>
+                                        <th class="text-center">Stock</th>
+                                        <th class="text-end">Price</th>
                                     </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
-                                        <i class="fas fa-check-circle text-success me-1"></i> All stock levels are healthy!
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    @if (Model.LowStockProducts.Any())
+                                    {
+                                        foreach (var prod in Model.LowStockProducts)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold text-dark">@prod.Name</div>
+                                                    <small class="text-muted">SKU: @prod.Sku</small>
+                                                </td>
+                                                <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
+                                                <td class="text-center">
+                                                    <span class="badge @(prod.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                                        @prod.StockQuantity Units
+                                                    </span>
+                                                </td>
+                                                <td class="text-end fw-bold">@(prod.Price.HasValue ? $"PKR {prod.Price.Value.ToString("N2")}" : "N/A")</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4">
+                                                <i class="fas fa-check-circle text-success me-1"></i> No low stock items!
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- High Stock (Overbought) Tab -->
+                    <div class="tab-pane fade" id="high-stock-pane" role="tabpanel" aria-labelledby="high-stock-tab">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Variant</th>
+                                        <th class="text-center">Stock</th>
+                                        <th class="text-end">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.HighStockProducts.Any())
+                                    {
+                                        foreach (var prod in Model.HighStockProducts)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold text-dark">@prod.Name</div>
+                                                    <small class="text-muted">SKU: @prod.Sku</small>
+                                                </td>
+                                                <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-info text-dark fw-bold">
+                                                        @prod.StockQuantity Units
+                                                    </span>
+                                                </td>
+                                                <td class="text-end fw-bold">@(prod.Price.HasValue ? $"PKR {prod.Price.Value.ToString("N2")}" : "N/A")</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle text-info me-1"></i> No overbought stock items found.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

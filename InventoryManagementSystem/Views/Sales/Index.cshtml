@@ -13,18 +13,14 @@
     </div>
     <div class="card-body p-4">
         <div class="table-responsive">
-            <table class="table table-hover table-striped w-100" id="salesTable">
-                <thead class="table-dark">
+            <table class="table table-hover table-striped align-middle w-100" id="salesTable">
+                <thead class="table-dark text-center">
                     <tr>
-                        <th>Invoice No</th>
-                        <th>Product</th>
-                        <th>Customer</th>
-                        <th>Qty</th>
-                        <th>Unit Price</th>
-                        <th>Total Amount</th>
-                        <th>Sale Date</th>
-                        <th>Batch</th>
-                        <th>Notes</th>
+                        <th class="text-center">Invoice & Date</th>
+                        <th class="text-center">Product & Batch</th>
+                        <th class="text-center">Customer</th>
+                        <th class="text-center">Total Amount</th>
+                        <th class="text-center">Notes</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -38,7 +34,7 @@
 
 <!-- Sale Create/Edit Modal -->
 <div class="modal fade" id="saleModal" role="dialog" aria-labelledby="saleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title" id="saleModalLabel">Record Sale</h5>
@@ -96,48 +92,92 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="ProductId" class="form-label text-secondary small fw-bold mb-1"></label>
-                        <select asp-for="ProductId" class="form-select select2-product w-100" id="productSelect" required>
-                            <!-- Remotely bound -->
-                        </select>
-                        <span asp-validation-for="ProductId" class="text-danger"></span>
-                        <div id="availableStockContainer" class="form-text mt-1 d-none">
-                            <div>Available Stock: <span id="availableStockQty" class="fw-bold">0</span></div>
-                            <div id="setUnitPriceContainer" class="mt-1">Set Unit Price: <span id="setUnitPriceValue" class="fw-bold text-dark">PKR 0.00</span></div>
+                        <div class="form-floating mb-1">
+                            <input class="form-control cnic-input" id="newCustomerCnic" placeholder="CNIC No" maxlength="15" />
+                            <label for="newCustomerCnic">CNIC No (Optional, e.g. 35201-1234567-1)</label>
                         </div>
                     </div>
 
-                    <div class="mb-3" id="batchSelectContainer">
-                        <label for="saleBatchSelect" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Select Stock Batch (Optional)</label>
-                        <select asp-for="BatchNumber" class="form-select" id="saleBatchSelect">
-                            <option value="">-- General / Unbatched Stock --</option>
-                        </select>
-                        <span class="text-muted extra-small" style="font-size: 0.8rem;"><i class="fas fa-info-circle me-1"></i>Select specific purchase batch or leave blank.</span>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="form-floating">
-                                <input asp-for="Quantity" class="form-control" type="number" id="saleQty" placeholder="Quantity" required min="1" />
-                                <label asp-for="Quantity"></label>
-                                <span asp-validation-for="Quantity" class="text-danger"></span>
+                    <!-- Multi-Item Invoice Builder -->
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <h6 class="text-dark mb-3 fw-bold"><i class="fas fa-boxes text-primary me-2"></i>Invoice Items Selection</h6>
+                        
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold mb-1">Filter Category</label>
+                                <select class="form-select form-select-sm" id="itemCategoryFilter">
+                                    <option value="">-- All Categories --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold mb-1">Filter Product Type</label>
+                                <select class="form-select form-select-sm" id="itemTypeFilter">
+                                    <option value="">-- All Product Types --</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="form-floating">
-                                <input asp-for="UnitPrice" class="form-control" type="number" step="0.01" id="unitPrice" placeholder="Unit Price" required min="0.01" />
-                                <label asp-for="UnitPrice"></label>
-                                <span asp-validation-for="UnitPrice" class="text-danger"></span>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label text-secondary small fw-bold mb-1">Select Product SKU</label>
+                                <select class="form-select select2-product w-100" id="productSelect">
+                                    <!-- Remotely bound -->
+                                </select>
                             </div>
+                            <div class="col-md-5">
+                                <label class="form-label text-secondary small fw-bold mb-1">Stock Batch (Optional)</label>
+                                <select class="form-select form-select-sm" id="saleBatchSelect">
+                                    <option value="">-- General / Unbatched Stock --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="availableStockContainer" class="form-text mb-2 d-none">
+                            <span class="badge bg-secondary me-2">Available Stock: <span id="availableStockQty">0</span></span>
+                            <span class="badge bg-light text-dark border">Set Unit Price: <span id="setUnitPriceValue">PKR 0.00</span></span>
+                        </div>
+
+                        <div class="row g-2 mb-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label text-secondary small fw-bold mb-1">Quantity</label>
+                                <input class="form-control form-control-sm" type="number" id="saleQty" min="1" value="1" placeholder="Qty" />
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label text-secondary small fw-bold mb-1">Unit Price (PKR)</label>
+                                <input class="form-control form-control-sm" type="number" step="0.01" id="unitPrice" placeholder="Unit Price" />
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="btnAddSaleItem">
+                                    <i class="fas fa-plus me-1"></i> Add Item
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Draft Items Table -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered bg-white align-middle text-center mb-0" id="saleItemsTable">
+                                <thead class="table-dark small">
+                                    <tr>
+                                        <th style="width: 35%;">Product</th>
+                                        <th style="width: 20%;">Batch</th>
+                                        <th style="width: 12%;">Qty</th>
+                                        <th style="width: 15%;">Unit Price</th>
+                                        <th style="width: 15%;">Total</th>
+                                        <th style="width: 3%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="saleItemsTableBody">
+                                    <tr id="emptySaleItemsRow">
+                                        <td colspan="6" class="text-muted small py-3">No items added to invoice yet. Select a product and click "Add Item".</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
                     <div class="form-floating mb-3">
-                        <input asp-for="TotalAmount" class="form-control bg-light" type="number" id="totalAmount" placeholder="Total Amount" readonly />
-                        <label asp-for="TotalAmount"></label>
+                        <input asp-for="TotalAmount" class="form-control bg-light fw-bold text-dark fs-5" type="number" id="totalAmount" placeholder="Total Amount" readonly />
+                        <label asp-for="TotalAmount" class="fw-bold">Grand Total Amount (PKR)</label>
                     </div>
 
                     <div class="mb-3">
@@ -147,6 +187,70 @@
                             <option value="1">Lease / Installments</option>
                         </select>
                         <span asp-validation-for="PaymentMode" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-credit-card me-1 text-primary"></i>Payment Method</label>
+                        <select asp-for="PaymentMethod" class="form-select" id="paymentMethod" required>
+                            <option value="0">Cash</option>
+                            <option value="1">Check</option>
+                            <option value="2">Online Transfer</option>
+                        </select>
+                        <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                    </div>
+
+                    <!-- Dynamic Payment Method Details -->
+                    <div id="paymentMethodDetailsContainer" class="border rounded p-3 mb-3 bg-light">
+                        <!-- Cash Options -->
+                        <div id="cashFields" class="payment-method-fields">
+                            <h6 class="text-dark mb-2 fw-bold"><i class="fas fa-money-bill-wave text-success me-2"></i>Cash Details</h6>
+                            <div class="form-floating">
+                                <input class="form-control" id="cashReference" placeholder="Receipt / Ref #" />
+                                <label for="cashReference">Receipt / Ref # (Optional)</label>
+                            </div>
+                        </div>
+                        <!-- Check Options -->
+                        <div id="checkFields" class="payment-method-fields d-none">
+                            <h6 class="text-dark mb-2 fw-bold"><i class="fas fa-money-check text-warning me-2"></i>Check Details</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-floating">
+                                        <input class="form-control" id="checkBankName" placeholder="Bank Name" />
+                                        <label for="checkBankName">Bank Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-floating">
+                                        <input class="form-control" id="checkNumber" placeholder="Check Number" />
+                                        <label for="checkNumber">Check Number</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-12 mb-2">
+                                    <div class="form-floating">
+                                        <input class="form-control" type="date" id="checkDate" placeholder="Check Date" />
+                                        <label for="checkDate">Check Date</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Online Transfer Options -->
+                        <div id="onlineTransferFields" class="payment-method-fields d-none">
+                            <h6 class="text-dark mb-2 fw-bold"><i class="fas fa-university text-info me-2"></i>Online Transfer Details</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-floating">
+                                        <input class="form-control" id="transferBankName" placeholder="Bank / Platform Name" />
+                                        <label for="transferBankName">Bank / Platform (e.g. Meezan, JazzCash)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-floating">
+                                        <input class="form-control" id="transferTxnId" placeholder="Transaction / Ref ID" />
+                                        <label for="transferTxnId">Transaction / Ref ID</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="leaseFields" class="d-none border rounded p-3 mb-3 bg-light">

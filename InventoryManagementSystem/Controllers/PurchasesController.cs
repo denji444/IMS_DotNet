@@ -35,19 +35,31 @@ namespace InventoryManagementSystem.Controllers
             var purchases = await _context.Purchases
                 .Include(p => p.Product)
                 .Include(p => p.Supplier)
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.Product)
                 .Select(p => new
                 {
                     p.Id,
                     p.PurchaseNo,
-                    ProductName = p.Product != null ? (string.IsNullOrEmpty(p.Product.Variant) ? $"{p.Product.Name} ({p.Product.Sku})" : $"{p.Product.Name} ({p.Product.Variant}) [{p.Product.Sku}]") : "N/A",
+                    ProductName = p.Items.Any()
+                        ? string.Join(", ", p.Items.Select(i => i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? i.Product.Name : $"{i.Product.Name} ({i.Product.Variant})") : "Item"))
+                        : (p.Product != null ? p.Product.Name : "N/A"),
                     SupplierName = p.Supplier != null ? p.Supplier.Name : "N/A",
-                    p.Quantity,
-                    p.UnitPrice,
+                    Quantity = p.Items.Any() ? p.Items.Sum(i => i.Quantity) : p.Quantity,
+                    UnitPrice = p.Items.Any()
+                        ? (p.Items.Count == 1 ? p.Items.First().UnitPrice : 0)
+                        : p.UnitPrice,
                     p.TotalCost,
                     PurchaseDate = p.PurchaseDate.ToString("yyyy-MM-dd HH:mm"),
                     p.Notes,
-                    BatchNumber = string.IsNullOrEmpty(p.BatchNumber) ? "N/A" : p.BatchNumber,
-                    PaymentMode = (int)p.PaymentMode
+                    BatchNumber = p.Items.Any(i => !string.IsNullOrEmpty(i.BatchNumber))
+                        ? string.Join(", ", p.Items.Where(i => !string.IsNullOrEmpty(i.BatchNumber)).Select(i => i.BatchNumber))
+                        : (string.IsNullOrEmpty(p.BatchNumber) ? "N/A" : p.BatchNumber),
+                    PaymentMode = (int)p.PaymentMode,
+                    PaymentMethod = (int)p.PaymentMethod,
+                    PaymentReference = p.PaymentReference ?? "",
+                    BankName = p.BankName ?? "",
+                    ItemCount = p.Items.Count > 0 ? p.Items.Count : 1
                 })
                 .ToListAsync();
 
@@ -60,6 +72,8 @@ namespace InventoryManagementSystem.Controllers
             var purchase = await _context.Purchases
                 .Include(p => p.Product)
                 .Include(p => p.Supplier)
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(p => p.Id == id);
             
             if (purchase == null)
@@ -67,23 +81,48 @@ namespace InventoryManagementSystem.Controllers
                 return NotFound();
             }
 
+            var itemsList = purchase.Items.Select(i => new
+            {
+                i.Id,
+                i.ProductId,
+                ProductName = i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? $"{i.Product.Name} ({i.Product.Sku})" : $"{i.Product.Name} ({i.Product.Variant}) [{i.Product.Sku}]") : null,
+                i.BatchNumber,
+                i.Quantity,
+                i.UnitPrice,
+                i.TotalCost
+            }).ToList();
+
+            if (!itemsList.Any() && purchase.ProductId.HasValue)
+            {
+                itemsList.Add(new
+                {
+                    Id = 0,
+                    ProductId = purchase.ProductId.Value,
+                    ProductName = purchase.Product != null ? (string.IsNullOrEmpty(purchase.Product.Variant) ? $"{purchase.Product.Name} ({purchase.Product.Sku})" : $"{purchase.Product.Name} ({purchase.Product.Variant}) [{purchase.Product.Sku}]") : null,
+                    BatchNumber = purchase.BatchNumber,
+                    Quantity = purchase.Quantity,
+                    UnitPrice = purchase.UnitPrice,
+                    TotalCost = purchase.TotalCost
+                });
+            }
+
             return Json(new
             {
                 purchase.Id,
                 purchase.PurchaseNo,
-                purchase.ProductId,
-                ProductName = purchase.Product != null ? (string.IsNullOrEmpty(purchase.Product.Variant) ? $"{purchase.Product.Name} ({purchase.Product.Sku})" : $"{purchase.Product.Name} ({purchase.Product.Variant}) [{purchase.Product.Sku}]") : null,
                 purchase.SupplierId,
                 SupplierName = purchase.Supplier?.Name,
-                purchase.Quantity,
-                purchase.UnitPrice,
                 purchase.TotalCost,
                 purchase.Notes,
-                BatchNumber = purchase.BatchNumber ?? "",
                 PaymentMode = (int)purchase.PaymentMode,
+                PaymentMethod = (int)purchase.PaymentMethod,
+                PaymentReference = purchase.PaymentReference ?? "",
+                BankName = purchase.BankName ?? "",
+                CheckDate = purchase.CheckDate.HasValue ? purchase.CheckDate.Value.ToString("yyyy-MM-dd") : "",
                 purchase.DownPayment,
                 purchase.InstallmentsCount,
-                purchase.InstallmentFrequency
+                purchase.InstallmentFrequency,
+                Items = itemsList
             });
         }
 
@@ -149,6 +188,10 @@ namespace InventoryManagementSystem.Controllers
             }
 
             ModelState.Remove(nameof(purchase.PurchaseNo));
+            ModelState.Remove(nameof(purchase.ProductId));
+            ModelState.Remove(nameof(purchase.Quantity));
+            ModelState.Remove(nameof(purchase.UnitPrice));
+
             if (!ModelState.IsValid)
             {
                 var errors = string.Join("; ", ModelState.Values
@@ -157,10 +200,37 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = $"Invalid data submitted: {errors}" });
             }
 
-            var product = await _context.Products.FindAsync(purchase.ProductId);
-            if (product == null)
+            if (purchase.Items == null || !purchase.Items.Any())
             {
-                return Json(new { success = false, message = "Product not found." });
+                if (purchase.ProductId.HasValue && purchase.Quantity > 0)
+                {
+                    purchase.Items = new System.Collections.Generic.List<PurchaseItem>
+                    {
+                        new PurchaseItem
+                        {
+                            ProductId = purchase.ProductId.Value,
+                            BatchNumber = purchase.BatchNumber,
+                            Quantity = purchase.Quantity,
+                            UnitPrice = purchase.UnitPrice,
+                            TotalCost = purchase.Quantity * purchase.UnitPrice
+                        }
+                    };
+                }
+                else
+                {
+                    return Json(new { success = false, message = "At least one item is required for the purchase order." });
+                }
+            }
+
+            // Validate all items
+            foreach (var item in purchase.Items)
+            {
+                var prod = await _context.Products.FindAsync(item.ProductId);
+                if (prod == null)
+                {
+                    return Json(new { success = false, message = $"Product with ID {item.ProductId} not found." });
+                }
+                item.TotalCost = item.Quantity * item.UnitPrice;
             }
 
             // Generate unique PurchaseNo: PUR-yyyyMMdd-XXXX
@@ -168,7 +238,11 @@ namespace InventoryManagementSystem.Controllers
             var count = await _context.Purchases.CountAsync(p => p.PurchaseNo.StartsWith($"PUR-{dateStr}")) + 1;
             purchase.PurchaseNo = $"PUR-{dateStr}-{count:D4}";
 
-            purchase.TotalCost = purchase.Quantity * purchase.UnitPrice;
+            purchase.TotalCost = purchase.Items.Sum(i => i.TotalCost);
+            purchase.Quantity = purchase.Items.Sum(i => i.Quantity);
+            purchase.ProductId = purchase.Items.First().ProductId;
+            purchase.UnitPrice = purchase.Items.Count == 1 ? purchase.Items.First().UnitPrice : 0;
+            purchase.BatchNumber = purchase.Items.First().BatchNumber;
             purchase.PurchaseDate = DateTime.UtcNow;
 
             if (purchase.PaymentMode == PaymentMode.Lease)
@@ -241,8 +315,15 @@ namespace InventoryManagementSystem.Controllers
                         purchase.SupplierId = purchase.NewSupplier.Id;
                     }
 
-                    // Increment Product stock count
-                    product.StockQuantity += purchase.Quantity;
+                    // Increment Product stock count for all items
+                    foreach (var item in purchase.Items)
+                    {
+                        var prod = await _context.Products.FindAsync(item.ProductId);
+                        if (prod != null)
+                        {
+                            prod.StockQuantity += item.Quantity;
+                        }
+                    }
 
                     _context.Purchases.Add(purchase);
                     await _context.SaveChangesAsync();
@@ -254,32 +335,40 @@ namespace InventoryManagementSystem.Controllers
                         var supplier = await _context.Suppliers.FindAsync(purchase.SupplierId);
                         if (supplier != null && !string.IsNullOrEmpty(supplier.Email))
                         {
+                            string itemsTableRows = "";
+                            if (purchase.Items != null && purchase.Items.Any())
+                            {
+                                foreach (var item in purchase.Items)
+                                {
+                                    var prod = await _context.Products.FindAsync(item.ProductId);
+                                    string pName = prod != null ? (string.IsNullOrEmpty(prod.Variant) ? prod.Name : $"{prod.Name} ({prod.Variant})") : "Item";
+                                    itemsTableRows += $"<tr><td style='padding: 6px; border: 1px solid #dee2e6;'>{pName}</td><td style='padding: 6px; border: 1px solid #dee2e6; text-align: center;'>{item.Quantity}</td><td style='padding: 6px; border: 1px solid #dee2e6; text-align: right;'>PKR {item.UnitPrice:F2}</td><td style='padding: 6px; border: 1px solid #dee2e6; text-align: right;'>PKR {item.TotalCost:F2}</td></tr>";
+                                }
+                            }
+
                             string emailBody = $@"
                                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;'>
                                     <h2 style='color: #212529; border-bottom: 2px solid #212529; padding-bottom: 10px;'>Purchase Order Confirmation</h2>
                                     <p>Dear {supplier.ContactName},</p>
-                                    <p>A new purchase stock-in order has been generated in our system for your reference:</p>
+                                    <p>A new purchase stock-in order ({purchase.PurchaseNo}) has been generated in our system for your reference:</p>
                                     <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
-                                        <tr style='background-color: #f8f9fa;'>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; font-weight: bold;'>Order Number</td>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6;'>{purchase.PurchaseNo}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; font-weight: bold;'>Product</td>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6;'>{product.Name} (SKU: {product.Sku})</td>
-                                        </tr>
-                                        <tr style='background-color: #f8f9fa;'>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; font-weight: bold;'>Quantity</td>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6;'>{purchase.Quantity}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; font-weight: bold;'>Unit Price</td>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6;'>PKR {purchase.UnitPrice:F2}</td>
-                                        </tr>
-                                        <tr style='background-color: #f8f9fa; font-weight: bold;'>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; color: #212529;'>Total Cost</td>
-                                            <td style='padding: 8px; border: 1px solid #dee2e6; color: #212529;'>PKR {purchase.TotalCost:F2}</td>
-                                        </tr>
+                                        <thead style='background-color: #212529; color: #fff;'>
+                                            <tr>
+                                                <th style='padding: 8px; border: 1px solid #dee2e6; text-align: left;'>Product</th>
+                                                <th style='padding: 8px; border: 1px solid #dee2e6; text-align: center;'>Qty</th>
+                                                <th style='padding: 8px; border: 1px solid #dee2e6; text-align: right;'>Unit Cost</th>
+                                                <th style='padding: 8px; border: 1px solid #dee2e6; text-align: right;'>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {itemsTableRows}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style='background-color: #f8f9fa; font-weight: bold;'>
+                                                <td colspan='3' style='padding: 8px; border: 1px solid #dee2e6; text-align: right;'>Grand Total Cost</td>
+                                                <td style='padding: 8px; border: 1px solid #dee2e6; text-align: right; color: #212529;'>PKR {purchase.TotalCost:F2}</td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                     {(string.IsNullOrEmpty(purchase.Notes) ? "" : $"<p><strong>Notes:</strong> {purchase.Notes}</p>")}
                                     <p>Please prepare the shipment if not already delivered. Contact our procurement team if you have any questions.</p>
@@ -316,47 +405,104 @@ namespace InventoryManagementSystem.Controllers
             }
 
             ModelState.Remove(nameof(purchase.PurchaseNo));
+            ModelState.Remove(nameof(purchase.ProductId));
+            ModelState.Remove(nameof(purchase.Quantity));
+            ModelState.Remove(nameof(purchase.UnitPrice));
+
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Invalid data submitted." });
             }
 
-            var existingPurchase = await _context.Purchases.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            var existingPurchase = await _context.Purchases
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (existingPurchase == null)
             {
                 return Json(new { success = false, message = "Purchase record not found." });
             }
 
-            var product = await _context.Products.FindAsync(purchase.ProductId);
-            if (product == null)
+            if (purchase.Items == null || !purchase.Items.Any())
             {
-                return Json(new { success = false, message = "Product not found." });
+                return Json(new { success = false, message = "At least one item is required for the purchase order." });
             }
 
-            purchase.TotalCost = purchase.Quantity * purchase.UnitPrice;
-            purchase.PurchaseNo = existingPurchase.PurchaseNo; // Keep original PurchaseNo
-            purchase.PurchaseDate = existingPurchase.PurchaseDate; // Keep original date
-
-            // Keep original lease configuration when editing
-            purchase.PaymentMode = existingPurchase.PaymentMode;
-            purchase.DownPayment = existingPurchase.DownPayment;
-            purchase.InstallmentsCount = existingPurchase.InstallmentsCount;
-            purchase.InstallmentFrequency = existingPurchase.InstallmentFrequency;
+            // Validate all new items
+            foreach (var item in purchase.Items)
+            {
+                var prod = await _context.Products.FindAsync(item.ProductId);
+                if (prod == null)
+                {
+                    return Json(new { success = false, message = $"Product with ID {item.ProductId} not found." });
+                }
+                item.TotalCost = item.Quantity * item.UnitPrice;
+            }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // Adjust Product stock count: subtract old qty, add new qty
-                    int stockDiff = purchase.Quantity - existingPurchase.Quantity;
-                    if (product.StockQuantity + stockDiff < 0)
+                    // 1. Revert stock of existing purchase items
+                    if (existingPurchase.Items != null && existingPurchase.Items.Any())
                     {
-                        throw new BusinessException($"Cannot update purchase. Adjusting stock would make product stock negative (Current: {product.StockQuantity}, Change: {stockDiff}).");
+                        foreach (var oldItem in existingPurchase.Items)
+                        {
+                            var prod = await _context.Products.FindAsync(oldItem.ProductId);
+                            if (prod != null)
+                            {
+                                if (prod.StockQuantity - oldItem.Quantity < 0)
+                                {
+                                    throw new BusinessException($"Cannot update purchase. Doing so would reduce product stock for '{prod.Name}' below 0.");
+                                }
+                                prod.StockQuantity -= oldItem.Quantity;
+                            }
+                        }
+                        _context.PurchaseItems.RemoveRange(existingPurchase.Items);
+                    }
+                    else if (existingPurchase.ProductId.HasValue)
+                    {
+                        var prod = await _context.Products.FindAsync(existingPurchase.ProductId.Value);
+                        if (prod != null)
+                        {
+                            if (prod.StockQuantity - existingPurchase.Quantity < 0)
+                            {
+                                throw new BusinessException($"Cannot update purchase. Doing so would reduce product stock below 0.");
+                            }
+                            prod.StockQuantity -= existingPurchase.Quantity;
+                        }
                     }
 
-                    product.StockQuantity += stockDiff;
+                    // 2. Add stock for new items
+                    foreach (var newItem in purchase.Items)
+                    {
+                        var prod = await _context.Products.FindAsync(newItem.ProductId);
+                        if (prod != null)
+                        {
+                            prod.StockQuantity += newItem.Quantity;
+                        }
+                    }
 
-                    _context.Entry(purchase).State = EntityState.Modified;
+                    // Update properties on existingPurchase
+                    existingPurchase.SupplierId = purchase.SupplierId;
+                    existingPurchase.Notes = purchase.Notes;
+                    existingPurchase.PaymentMethod = purchase.PaymentMethod;
+                    existingPurchase.PaymentReference = purchase.PaymentReference;
+                    existingPurchase.BankName = purchase.BankName;
+                    existingPurchase.CheckDate = purchase.CheckDate;
+
+                    existingPurchase.TotalCost = purchase.Items.Sum(i => i.TotalCost);
+                    existingPurchase.Quantity = purchase.Items.Sum(i => i.Quantity);
+                    existingPurchase.ProductId = purchase.Items.First().ProductId;
+                    existingPurchase.UnitPrice = purchase.Items.Count == 1 ? purchase.Items.First().UnitPrice : 0;
+                    existingPurchase.BatchNumber = purchase.Items.First().BatchNumber;
+
+                    foreach (var item in purchase.Items)
+                    {
+                        item.PurchaseId = id;
+                        _context.PurchaseItems.Add(item);
+                    }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -375,29 +521,47 @@ namespace InventoryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var purchase = await _context.Purchases.FindAsync(id);
+            var purchase = await _context.Purchases
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (purchase == null)
             {
                 return Json(new { success = false, message = "Purchase record not found." });
-            }
-
-            var product = await _context.Products.FindAsync(purchase.ProductId);
-            if (product == null)
-            {
-                return Json(new { success = false, message = "Associated product not found." });
             }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // Decrement stock: ensure it doesn't go below zero
-                    if (product.StockQuantity - purchase.Quantity < 0)
+                    // Decrement stock for all items
+                    if (purchase.Items != null && purchase.Items.Any())
                     {
-                        throw new BusinessException($"Cannot delete purchase. Doing so would reduce product stock below 0 (Stock: {product.StockQuantity}, Purchase Qty: {purchase.Quantity}).");
+                        foreach (var item in purchase.Items)
+                        {
+                            var prod = await _context.Products.FindAsync(item.ProductId);
+                            if (prod != null)
+                            {
+                                if (prod.StockQuantity - item.Quantity < 0)
+                                {
+                                    throw new BusinessException($"Cannot delete purchase. Doing so would reduce product stock for '{prod.Name}' below 0.");
+                                }
+                                prod.StockQuantity -= item.Quantity;
+                            }
+                        }
                     }
-
-                    product.StockQuantity -= purchase.Quantity;
+                    else if (purchase.ProductId.HasValue)
+                    {
+                        var prod = await _context.Products.FindAsync(purchase.ProductId.Value);
+                        if (prod != null)
+                        {
+                            if (prod.StockQuantity - purchase.Quantity < 0)
+                            {
+                                throw new BusinessException($"Cannot delete purchase. Doing so would reduce product stock below 0.");
+                            }
+                            prod.StockQuantity -= purchase.Quantity;
+                        }
+                    }
 
                     _context.Purchases.Remove(purchase);
                     await _context.SaveChangesAsync();
@@ -421,6 +585,8 @@ namespace InventoryManagementSystem.Controllers
                 .Include(p => p.Product)
                 .Include(p => p.Supplier)
                 .Include(p => p.Installments)
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(p => p.Id == id);
             
             if (purchase == null)
@@ -445,7 +611,12 @@ namespace InventoryManagementSystem.Controllers
                     pi.PaidAmount,
                     DueDate = pi.DueDate.ToString("yyyy-MM-dd"),
                     PaymentDate = pi.PaymentDate.HasValue ? pi.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-",
-                    pi.Status
+                    pi.Status,
+                    PaymentMethod = pi.PaymentMethod.HasValue ? (int)pi.PaymentMethod.Value : (int?)null,
+                    PaymentMethodName = pi.PaymentMethod.HasValue ? pi.PaymentMethod.Value.ToString() : null,
+                    PaymentReference = pi.PaymentReference ?? "",
+                    BankName = pi.BankName ?? "",
+                    CheckDate = pi.CheckDate.HasValue ? pi.CheckDate.Value.ToString("yyyy-MM-dd") : ""
                 })
                 .ToListAsync();
 
@@ -482,6 +653,11 @@ namespace InventoryManagementSystem.Controllers
             }
 
             installment.PaidAmount += model.Amount;
+            installment.PaymentMethod = model.PaymentMethod;
+            installment.PaymentReference = model.PaymentReference;
+            installment.BankName = model.BankName;
+            installment.CheckDate = model.CheckDate;
+
             if (installment.PaidAmount == installment.Amount)
             {
                 installment.Status = "Paid";
@@ -497,6 +673,10 @@ namespace InventoryManagementSystem.Controllers
         {
             public int InstallmentId { get; set; }
             public decimal Amount { get; set; }
+            public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
+            public string? PaymentReference { get; set; }
+            public string? BankName { get; set; }
+            public DateTime? CheckDate { get; set; }
         }
     }
 }

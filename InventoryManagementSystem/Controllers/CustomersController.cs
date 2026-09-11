@@ -52,6 +52,7 @@ namespace InventoryManagementSystem.Controllers
                     u.FullName,
                     u.Email,
                     u.PhoneNumber,
+                    u.Cnic,
                     CreatedAt = u.CreatedAt.ToString("yyyy-MM-dd HH:mm")
                 })
                 .ToListAsync();
@@ -110,7 +111,8 @@ namespace InventoryManagementSystem.Controllers
                 FirstName = firstName,
                 LastName = lastName,
                 user.Email,
-                user.PhoneNumber
+                user.PhoneNumber,
+                user.Cnic
             });
         }
 
@@ -135,6 +137,7 @@ namespace InventoryManagementSystem.Controllers
                 Email = model.Email,
                 FullName = $"{model.FirstName} {model.LastName}".Trim(),
                 PhoneNumber = model.Phone,
+                Cnic = model.Cnic,
                 CreatedAt = DateTime.UtcNow,
                 EmailConfirmed = true // auto-confirm email as customer dashboard is no longer needed
             };
@@ -204,6 +207,7 @@ namespace InventoryManagementSystem.Controllers
             user.Email = model.Email;
             user.UserName = model.Email; // Keep username synced with email
             user.PhoneNumber = model.Phone;
+            user.Cnic = model.Cnic;
 
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
@@ -255,5 +259,7 @@ namespace InventoryManagementSystem.Controllers
         public string Email { get; set; } = string.Empty;
 
         public string? Phone { get; set; }
+
+        public string? Cnic { get; set; }
     }
 }

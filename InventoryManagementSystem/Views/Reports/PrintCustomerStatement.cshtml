@@ -1,0 +1,204 @@
+@model IEnumerable<InventoryManagementSystem.Models.Sale>
+@using InventoryManagementSystem.Models
+@{
+    Layout = null;
+    var customer = ViewData["Customer"] as InventoryManagementSystem.Models.ApplicationUser;
+    var startDate = ViewData["StartDate"] as DateTime?;
+    var endDate = ViewData["EndDate"] as DateTime?;
+
+    decimal totalSalesAmount = 0m;
+    decimal totalPaidAmount = 0m;
+
+    if (Model != null)
+    {
+        totalSalesAmount = Model.Sum(s => s.TotalAmount);
+        totalPaidAmount = Model.Sum(s => s.PaymentMode == PaymentMode.FullPayment ? s.TotalAmount : (s.DownPayment + (s.Installments?.Sum(i => i.PaidAmount) ?? 0m)));
+    }
+    decimal totalBalance = Math.Max(0m, totalSalesAmount - totalPaidAmount);
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Account Statement - @(customer?.FullName ?? "Customer")</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background-color: #fff;
+            color: #212529;
+            font-family: Arial, sans-serif;
+            padding: 30px;
+        }
+        .statement-box {
+            max-width: 950px;
+            margin: auto;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            border-radius: 6px;
+        }
+        .statement-header {
+            border-bottom: 2px solid #212529;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        @@media print {
+            body {
+                padding: 0;
+            }
+            .statement-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="statement-box">
+    <div class="d-flex justify-content-between align-items-center no-print mb-4">
+        <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Statement</button>
+        <button onclick="window.close();" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i> Close</button>
+    </div>
+
+    <div class="statement-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-0">IMS PORTAL</h2>
+            <p class="text-muted mb-0">Inventory Management System</p>
+        </div>
+        <div class="text-end">
+            <h4 class="fw-bold text-uppercase text-secondary">Customer Account Statement</h4>
+            <p class="mb-0"><strong>Generated Date:</strong> @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</p>
+            @if (startDate.HasValue || endDate.HasValue)
+            {
+                <p class="mb-0 text-muted small">
+                    <strong>Period:</strong> 
+                    @(startDate.HasValue ? startDate.Value.ToString("yyyy-MM-dd") : "Beginning") to 
+                    @(endDate.HasValue ? endDate.Value.ToString("yyyy-MM-dd") : "Present")
+                </p>
+            }
+        </div>
+    </div>
+
+    <div class="row my-4">
+        <div class="col-6">
+            <h6 class="text-uppercase fw-bold text-secondary border-bottom pb-1">Customer Account Details:</h6>
+            <p class="mb-1"><strong>Name:</strong> @(customer?.FullName ?? "N/A")</p>
+            <p class="mb-1"><strong>Email:</strong> @(customer?.Email ?? "N/A")</p>
+            <p class="mb-1"><strong>Phone:</strong> @(customer?.PhoneNumber ?? "N/A")</p>
+            <p class="mb-1"><strong>CNIC:</strong> @(customer?.Cnic ?? "N/A")</p>
+        </div>
+        <div class="col-6">
+            <h6 class="text-uppercase fw-bold text-secondary border-bottom pb-1">Financial Summary:</h6>
+            <div class="d-flex justify-content-between mb-1">
+                <span>Total Transactions:</span>
+                <strong>@(Model?.Count() ?? 0) Invoices</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+                <span>Total Sales Volume:</span>
+                <strong>PKR @totalSalesAmount.ToString("N2")</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1 text-success">
+                <span>Total Amount Paid:</span>
+                <strong>PKR @totalPaidAmount.ToString("N2")</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1 text-danger fw-bold fs-6">
+                <span>Outstanding Balance:</span>
+                <span>PKR @totalBalance.ToString("N2")</span>
+            </div>
+        </div>
+    </div>
+
+    <h6 class="text-uppercase fw-bold text-secondary mt-4 mb-2"><i class="fas fa-list me-1"></i> Transaction Ledger</h6>
+    <table class="table table-bordered table-striped align-middle my-2">
+        <thead class="table-dark">
+            <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Purchased Items</th>
+                <th>Mode</th>
+                <th>Method</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Balance</th>
+                <th class="text-center">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var sale in Model)
+                {
+                    decimal paid = sale.PaymentMode == PaymentMode.FullPayment ? sale.TotalAmount : (sale.DownPayment + (sale.Installments?.Sum(i => i.PaidAmount) ?? 0m));
+                    decimal balance = Math.Max(0m, sale.TotalAmount - paid);
+
+                    string statusStr = balance <= 0 ? "Paid" : (paid > 0 ? "Partial" : "Pending");
+                    string badgeClass = balance <= 0 ? "bg-success" : (paid > 0 ? "bg-warning text-dark" : "bg-danger");
+
+                    string itemsStr = "";
+                    if (sale.Items != null && sale.Items.Any())
+                    {
+                        itemsStr = string.Join(", ", sale.Items.Select(i => i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? $"{i.Product.Name} x{i.Quantity}" : $"{i.Product.Name} ({i.Product.Variant}) x{i.Quantity}") : "Item"));
+                    }
+                    else if (sale.Product != null)
+                    {
+                        itemsStr = string.IsNullOrEmpty(sale.Product.Variant) ? $"{sale.Product.Name} x{sale.Quantity}" : $"{sale.Product.Name} ({sale.Product.Variant}) x{sale.Quantity}";
+                    }
+                    else
+                    {
+                        itemsStr = "N/A";
+                    }
+
+                    <tr>
+                        <td class="fw-bold">@sale.InvoiceNo</td>
+                        <td class="small">@sale.SaleDate.ToString("yyyy-MM-dd")</td>
+                        <td class="small">@itemsStr</td>
+                        <td class="small">@sale.PaymentMode.ToString()</td>
+                        <td class="small">@sale.PaymentMethod.ToString()</td>
+                        <td class="text-end fw-bold">PKR @sale.TotalAmount.ToString("N2")</td>
+                        <td class="text-end text-success">PKR @paid.ToString("N2")</td>
+                        <td class="text-end text-danger fw-bold">PKR @balance.ToString("N2")</td>
+                        <td class="text-center"><span class="badge @badgeClass">@statusStr</span></td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">No transactions found for this customer.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="row justify-content-end my-4">
+        <div class="col-5">
+            <div class="border p-3 rounded bg-light">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Total Sales:</span>
+                    <span>PKR @totalSalesAmount.ToString("N2")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 text-success">
+                    <span>Total Paid:</span>
+                    <span>PKR @totalPaidAmount.ToString("N2")</span>
+                </div>
+                <hr class="my-2"/>
+                <div class="d-flex justify-content-between fw-bold text-danger fs-6">
+                    <span>Total Outstanding:</span>
+                    <span>PKR @totalBalance.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

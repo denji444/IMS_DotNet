@@ -12,9 +12,8 @@ namespace InventoryManagementSystem.Models
         [StringLength(50)]
         public string PurchaseNo { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Product is required")]
         [Display(Name = "Product")]
-        public int ProductId { get; set; }
+        public int? ProductId { get; set; }
 
         [ForeignKey(nameof(ProductId))]
         public Product? Product { get; set; }
@@ -51,6 +50,17 @@ namespace InventoryManagementSystem.Models
         [Required]
         public PaymentMode PaymentMode { get; set; } = PaymentMode.FullPayment;
 
+        [Required]
+        public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
+
+        [StringLength(100)]
+        public string? PaymentReference { get; set; }
+
+        [StringLength(100)]
+        public string? BankName { get; set; }
+
+        public DateTime? CheckDate { get; set; }
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal DownPayment { get; set; } = 0.00m;
 
@@ -60,6 +70,7 @@ namespace InventoryManagementSystem.Models
         public string? InstallmentFrequency { get; set; } = "Monthly";
 
         public System.Collections.Generic.ICollection<PurchaseInstallment> Installments { get; set; } = new System.Collections.Generic.List<PurchaseInstallment>();
+        public System.Collections.Generic.ICollection<PurchaseItem> Items { get; set; } = new System.Collections.Generic.List<PurchaseItem>();
 
         [NotMapped]
         public Supplier? NewSupplier { get; set; }

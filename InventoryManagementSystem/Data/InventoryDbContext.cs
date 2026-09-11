@@ -21,6 +21,8 @@ namespace InventoryManagementSystem.Data
         public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
         public DbSet<PurchaseInstallment> PurchaseInstallments { get; set; }
         public DbSet<SaleInstallment> SaleInstallments { get; set; }
+        public DbSet<SaleItem> SaleItems { get; set; }
+        public DbSet<PurchaseItem> PurchaseItems { get; set; }
         public DbSet<ProductCategory> ProductCategories { get; set; }
         public DbSet<ProductCategoryTypeOption> ProductCategoryTypeOptions { get; set; }
         public DbSet<SmtpSetting> SmtpSettings { get; set; }
@@ -126,6 +128,32 @@ namespace InventoryManagementSystem.Data
                 .WithMany(s => s.Installments)
                 .HasForeignKey(si => si.SaleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // SaleItem configuration
+            builder.Entity<SaleItem>()
+                .HasOne(si => si.Sale)
+                .WithMany(s => s.Items)
+                .HasForeignKey(si => si.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SaleItem>()
+                .HasOne(si => si.Product)
+                .WithMany()
+                .HasForeignKey(si => si.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // PurchaseItem configuration
+            builder.Entity<PurchaseItem>()
+                .HasOne(pi => pi.Purchase)
+                .WithMany(p => p.Items)
+                .HasForeignKey(pi => pi.PurchaseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PurchaseItem>()
+                .HasOne(pi => pi.Product)
+                .WithMany()
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

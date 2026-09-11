@@ -41,6 +41,7 @@ namespace InventoryManagementSystem.Controllers
                     s.Email,
                     s.Phone,
                     s.Address,
+                    s.Cnic,
                     s.IsEmailVerified,
                     PurchasedProducts = _context.Purchases
                         .Where(pu => pu.SupplierId == s.Id && pu.Product != null)
@@ -54,14 +55,17 @@ namespace InventoryManagementSystem.Controllers
             {
                 s.Id,
                 s.Name,
-                s.ContactName,
                 s.Email,
                 s.Phone,
                 s.Address,
+                s.Cnic,
                 s.IsEmailVerified,
-                Products = s.PurchasedProducts
-                    .Select(p => string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]")
-                    .ToList()
+                Products = s.PurchasedProducts.Select(p => new
+                {
+                    p.Name,
+                    p.Variant,
+                    p.Sku
+                }).ToList()
             }).ToList();
 
             return Json(new { data = data });

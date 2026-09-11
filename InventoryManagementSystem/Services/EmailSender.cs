@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -16,11 +17,16 @@ namespace InventoryManagementSystem.Services
     {
         private readonly SmtpSettings _fallbackSmtpSettings;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IDataProtector _protector;
 
-        public EmailSender(IOptions<SmtpSettings> fallbackSmtpSettings, IServiceProvider serviceProvider)
+        public EmailSender(
+            IOptions<SmtpSettings> fallbackSmtpSettings,
+            IServiceProvider serviceProvider,
+            IDataProtectionProvider dataProtectionProvider)
         {
             _fallbackSmtpSettings = fallbackSmtpSettings.Value;
             _serviceProvider = serviceProvider;
+            _protector = dataProtectionProvider.CreateProtector("InventoryManagementSystem.SmtpProtector");
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string htmlMessage)
@@ -43,7 +49,26 @@ namespace InventoryManagementSystem.Services
                     server = dbSmtp.Server;
                     port = dbSmtp.Port;
                     username = dbSmtp.Username ?? string.Empty;
-                    password = dbSmtp.Password ?? string.Empty;
+
+                    // Decrypt password if protected, or fallback if unencrypted string
+                    string rawPassword = dbSmtp.Password ?? string.Empty;
+                    if (!string.IsNullOrEmpty(rawPassword))
+                    {
+                        try
+                        {
+                            password = _protector.Unprotect(rawPassword);
+                        }
+                        catch
+                        {
+                            // If unprotect fails (e.g. legacy plain-text password), use rawPassword
+                            password = rawPassword;
+                        }
+                    }
+                    else
+                    {
+                        password = string.Empty;
+                    }
+
                     enableSsl = dbSmtp.EnableSsl;
                     senderEmail = dbSmtp.SenderEmail;
                     senderName = string.IsNullOrWhiteSpace(dbSmtp.SenderName) ? "Inventory App" : dbSmtp.SenderName;

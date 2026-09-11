@@ -29,6 +29,9 @@ namespace InventoryManagementSystem.Models
         [StringLength(250, ErrorMessage = "Address cannot exceed 250 characters")]
         public string Address { get; set; } = string.Empty;
 
+        [StringLength(20, ErrorMessage = "CNIC cannot exceed 20 characters")]
+        public string? Cnic { get; set; }
+
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
 

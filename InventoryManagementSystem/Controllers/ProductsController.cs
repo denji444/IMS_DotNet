@@ -91,8 +91,8 @@ namespace InventoryManagementSystem.Controllers
 
             var productIds = products.Select(p => p.Id).ToList();
             var latestPurchasePrices = await _context.Purchases
-                .Where(p => productIds.Contains(p.ProductId))
-                .GroupBy(p => p.ProductId)
+                .Where(p => p.ProductId.HasValue && productIds.Contains(p.ProductId.Value))
+                .GroupBy(p => p.ProductId!.Value)
                 .Select(g => new
                 {
                     ProductId = g.Key,
@@ -113,6 +113,64 @@ namespace InventoryManagementSystem.Controllers
                     id = p.Id,
                     text = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]",
                     price = price
+                };
+            }).ToList();
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProductsFiltered(string? categoryName, string? productType, string? q)
+        {
+            var query = _context.Products.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(p => p.CategoryName == categoryName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(productType))
+            {
+                query = query.Where(p => p.ProductType == productType);
+            }
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q) || p.Variant.Contains(q));
+            }
+
+            var products = await query.ToListAsync();
+            var productIds = products.Select(p => p.Id).ToList();
+
+            var latestPurchasePrices = await _context.Purchases
+                .Where(p => p.ProductId.HasValue && productIds.Contains(p.ProductId.Value))
+                .GroupBy(p => p.ProductId!.Value)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    UnitPrice = g.OrderByDescending(p => p.PurchaseDate).Select(p => p.UnitPrice).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.ProductId, x => x.UnitPrice);
+
+            var data = products.Select(p =>
+            {
+                decimal? price = p.Price;
+                if ((!price.HasValue || price.Value == 0) && latestPurchasePrices.TryGetValue(p.Id, out var purcPrice))
+                {
+                    price = purcPrice;
+                }
+
+                return new
+                {
+                    id = p.Id,
+                    sku = p.Sku,
+                    name = p.Name,
+                    variant = p.Variant,
+                    categoryName = p.CategoryName ?? "",
+                    productType = p.ProductType ?? "",
+                    text = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]",
+                    price = price ?? 0,
+                    stockQuantity = p.StockQuantity
                 };
             }).ToList();
 

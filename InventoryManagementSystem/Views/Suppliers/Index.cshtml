@@ -13,16 +13,13 @@
     </div>
     <div class="card-body p-4">
         <div class="table-responsive">
-            <table class="table table-hover table-striped w-100" id="suppliersTable">
-                <thead class="table-dark">
+            <table class="table table-hover table-striped align-middle w-100" id="suppliersTable">
+                <thead class="table-dark text-center">
                     <tr>
-                        <th>ID</th>
-                        <th>Supplier Name</th>
-                        <th>Supplied Products</th>
-                        <th>Contact Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Address</th>
+                        <th class="text-center">Supplier Name</th>
+                        <th class="text-center">Supplied Products</th>
+                        <th class="text-center">Contact Info</th>
+                        <th class="text-center">CNIC & Address</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -68,6 +65,12 @@
                                 <span asp-validation-for="Phone" class="text-danger"></span>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="Cnic" class="form-control cnic-input" id="supplierCnic" placeholder="CNIC No (e.g. 35201-1234567-1)" maxlength="15" />
+                        <label for="supplierCnic">CNIC No (e.g. 35201-1234567-1)</label>
+                        <span asp-validation-for="Cnic" class="text-danger"></span>
                     </div>
 
                     <div class="form-floating mb-3">

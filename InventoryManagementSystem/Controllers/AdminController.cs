@@ -38,6 +38,7 @@ namespace InventoryManagementSystem.Controllers
                 .CountAsync(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == customerRoleId));
 
             viewModel.LowStockCount = await _context.Products.CountAsync(p => p.StockQuantity <= 5);
+            viewModel.HighStockCount = await _context.Products.CountAsync(p => p.StockQuantity >= 50);
 
             // Financial KPIs
             viewModel.TotalStockValue = await _context.Products.SumAsync(p => (decimal?)p.StockQuantity * (p.Price ?? 0m)) ?? 0m;
@@ -90,7 +91,8 @@ namespace InventoryManagementSystem.Controllers
 
             // Top 5 Selling Products
             var topProducts = await _context.Sales
-                .GroupBy(s => s.ProductId)
+                .Where(s => s.ProductId.HasValue)
+                .GroupBy(s => s.ProductId!.Value)
                 .Select(g => new
                 {
                     ProductId = g.Key,
@@ -118,6 +120,13 @@ namespace InventoryManagementSystem.Controllers
             viewModel.LowStockProducts = await _context.Products
                 .Where(p => p.StockQuantity <= 5)
                 .OrderBy(p => p.StockQuantity)
+                .Take(10)
+                .ToListAsync();
+
+            // High Stock Items List (Stock >= 50) - Overbought
+            viewModel.HighStockProducts = await _context.Products
+                .Where(p => p.StockQuantity >= 50)
+                .OrderByDescending(p => p.StockQuantity)
                 .Take(10)
                 .ToListAsync();
 

@@ -1,0 +1,38 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace InventoryManagementSystem.Models
+{
+    public class SaleItem
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public int SaleId { get; set; }
+
+        [ForeignKey(nameof(SaleId))]
+        public Sale? Sale { get; set; }
+
+        [Required]
+        public int ProductId { get; set; }
+
+        [ForeignKey(nameof(ProductId))]
+        public Product? Product { get; set; }
+
+        [StringLength(100)]
+        public string? BatchNumber { get; set; }
+
+        [Required]
+        [Range(1, 1000000, ErrorMessage = "Quantity must be at least 1")]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitPrice { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmount { get; set; }
+    }
+}

@@ -10,6 +10,7 @@ namespace InventoryManagementSystem.Models.ViewModels
         public int SupplierCount { get; set; }
         public int CustomerCount { get; set; }
         public int LowStockCount { get; set; }
+        public int HighStockCount { get; set; }
 
         // Financial KPIs
         public decimal TotalSales { get; set; }
@@ -29,6 +30,7 @@ namespace InventoryManagementSystem.Models.ViewModels
 
         // Data Tables
         public List<Product> LowStockProducts { get; set; } = new();
+        public List<Product> HighStockProducts { get; set; } = new();
         public List<Sale> RecentSales { get; set; } = new();
     }
 }

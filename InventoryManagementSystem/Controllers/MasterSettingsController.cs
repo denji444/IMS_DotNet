@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,15 +20,18 @@ namespace InventoryManagementSystem.Controllers
         private readonly InventoryDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IOptions<SmtpSettings> _smtpFallbackOptions;
+        private readonly IDataProtector _protector;
 
         public MasterSettingsController(
             InventoryDbContext context,
             UserManager<ApplicationUser> userManager,
-            IOptions<SmtpSettings> smtpFallbackOptions)
+            IOptions<SmtpSettings> smtpFallbackOptions,
+            IDataProtectionProvider dataProtectionProvider)
         {
             _context = context;
             _userManager = userManager;
             _smtpFallbackOptions = smtpFallbackOptions;
+            _protector = dataProtectionProvider.CreateProtector("InventoryManagementSystem.SmtpProtector");
         }
 
         public async Task<IActionResult> Index()
@@ -972,7 +976,7 @@ namespace InventoryManagementSystem.Controllers
                         dbSmtp.SenderName,
                         dbSmtp.SenderEmail,
                         dbSmtp.Username,
-                        dbSmtp.Password,
+                        password = !string.IsNullOrEmpty(dbSmtp.Password) ? "••••••••••••" : "",
                         dbSmtp.EnableSsl,
                         isFromDatabase = true,
                         updatedAt = dbSmtp.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss UTC")
@@ -993,7 +997,7 @@ namespace InventoryManagementSystem.Controllers
                     senderName = fallback?.SenderName ?? "Inventory App",
                     senderEmail = fallback?.SenderEmail ?? "",
                     username = fallback?.Username ?? "",
-                    password = fallback?.Password ?? "",
+                    password = !string.IsNullOrEmpty(fallback?.Password) ? "••••••••••••" : "",
                     enableSsl = fallback?.EnableSsl ?? true,
                     isFromDatabase = false,
                     updatedAt = "Not saved (Using appsettings.json defaults)"
@@ -1012,8 +1016,23 @@ namespace InventoryManagementSystem.Controllers
             }
 
             var existing = await _context.SmtpSettings.FirstOrDefaultAsync();
+
+            string finalEncryptedPassword;
+            if (string.IsNullOrWhiteSpace(model.Password) || model.Password.StartsWith("••••"))
+            {
+                // Masked or empty password submitted -> retain existing password in DB
+                finalEncryptedPassword = existing?.Password ?? string.Empty;
+            }
+            else
+            {
+                // New password typed -> encrypt before saving to DB
+                finalEncryptedPassword = _protector.Protect(model.Password);
+            }
+
             if (existing == null)
             {
+                model.Password = finalEncryptedPassword;
+                model.EnableSsl = true;
                 model.UpdatedAt = DateTime.UtcNow;
                 _context.SmtpSettings.Add(model);
             }
@@ -1024,15 +1043,15 @@ namespace InventoryManagementSystem.Controllers
                 existing.SenderName = model.SenderName?.Trim() ?? string.Empty;
                 existing.SenderEmail = model.SenderEmail?.Trim() ?? string.Empty;
                 existing.Username = model.Username?.Trim() ?? string.Empty;
-                existing.Password = model.Password ?? string.Empty;
-                existing.EnableSsl = model.EnableSsl;
+                existing.Password = finalEncryptedPassword;
+                existing.EnableSsl = true;
                 existing.UpdatedAt = DateTime.UtcNow;
 
                 _context.Entry(existing).State = EntityState.Modified;
             }
 
             await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "SMTP Configuration saved successfully!" });
+            return Json(new { success = true, message = "SMTP Configuration saved securely!" });
         }
 
         public class TestSmtpInputModel
@@ -1061,13 +1080,35 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = "SMTP Server Host and Sender Email are required to send a test email." });
             }
 
+            string testPassword = model.Password;
+            if (string.IsNullOrWhiteSpace(testPassword) || testPassword.StartsWith("••••"))
+            {
+                // Unprotect existing encrypted password from DB
+                var existing = await _context.SmtpSettings.FirstOrDefaultAsync();
+                if (existing != null && !string.IsNullOrEmpty(existing.Password))
+                {
+                    try
+                    {
+                        testPassword = _protector.Unprotect(existing.Password);
+                    }
+                    catch
+                    {
+                        testPassword = existing.Password;
+                    }
+                }
+                else
+                {
+                    testPassword = _smtpFallbackOptions.Value?.Password ?? string.Empty;
+                }
+            }
+
             try
             {
                 using (var client = new System.Net.Mail.SmtpClient(model.Server, model.Port))
                 {
-                    if (!string.IsNullOrWhiteSpace(model.Username) || !string.IsNullOrWhiteSpace(model.Password))
+                    if (!string.IsNullOrWhiteSpace(model.Username) || !string.IsNullOrWhiteSpace(testPassword))
                     {
-                        client.Credentials = new System.Net.NetworkCredential(model.Username, model.Password);
+                        client.Credentials = new System.Net.NetworkCredential(model.Username, testPassword);
                     }
                     client.EnableSsl = model.EnableSsl;
                     client.Timeout = 12000; // 12 seconds timeout for test

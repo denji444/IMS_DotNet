@@ -13,13 +13,13 @@
     </div>
     <div class="card-body p-4">
         <div class="table-responsive">
-            <table class="table table-hover table-striped w-100" id="customersTable">
-                 <thead class="table-dark">
+            <table class="table table-hover table-striped align-middle w-100" id="customersTable">
+                 <thead class="table-dark text-center">
                     <tr>
-                        <th>Full Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Created Date</th>
+                        <th class="text-center">Full Name</th>
+                        <th class="text-center">Contact Info (Email & Phone)</th>
+                        <th class="text-center">CNIC No</th>
+                        <th class="text-center">Created Date</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -45,20 +45,18 @@
                 
                 <div class="modal-body p-4">
                     <div class="row">
-                        <div class=" mb-3">
+                        <div class="col-md-6 mb-3">
                             <div class="form-floating">
                                 <input asp-for="FirstName" class="form-control" id="customerFirstName" placeholder="First Name" required />
                                 <label asp-for="FirstName"></label>
                                 <span asp-validation-for="FirstName" class="text-danger"></span>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class=" mb-3">
+                        <div class="col-md-6 mb-3">
                             <div class="form-floating">
-                                <input asp-for="LastName" class="form-control" id="customerFirstName" placeholder="First Name" required />
+                                <input asp-for="LastName" class="form-control" id="customerLastName" placeholder="Last Name" required />
                                 <label asp-for="LastName"></label>
-                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                                <span asp-validation-for="LastName" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
@@ -77,6 +75,11 @@
                                 <span asp-validation-for="Phone" class="text-danger"></span>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input asp-for="Cnic" class="form-control cnic-input" id="customerCnic" placeholder="CNIC No (e.g. 35201-1234567-1)" maxlength="15" />
+                        <label for="customerCnic">CNIC No (e.g. 35201-1234567-1)</label>
+                        <span asp-validation-for="Cnic" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0 py-3">

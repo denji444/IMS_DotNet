@@ -9,36 +9,71 @@ $(document).ready(function () {
             "datatype": "json"
         },
         "columns": [
-            { "data": "fullName" },
-            { "data": "email" },
             { 
-                "data": "phoneNumber",
+                "data": "fullName",
+                "width": "22%",
+                "className": "text-center align-middle",
                 "render": function(data) {
-                    return data ? data : "N/A";
+                    return `<div class="fw-bold text-dark fs-6">${data}</div>`;
                 }
             },
-            { "data": "createdAt" },
+            { 
+                "data": "email",
+                "width": "28%",
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    var phoneText = row.phoneNumber ? `<div class="small text-muted mt-1"><i class="fas fa-phone me-1"></i>${row.phoneNumber}</div>` : '';
+                    return `<div>
+                                <div class="fw-medium">${data}</div>
+                                ${phoneText}
+                            </div>`;
+                }
+            },
+            {
+                "data": "cnic",
+                "width": "20%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data) {
+                    return data ? `<span class="badge bg-light text-dark border"><i class="fas fa-id-card me-1 text-primary"></i>${data}</span>` : '<span class="badge bg-light text-secondary">N/A</span>';
+                }
+            },
+            { 
+                "data": "createdAt",
+                "width": "18%",
+                "className": "text-center align-middle text-nowrap",
+                "render": function(data) {
+                    return `<small class="text-muted">${data}</small>`;
+                }
+            },
             {
                 "data": "id",
+                "width": "12%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function (data) {
                     return `
-                        <div class="text-center">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEditModal('${data}')">
-                                <i class="fas fa-edit"></i> Edit
+                        <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
+                            <button class="btn btn-sm btn-dark" onclick="openEditModal('${data}')" title="Edit Customer">
+                                <i class="fas fa-edit me-1"></i>Edit
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${data}')">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${data}')" title="Delete Customer">
+                                <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
                     `;
                 },
-                "orderable": false,
-                "width": "20%"
+                "orderable": false
             }
         ],
         "language": {
             "emptyTable": "No customers found."
         }
+    });
+
+    // Auto-format CNIC dashes on input
+    $(document).on("input", ".cnic-input", function() {
+        var val = $(this).val();
+        var formatted = formatCnic(val);
+        $(this).val(formatted);
     });
 
     // Form submit AJAX
@@ -58,7 +93,8 @@ $(document).ready(function () {
             FirstName: $("#customerFirstName").val(),
             LastName: $("#customerLastName").val(),
             Email: $("#customerEmail").val(),
-            Phone: $("#customerPhone").val()
+            Phone: $("#customerPhone").val(),
+            Cnic: $("#customerCnic").val()
         };
 
         var btn = $("#btnSaveCustomer");
@@ -110,9 +146,24 @@ $(document).ready(function () {
     });
 });
 
+function formatCnic(value) {
+    if (!value) return "";
+    var cleaned = value.replace(/\D/g, "");
+    if (cleaned.length > 13) cleaned = cleaned.substring(0, 13);
+    
+    if (cleaned.length <= 5) {
+        return cleaned;
+    } else if (cleaned.length <= 12) {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5);
+    } else {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5, 12) + "-" + cleaned.substring(12);
+    }
+}
+
 function openCreateModal() {
     $("#customerForm")[0].reset();
     $("#customerId").val("");
+    $("#customerCnic").val("");
     $(".text-danger").text("");
     $("#customerModalLabel").text("Add Customer");
     $("#customerModal").modal("show");
@@ -129,6 +180,7 @@ function openEditModal(id) {
             $("#customerLastName").val(data.lastName);
             $("#customerEmail").val(data.email);
             $("#customerPhone").val(data.phoneNumber);
+            $("#customerCnic").val(data.cnic || "");
 
             $("#customerModalLabel").text("Edit Customer");
             $("#customerModal").modal("show");

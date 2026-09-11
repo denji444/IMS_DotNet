@@ -9,58 +9,90 @@ $(document).ready(function () {
             "datatype": "json"
         },
         "columns": [
-            { "data": "id", "width": "5%" },
-            { "data": "name", "width": "15%" },
+            { 
+                "data": "name", 
+                "width": "18%",
+                "className": "text-center align-middle",
+                "render": function(data) {
+                    return `<div class="fw-bold text-dark fs-6">${data}</div>`;
+                }
+            },
             { 
                 "data": "products",
+                "width": "34%",
+                "className": "text-center align-middle",
                 "render": function(data) {
                     if (!data || data.length === 0) {
                         return '<span class="badge bg-secondary">None</span>';
                     }
-                    return data.map(p => `<span class="badge bg-dark me-1">${p}</span>`).join(' ');
-                },
-                "width": "20%"
+                    var listItems = data.map(function(p) {
+                        var prodName = p.variant ? `${p.name} (${p.variant})` : p.name;
+                        var skuTag = p.sku ? `<span class="badge bg-light text-dark border ms-1"><i class="fas fa-barcode text-muted me-1"></i>${p.sku}</span>` : '';
+                        return `<li class="mb-1"><span class="fw-medium">${prodName}</span> ${skuTag}</li>`;
+                    }).join('');
+                    return `<ul class="mb-0 ps-3 small text-start d-inline-block">${listItems}</ul>`;
+                }
             },
-            { "data": "contactName", "width": "12%" },
             { 
                 "data": "email",
+                "width": "20%",
+                "className": "text-center align-middle",
                 "render": function(data, type, row) {
                     var badgeClass = row.isEmailVerified ? "bg-success" : "bg-secondary";
                     var badgeText = row.isEmailVerified 
                         ? '<i class="fas fa-check-circle me-1"></i>Verified' 
                         : '<i class="fas fa-clock me-1"></i>Unverified';
+                    var phoneText = row.phone ? `<div class="small text-muted mt-1"><i class="fas fa-phone me-1"></i>${row.phone}</div>` : '';
                     return `
                         <div>
-                            <div>${data}</div>
+                            <div class="fw-medium">${data}</div>
                             <span class="badge ${badgeClass} mt-1" style="font-size: 0.7rem;">${badgeText}</span>
+                            ${phoneText}
                         </div>
                     `;
-                },
-                "width": "15%" 
+                }
             },
-            { "data": "phone", "width": "10%" },
-            { "data": "address", "width": "15%" },
+            { 
+                "data": "cnic",
+                "width": "18%",
+                "className": "text-center align-middle",
+                "render": function(data, type, row) {
+                    var cnicBadge = data 
+                        ? `<span class="badge bg-light text-dark border"><i class="fas fa-id-card me-1 text-primary"></i>${data}</span>` 
+                        : '<span class="badge bg-light text-secondary">No CNIC</span>';
+                    var addrText = row.address ? `<div class="small text-muted mt-1 text-truncate mx-auto" style="max-width: 180px;" title="${row.address}">${row.address}</div>` : '';
+                    return `<div>${cnicBadge}${addrText}</div>`;
+                }
+            },
             {
                 "data": "id",
+                "width": "10%",
+                "className": "text-center align-middle text-nowrap",
                 "render": function (data) {
                     return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEditModal(${data})">
-                                <i class="fas fa-edit"></i> Edit
+                        <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
+                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Supplier">
+                                <i class="fas fa-edit me-1"></i>Edit
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteSupplier(${data})">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-danger" onclick="deleteSupplier(${data})" title="Delete Supplier">
+                                <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
                     `;
                 },
-                "orderable": false,
-                "width": "20%"
+                "orderable": false
             }
         ],
         "language": {
             "emptyTable": "No suppliers found. Click 'Add Supplier' to create one."
         }
+    });
+
+    // Auto-format CNIC dashes on input
+    $(document).on("input", ".cnic-input", function() {
+        var val = $(this).val();
+        var formatted = formatCnic(val);
+        $(this).val(formatted);
     });
 
     // Form submit AJAX handler
@@ -80,6 +112,7 @@ $(document).ready(function () {
             ContactName: $("#supplierName").val(),
             Email: $("#email").val(),
             Phone: $("#phone").val(),
+            Cnic: $("#supplierCnic").val(),
             Address: $("#address").val()
         };
 
@@ -132,10 +165,25 @@ $(document).ready(function () {
     });
 });
 
+function formatCnic(value) {
+    if (!value) return "";
+    var cleaned = value.replace(/\D/g, "");
+    if (cleaned.length > 13) cleaned = cleaned.substring(0, 13);
+    
+    if (cleaned.length <= 5) {
+        return cleaned;
+    } else if (cleaned.length <= 12) {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5);
+    } else {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5, 12) + "-" + cleaned.substring(12);
+    }
+}
+
 function openCreateModal() {
     // Reset Form
     $("#supplierForm")[0].reset();
     $("#supplierId").val(0);
+    $("#supplierCnic").val("");
     $(".text-danger").text(""); // Clear validation errors
     $("#supplierModalLabel").text("Add Supplier");
     $("#supplierModal").modal("show");
@@ -151,6 +199,7 @@ function openEditModal(id) {
             $("#supplierName").val(data.name);
             $("#email").val(data.email);
             $("#phone").val(data.phone);
+            $("#supplierCnic").val(data.cnic || "");
             $("#address").val(data.address);
 
             $("#supplierModalLabel").text("Edit Supplier");
