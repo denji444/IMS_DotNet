@@ -358,8 +358,19 @@ namespace InventoryManagementSystem.Controllers
             {
                 try
                 {
-                    // Update main product
-                    _context.Entry(product).State = EntityState.Modified;
+                    var existingProduct = await _context.Products.FindAsync(id);
+                    if (existingProduct == null)
+                    {
+                        return Json(new { success = false, message = "Product not found." });
+                    }
+
+                    existingProduct.Sku = product.Sku;
+                    existingProduct.Name = product.Name;
+                    existingProduct.CategoryName = product.CategoryName;
+                    existingProduct.ProductType = product.ProductType;
+                    existingProduct.Variant = product.Variant;
+                    existingProduct.Description = product.Description;
+
                     await _context.SaveChangesAsync();
 
                     // Save additional variants

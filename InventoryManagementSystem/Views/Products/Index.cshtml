@@ -105,17 +105,7 @@
 
 
 
-                    <div class="form-floating mb-3">
-                        <input asp-for="Price" class="form-control" type="number" step="0.01" id="price" placeholder="Price (Optional)" />
-                        <label asp-for="Price">Price (Optional)</label>
-                        <span asp-validation-for="Price" class="text-danger"></span>
-                    </div>
-
-                    <div class="form-floating mb-3">
-                        <input asp-for="StockQuantity" class="form-control" type="number" id="stockQuantity" placeholder="Stock Quantity" required />
-                        <label asp-for="StockQuantity"></label>
-                        <span asp-validation-for="StockQuantity" class="text-danger"></span>
-                    </div>
+                    <input type="hidden" id="stockQuantity" name="StockQuantity" value="0" />
                 </div>
                 <div class="modal-footer bg-light border-0 py-3">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

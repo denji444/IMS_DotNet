@@ -38,6 +38,15 @@ namespace InventoryManagementSystem.Models
         public int StockQuantity { get; set; } = 0;
 
         [NotMapped]
+        public decimal? PurchaseRate { get; set; }
+
+        [NotMapped]
+        public decimal? DemandRate { get; set; }
+
+        [NotMapped]
+        public decimal? FixRate { get; set; }
+
+        [NotMapped]
         public System.Collections.Generic.List<ProductVariantInput>? MultipleVariants { get; set; }
     }
 

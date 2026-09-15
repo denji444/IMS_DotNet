@@ -193,7 +193,7 @@ namespace InventoryManagementSystem.Controllers
                 }
             }
 
-            // Validate all items in invoice
+            // Validate all items in invoice against batch FixRate threshold
             foreach (var item in sale.Items)
             {
                 var prod = await _context.Products.FindAsync(item.ProductId);
@@ -201,10 +201,34 @@ namespace InventoryManagementSystem.Controllers
                 {
                     return Json(new { success = false, message = $"Product with ID {item.ProductId} not found." });
                 }
-                if (item.UnitPrice < prod.Price)
+
+                // Look up FixRate for this specific batch
+                decimal? fixRate = null;
+                if (!string.IsNullOrWhiteSpace(item.BatchNumber))
                 {
-                    return Json(new { success = false, message = $"Unit price for '{prod.Name}' cannot be less than set price (PKR {prod.Price:F2})." });
+                    fixRate = await _context.PurchaseItems
+                        .Where(pi => pi.ProductId == item.ProductId && pi.BatchNumber == item.BatchNumber && pi.FixRate.HasValue)
+                        .Select(pi => pi.FixRate)
+                        .LastOrDefaultAsync();
+
+                    if (!fixRate.HasValue)
+                    {
+                        fixRate = await _context.Purchases
+                            .Where(p => p.ProductId == item.ProductId && p.BatchNumber == item.BatchNumber && p.FixRate.HasValue)
+                            .Select(p => p.FixRate)
+                            .LastOrDefaultAsync();
+                    }
                 }
+
+                if (fixRate.HasValue && item.UnitPrice < fixRate.Value)
+                {
+                    return Json(new { success = false, message = $"Unit price for '{prod.Name}' (PKR {item.UnitPrice:F2}) cannot be less than the minimum Fix Rate threshold (PKR {fixRate.Value:F2}) for batch '{item.BatchNumber}'." });
+                }
+                else if (!fixRate.HasValue && prod.Price.HasValue && item.UnitPrice < prod.Price.Value)
+                {
+                    return Json(new { success = false, message = $"Unit price for '{prod.Name}' cannot be less than set price (PKR {prod.Price.Value:F2})." });
+                }
+
                 item.TotalAmount = item.Quantity * item.UnitPrice;
             }
 

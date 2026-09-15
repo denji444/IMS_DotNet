@@ -239,17 +239,49 @@ $(document).ready(function () {
         var batchNumber = $("#batchNumber").val().trim();
         var qty = parseInt($("#purchaseQty").val()) || 0;
         var unitPrice = parseFloat($("#unitPrice").val()) || 0;
+        var demandRateRaw = $("#demandRate").val().trim();
+        var fixRateRaw = $("#fixRate").val().trim();
+
+        var demandRate = (demandRateRaw !== "" && !isNaN(parseFloat(demandRateRaw))) ? parseFloat(demandRateRaw) : null;
+        var fixRate = (fixRateRaw !== "" && !isNaN(parseFloat(fixRateRaw))) ? parseFloat(fixRateRaw) : null;
 
         if (!productId) {
             Swal.fire({ title: 'Warning!', text: 'Please select a product first.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (!batchNumber) {
+            Swal.fire({ title: 'Warning!', text: 'Batch Name / Number is required to bind product rates.', icon: 'warning', confirmButtonColor: '#3085d6' });
             return;
         }
         if (qty <= 0) {
             Swal.fire({ title: 'Warning!', text: 'Quantity must be at least 1.', icon: 'warning', confirmButtonColor: '#3085d6' });
             return;
         }
-        if (unitPrice <= 0) {
-            Swal.fire({ title: 'Warning!', text: 'Unit Cost must be greater than 0.', icon: 'warning', confirmButtonColor: '#3085d6' });
+        if (fixRate !== null && fixRate < unitPrice) {
+            Swal.fire({ 
+                title: 'Warning!', 
+                text: `Fix Rate (PKR ${fixRate.toFixed(2)}) cannot be lower than Purchase Rate (PKR ${unitPrice.toFixed(2)}).`, 
+                icon: 'warning', 
+                confirmButtonColor: '#3085d6' 
+            });
+            return;
+        }
+        if (demandRate !== null && fixRate !== null && demandRate < fixRate) {
+            Swal.fire({ 
+                title: 'Warning!', 
+                text: `Demand Rate (PKR ${demandRate.toFixed(2)}) cannot be lower than Fix Rate (PKR ${fixRate.toFixed(2)}).`, 
+                icon: 'warning', 
+                confirmButtonColor: '#3085d6' 
+            });
+            return;
+        }
+        if (demandRate !== null && fixRate === null && demandRate < unitPrice) {
+            Swal.fire({ 
+                title: 'Warning!', 
+                text: `Demand Rate (PKR ${demandRate.toFixed(2)}) cannot be lower than Purchase Rate (PKR ${unitPrice.toFixed(2)}).`, 
+                icon: 'warning', 
+                confirmButtonColor: '#3085d6' 
+            });
             return;
         }
 
@@ -260,6 +292,8 @@ $(document).ready(function () {
             batchNumber: batchNumber,
             quantity: qty,
             unitPrice: unitPrice,
+            demandRate: demandRate,
+            fixRate: fixRate,
             totalCost: qty * unitPrice
         });
 
@@ -267,6 +301,8 @@ $(document).ready(function () {
         $("#productSelect").val(null).trigger('change');
         $("#purchaseQty").val(1);
         $("#unitPrice").val("");
+        $("#demandRate").val("");
+        $("#fixRate").val("");
 
         renderPurchaseItemsTable();
     });
@@ -480,7 +516,7 @@ function renderPurchaseItemsTable() {
     var grandTotal = 0;
 
     if (!voucherItems || voucherItems.length === 0) {
-        $tbody.html('<tr id="emptyPurchaseItemsRow"><td colspan="6" class="text-muted small py-3">No items added to voucher yet. Select a product and click "Add Item".</td></tr>');
+        $tbody.html('<tr id="emptyPurchaseItemsRow"><td colspan="8" class="text-muted small py-3">No items added to voucher yet. Select a product, batch & rates, then click "Add".</td></tr>');
         $("#totalCost").val("0.00").trigger('change');
         return;
     }
@@ -488,7 +524,9 @@ function renderPurchaseItemsTable() {
     $.each(voucherItems, function(index, item) {
         var lineTotal = item.quantity * item.unitPrice;
         grandTotal += lineTotal;
-        var batchBadge = item.batchNumber ? `<span class="badge bg-primary text-white">${item.batchNumber}</span>` : '<span class="badge bg-light text-secondary">General</span>';
+        var batchBadge = item.batchNumber ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${item.batchNumber}</span>` : '<span class="badge bg-light text-secondary">General</span>';
+        var dRateHtml = (item.demandRate !== null && item.demandRate !== undefined && !isNaN(parseFloat(item.demandRate))) ? `PKR ${parseFloat(item.demandRate).toFixed(2)}` : '<span class="text-muted small">N/A</span>';
+        var fRateHtml = (item.fixRate !== null && item.fixRate !== undefined && !isNaN(parseFloat(item.fixRate))) ? `PKR ${parseFloat(item.fixRate).toFixed(2)}` : '<span class="text-muted small">N/A</span>';
 
         var rowHtml = `
             <tr>
@@ -496,6 +534,8 @@ function renderPurchaseItemsTable() {
                 <td>${batchBadge}</td>
                 <td>${item.quantity}</td>
                 <td>PKR ${parseFloat(item.unitPrice).toFixed(2)}</td>
+                <td class="text-success fw-semibold">${dRateHtml}</td>
+                <td class="text-warning fw-semibold">${fRateHtml}</td>
                 <td class="fw-bold text-dark">PKR ${lineTotal.toFixed(2)}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removePurchaseItem(${index})" title="Remove Item">
@@ -567,6 +607,8 @@ function openEditModal(id) {
                         batchNumber: i.batchNumber || "",
                         quantity: i.quantity,
                         unitPrice: i.unitPrice,
+                        demandRate: i.demandRate !== undefined ? i.demandRate : null,
+                        fixRate: i.fixRate !== undefined ? i.fixRate : null,
                         totalCost: i.totalCost || (i.quantity * i.unitPrice)
                     };
                 });

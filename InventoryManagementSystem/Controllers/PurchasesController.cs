@@ -89,6 +89,8 @@ namespace InventoryManagementSystem.Controllers
                 i.BatchNumber,
                 i.Quantity,
                 i.UnitPrice,
+                i.DemandRate,
+                i.FixRate,
                 i.TotalCost
             }).ToList();
 
@@ -102,6 +104,8 @@ namespace InventoryManagementSystem.Controllers
                     BatchNumber = purchase.BatchNumber,
                     Quantity = purchase.Quantity,
                     UnitPrice = purchase.UnitPrice,
+                    DemandRate = purchase.DemandRate,
+                    FixRate = purchase.FixRate,
                     TotalCost = purchase.TotalCost
                 });
             }
@@ -129,29 +133,69 @@ namespace InventoryManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAvailableBatchesForProduct(int productId)
         {
-            var purchases = await _context.Purchases
-                .Where(p => p.ProductId == productId)
+            var purchaseItems = await _context.PurchaseItems
+                .Where(pi => pi.ProductId == productId)
+                .Select(pi => new
+                {
+                    pi.BatchNumber,
+                    pi.Quantity,
+                    pi.UnitPrice,
+                    pi.DemandRate,
+                    pi.FixRate
+                })
                 .ToListAsync();
 
-            var sales = await _context.Sales
-                .Where(s => s.ProductId == productId)
+            var legacyPurchases = await _context.Purchases
+                .Where(p => p.ProductId == productId && !p.Items.Any())
+                .Select(p => new
+                {
+                    p.BatchNumber,
+                    p.Quantity,
+                    UnitPrice = p.UnitPrice,
+                    DemandRate = p.DemandRate,
+                    FixRate = p.FixRate
+                })
                 .ToListAsync();
 
-            var batchGroups = purchases
+            var allPurchases = purchaseItems.Concat(legacyPurchases).ToList();
+
+            var saleItems = await _context.SaleItems
+                .Where(si => si.ProductId == productId)
+                .Select(si => new { si.BatchNumber, si.Quantity })
+                .ToListAsync();
+
+            var legacySales = await _context.Sales
+                .Where(s => s.ProductId == productId && !s.Items.Any())
+                .Select(s => new { s.BatchNumber, s.Quantity })
+                .ToListAsync();
+
+            var allSales = saleItems.Concat(legacySales).ToList();
+
+            var batchGroups = allPurchases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.BatchNumber) ? "Unbatched / General Stock" : p.BatchNumber.Trim())
                 .Select(g => {
                     string batchName = g.Key;
                     int totalPurchased = g.Sum(p => p.Quantity);
-                    int totalSold = sales
+                    int totalSold = allSales
                         .Where(s => (string.IsNullOrWhiteSpace(s.BatchNumber) ? "Unbatched / General Stock" : s.BatchNumber.Trim()) == batchName)
                         .Sum(s => s.Quantity);
                     int availableQty = Math.Max(0, totalPurchased - totalSold);
 
+                    var latestItem = g.LastOrDefault();
+                    decimal purchaseRate = latestItem != null ? latestItem.UnitPrice : 0;
+                    decimal? demandRate = latestItem?.DemandRate;
+                    decimal? fixRate = latestItem?.FixRate;
+
                     return new
                     {
                         batchNumber = batchName == "Unbatched / General Stock" ? "" : batchName,
-                        displayName = batchName == "Unbatched / General Stock" ? $"General / Unbatched Stock ({availableQty} available)" : $"{batchName} ({availableQty} available)",
-                        availableQuantity = availableQty
+                        displayName = batchName == "Unbatched / General Stock" 
+                            ? $"General / Unbatched Stock ({availableQty} available)" 
+                            : $"{batchName} ({availableQty} available)",
+                        availableQuantity = availableQty,
+                        purchaseRate = purchaseRate,
+                        demandRate = demandRate,
+                        fixRate = fixRate
                     };
                 })
                 .Where(b => b.availableQuantity > 0)
@@ -230,6 +274,18 @@ namespace InventoryManagementSystem.Controllers
                 {
                     return Json(new { success = false, message = $"Product with ID {item.ProductId} not found." });
                 }
+                if (item.FixRate.HasValue && item.FixRate.Value < item.UnitPrice)
+                {
+                    return Json(new { success = false, message = $"Fix Rate (PKR {item.FixRate.Value:F2}) for '{prod.Name}' cannot be less than Purchase Rate (PKR {item.UnitPrice:F2})." });
+                }
+                if (item.DemandRate.HasValue && item.FixRate.HasValue && item.DemandRate.Value < item.FixRate.Value)
+                {
+                    return Json(new { success = false, message = $"Demand Rate (PKR {item.DemandRate.Value:F2}) for '{prod.Name}' cannot be less than Fix Rate (PKR {item.FixRate.Value:F2})." });
+                }
+                if (item.DemandRate.HasValue && !item.FixRate.HasValue && item.DemandRate.Value < item.UnitPrice)
+                {
+                    return Json(new { success = false, message = $"Demand Rate (PKR {item.DemandRate.Value:F2}) for '{prod.Name}' cannot be less than Purchase Rate (PKR {item.UnitPrice:F2})." });
+                }
                 item.TotalCost = item.Quantity * item.UnitPrice;
             }
 
@@ -243,6 +299,8 @@ namespace InventoryManagementSystem.Controllers
             purchase.ProductId = purchase.Items.First().ProductId;
             purchase.UnitPrice = purchase.Items.Count == 1 ? purchase.Items.First().UnitPrice : 0;
             purchase.BatchNumber = purchase.Items.First().BatchNumber;
+            purchase.DemandRate = purchase.Items.First().DemandRate;
+            purchase.FixRate = purchase.Items.First().FixRate;
             purchase.PurchaseDate = DateTime.UtcNow;
 
             if (purchase.PaymentMode == PaymentMode.Lease)
@@ -436,6 +494,18 @@ namespace InventoryManagementSystem.Controllers
                 {
                     return Json(new { success = false, message = $"Product with ID {item.ProductId} not found." });
                 }
+                if (item.FixRate.HasValue && item.FixRate.Value < item.UnitPrice)
+                {
+                    return Json(new { success = false, message = $"Fix Rate (PKR {item.FixRate.Value:F2}) for '{prod.Name}' cannot be less than Purchase Rate (PKR {item.UnitPrice:F2})." });
+                }
+                if (item.DemandRate.HasValue && item.FixRate.HasValue && item.DemandRate.Value < item.FixRate.Value)
+                {
+                    return Json(new { success = false, message = $"Demand Rate (PKR {item.DemandRate.Value:F2}) for '{prod.Name}' cannot be less than Fix Rate (PKR {item.FixRate.Value:F2})." });
+                }
+                if (item.DemandRate.HasValue && !item.FixRate.HasValue && item.DemandRate.Value < item.UnitPrice)
+                {
+                    return Json(new { success = false, message = $"Demand Rate (PKR {item.DemandRate.Value:F2}) for '{prod.Name}' cannot be less than Purchase Rate (PKR {item.UnitPrice:F2})." });
+                }
                 item.TotalCost = item.Quantity * item.UnitPrice;
             }
 
@@ -496,6 +566,8 @@ namespace InventoryManagementSystem.Controllers
                     existingPurchase.ProductId = purchase.Items.First().ProductId;
                     existingPurchase.UnitPrice = purchase.Items.Count == 1 ? purchase.Items.First().UnitPrice : 0;
                     existingPurchase.BatchNumber = purchase.Items.First().BatchNumber;
+                    existingPurchase.DemandRate = purchase.Items.First().DemandRate;
+                    existingPurchase.FixRate = purchase.Items.First().FixRate;
 
                     foreach (var item in purchase.Items)
                     {

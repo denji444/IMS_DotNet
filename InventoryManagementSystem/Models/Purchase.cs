@@ -47,6 +47,12 @@ namespace InventoryManagementSystem.Models
         [StringLength(100)]
         public string? BatchNumber { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DemandRate { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? FixRate { get; set; }
+
         [Required]
         public PaymentMode PaymentMode { get; set; } = PaymentMode.FullPayment;
 

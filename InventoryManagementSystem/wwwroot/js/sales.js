@@ -189,38 +189,20 @@ $(document).ready(function () {
         $("#productSelect").val(null).trigger('change');
     });
 
+    var currentBatchesData = [];
+    var currentBatchFixRate = null;
+
     // Prefill price and update stock info when Product changes
     $("#productSelect").on("change", function () {
         var id = $(this).val();
+        currentBatchesData = [];
+        currentBatchFixRate = null;
         if (id) {
             $.ajax({
                 url: "/Products/GetProduct/" + id,
                 type: "GET",
                 success: function (data) {
                     $("#availableStockQty").text(data.stockQuantity);
-                    
-                    var hasPrice = (data.price !== null && data.price !== undefined && !isNaN(parseFloat(data.price)));
-                    var priceFormatted = hasPrice ? parseFloat(data.price).toFixed(2) : "";
-
-                    if (hasPrice) {
-                        $("#setUnitPriceValue").text("PKR " + priceFormatted);
-                        $("#unitPrice").val(priceFormatted);
-                    } else {
-                        $("#setUnitPriceValue").text("N/A");
-                        $("#unitPrice").val("");
-                    }
-                    
-                    if (data.stockQuantity > 0) {
-                        $("#availableStockContainer")
-                            .removeClass("text-danger")
-                            .addClass("text-success");
-                    } else {
-                        $("#availableStockContainer")
-                            .removeClass("text-success")
-                            .addClass("text-danger");
-                    }
-                    
-                    $("#availableStockContainer").removeClass("d-none");
                 }
             });
 
@@ -229,8 +211,8 @@ $(document).ready(function () {
                 url: "/Purchases/GetAvailableBatchesForProduct?productId=" + id,
                 type: "GET",
                 success: function (batches) {
+                    currentBatchesData = batches || [];
                     var $batchSelect = $("#saleBatchSelect");
-                    var currentVal = $batchSelect.val();
                     $batchSelect.empty();
                     $batchSelect.append('<option value="">-- General / Unbatched Stock --</option>');
                     if (batches && batches.length > 0) {
@@ -238,19 +220,72 @@ $(document).ready(function () {
                             $batchSelect.append(new Option(b.displayName, b.batchNumber));
                         });
                     }
-                    if (currentVal) {
-                        $batchSelect.val(currentVal);
-                    }
+                    $batchSelect.trigger("change");
                 }
             });
         } else {
-            $("#availableStockContainer")
-                .addClass("d-none")
-                .removeClass("text-success text-danger");
+            $("#batchRatesContainer").addClass("d-none");
             $("#availableStockQty").text("0");
-            $("#setUnitPriceValue").text("PKR 0.00");
+            $("#batchPurchaseRateDisplay").text("N/A");
+            $("#batchFixRateDisplay").text("N/A");
+            $("#batchDemandRateDisplay").text("N/A");
             $("#unitPrice").val("");
             $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
+        }
+    });
+
+    // Handle batch selection changes and rate display
+    $("#saleBatchSelect").on("change", function () {
+        var selectedBatchNo = $(this).val();
+        var batch = currentBatchesData.find(b => b.batchNumber === selectedBatchNo);
+
+        if (batch) {
+            $("#availableStockQty").text(batch.availableQuantity);
+            
+            var purRateText = (batch.purchaseRate !== null && batch.purchaseRate !== undefined) ? "PKR " + parseFloat(batch.purchaseRate).toFixed(2) : "N/A";
+            var fixRateText = (batch.fixRate !== null && batch.fixRate !== undefined) ? "PKR " + parseFloat(batch.fixRate).toFixed(2) : "N/A";
+            var demRateText = (batch.demandRate !== null && batch.demandRate !== undefined) ? "PKR " + parseFloat(batch.demandRate).toFixed(2) : "N/A";
+
+            $("#batchPurchaseRateDisplay").text(purRateText);
+            $("#batchFixRateDisplay").text(fixRateText);
+            $("#batchDemandRateDisplay").text(demRateText);
+
+            currentBatchFixRate = (batch.fixRate !== null && batch.fixRate !== undefined) ? parseFloat(batch.fixRate) : null;
+
+            if (batch.demandRate !== null && batch.demandRate !== undefined) {
+                $("#unitPrice").val(parseFloat(batch.demandRate).toFixed(2));
+            } else if (batch.purchaseRate !== null && batch.purchaseRate !== undefined) {
+                $("#unitPrice").val(parseFloat(batch.purchaseRate).toFixed(2));
+            } else {
+                $("#unitPrice").val("");
+            }
+
+            $("#batchRatesContainer").removeClass("d-none");
+        } else {
+            currentBatchFixRate = null;
+            if (currentBatchesData.length > 0 && currentBatchesData[0]) {
+                var defaultBatch = currentBatchesData[0];
+                var purRateText = (defaultBatch.purchaseRate !== null && defaultBatch.purchaseRate !== undefined) ? "PKR " + parseFloat(defaultBatch.purchaseRate).toFixed(2) : "N/A";
+                var fixRateText = (defaultBatch.fixRate !== null && defaultBatch.fixRate !== undefined) ? "PKR " + parseFloat(defaultBatch.fixRate).toFixed(2) : "N/A";
+                var demRateText = (defaultBatch.demandRate !== null && defaultBatch.demandRate !== undefined) ? "PKR " + parseFloat(defaultBatch.demandRate).toFixed(2) : "N/A";
+
+                $("#batchPurchaseRateDisplay").text(purRateText);
+                $("#batchFixRateDisplay").text(fixRateText);
+                $("#batchDemandRateDisplay").text(demRateText);
+                currentBatchFixRate = (defaultBatch.fixRate !== null && defaultBatch.fixRate !== undefined) ? parseFloat(defaultBatch.fixRate) : null;
+
+                if (defaultBatch.demandRate !== null && defaultBatch.demandRate !== undefined) {
+                    $("#unitPrice").val(parseFloat(defaultBatch.demandRate).toFixed(2));
+                }
+            } else {
+                $("#batchPurchaseRateDisplay").text("N/A");
+                $("#batchFixRateDisplay").text("N/A");
+                $("#batchDemandRateDisplay").text("N/A");
+                $("#unitPrice").val("");
+            }
+            if ($("#productSelect").val()) {
+                $("#batchRatesContainer").removeClass("d-none");
+            }
         }
     });
 
@@ -272,6 +307,15 @@ $(document).ready(function () {
         }
         if (unitPrice <= 0) {
             Swal.fire({ title: 'Warning!', text: 'Unit Price must be greater than 0.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if (currentBatchFixRate !== null && unitPrice < currentBatchFixRate) {
+            Swal.fire({
+                title: 'Below Fix Rate Threshold!',
+                text: `Selling price (PKR ${unitPrice.toFixed(2)}) cannot be lower than the minimum Fix Rate threshold of PKR ${currentBatchFixRate.toFixed(2)} for this batch.`,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
             return;
         }
 

@@ -114,30 +114,38 @@
                         </div>
 
                         <div class="row g-2 mb-2">
-                            <div class="col-md-7">
+                            <div class="col-md-6">
                                 <label class="form-label text-secondary small fw-bold mb-1">Select Product SKU</label>
                                 <select class="form-select select2-product w-100" id="productSelect">
                                     <!-- Remotely bound -->
                                 </select>
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label text-secondary small fw-bold mb-1">Batch Name / Lot (Optional)</label>
-                                <input class="form-control form-control-sm" id="batchNumber" placeholder="e.g. May 2026 Batch" />
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-layer-group text-primary me-1"></i>Batch Name / Number</label>
+                                <input class="form-control form-control-sm" id="batchNumber" placeholder="e.g. BATCH-2026-01" required />
                             </div>
                         </div>
 
                         <div class="row g-2 mb-3 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label text-secondary small fw-bold mb-1">Quantity</label>
+                            <div class="col-md-2">
+                                <label class="form-label text-secondary small fw-bold mb-1">Qty</label>
                                 <input class="form-control form-control-sm" type="number" id="purchaseQty" min="1" value="1" placeholder="Qty" />
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label text-secondary small fw-bold mb-1">Unit Cost (PKR)</label>
-                                <input class="form-control form-control-sm" type="number" step="0.01" id="unitPrice" placeholder="Unit Price" />
+                            <div class="col-md-3">
+                                <label class="form-label text-secondary small fw-bold mb-1" title="Cost Price">Purchase Rate</label>
+                                <input class="form-control form-control-sm" type="number" step="0.01" id="unitPrice" placeholder="Purchase Cost" />
                             </div>
                             <div class="col-md-3">
+                                <label class="form-label text-secondary small fw-bold mb-1" title="Selling Price">Demand Rate</label>
+                                <input class="form-control form-control-sm" type="number" step="0.01" id="demandRate" placeholder="Selling Price" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label text-secondary small fw-bold mb-1" title="Min Selling Threshold">Fix Rate</label>
+                                <input class="form-control form-control-sm" type="number" step="0.01" id="fixRate" placeholder="Min Threshold" />
+                            </div>
+                            <div class="col-md-2">
                                 <button type="button" class="btn btn-primary btn-sm w-100" id="btnAddPurchaseItem">
-                                    <i class="fas fa-plus me-1"></i> Add Item
+                                    <i class="fas fa-plus me-1"></i> Add
                                 </button>
                             </div>
                         </div>
@@ -147,17 +155,19 @@
                             <table class="table table-sm table-bordered bg-white align-middle text-center mb-0" id="purchaseItemsTable">
                                 <thead class="table-dark small">
                                     <tr>
-                                        <th style="width: 35%;">Product</th>
-                                        <th style="width: 20%;">Batch</th>
-                                        <th style="width: 12%;">Qty</th>
-                                        <th style="width: 15%;">Unit Cost</th>
-                                        <th style="width: 15%;">Total</th>
+                                        <th style="width: 25%;">Product</th>
+                                        <th style="width: 15%;">Batch</th>
+                                        <th style="width: 8%;">Qty</th>
+                                        <th style="width: 13%;">Purchase Rate</th>
+                                        <th style="width: 13%;">Demand Rate</th>
+                                        <th style="width: 13%;">Fix Rate</th>
+                                        <th style="width: 10%;">Total Cost</th>
                                         <th style="width: 3%;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="purchaseItemsTableBody">
                                     <tr id="emptyPurchaseItemsRow">
-                                        <td colspan="6" class="text-muted small py-3">No items added to voucher yet. Select a product and click "Add Item".</td>
+                                        <td colspan="8" class="text-muted small py-3">No items added to voucher yet. Select a product, batch & rates, then click "Add".</td>
                                     </tr>
                                 </tbody>
                             </table>
