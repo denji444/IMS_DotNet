@@ -9,8 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models;
+using InventoryManagementSystem.Models.ViewModels;
 using InventoryManagementSystem.Models.Configuration;
 using InventoryManagementSystem.Exceptions;
+
+using Microsoft.AspNetCore.Hosting;
 
 namespace InventoryManagementSystem.Controllers
 {
@@ -21,17 +24,20 @@ namespace InventoryManagementSystem.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IOptions<SmtpSettings> _smtpFallbackOptions;
         private readonly IDataProtector _protector;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public MasterSettingsController(
             InventoryDbContext context,
             UserManager<ApplicationUser> userManager,
             IOptions<SmtpSettings> smtpFallbackOptions,
-            IDataProtectionProvider dataProtectionProvider)
+            IDataProtectionProvider dataProtectionProvider,
+            IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _userManager = userManager;
             _smtpFallbackOptions = smtpFallbackOptions;
             _protector = dataProtectionProvider.CreateProtector("InventoryManagementSystem.SmtpProtector");
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public async Task<IActionResult> Index()
@@ -172,19 +178,6 @@ namespace InventoryManagementSystem.Controllers
                 emp.Salary,
                 emp.Status
             });
-        }
-
-        public class EmployeeInputModel
-        {
-            public int Id { get; set; }
-            public string FullName { get; set; } = string.Empty;
-            public string Email { get; set; } = string.Empty;
-            public string Phone { get; set; } = string.Empty;
-            public int? DepartmentId { get; set; }
-            public string Designation { get; set; } = string.Empty;
-            public DateTime HireDate { get; set; }
-            public decimal Salary { get; set; }
-            public string Status { get; set; } = "Active";
         }
 
         [HttpPost]
@@ -340,17 +333,6 @@ namespace InventoryManagementSystem.Controllers
                 .ToListAsync();
 
             return Json(data);
-        }
-
-        public class ResetPasswordInputModel
-        {
-            public int EmployeeId { get; set; }
-        }
-
-        public class AccountStatusToggleModel
-        {
-            public int EmployeeId { get; set; }
-            public bool IsRestricted { get; set; }
         }
 
         [HttpGet]
@@ -512,16 +494,6 @@ namespace InventoryManagementSystem.Controllers
                 ClockOut = log.ClockOut?.ToString(@"hh\:mm") ?? "",
                 log.Status
             });
-        }
-
-        public class AttendanceInputModel
-        {
-            public int Id { get; set; }
-            public int EmployeeId { get; set; }
-            public DateTime Date { get; set; }
-            public string? ClockIn { get; set; }
-            public string? ClockOut { get; set; }
-            public string Status { get; set; } = "Present";
         }
 
         [HttpPost]
@@ -845,14 +817,6 @@ namespace InventoryManagementSystem.Controllers
             });
         }
 
-        public class CategoryInputModel
-        {
-            public int Id { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public string? Description { get; set; }
-            public List<string> TypeOptions { get; set; } = new List<string>();
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveCategory([FromBody] CategoryInputModel model)
@@ -1054,18 +1018,6 @@ namespace InventoryManagementSystem.Controllers
             return Json(new { success = true, message = "SMTP Configuration saved securely!" });
         }
 
-        public class TestSmtpInputModel
-        {
-            public string Server { get; set; } = string.Empty;
-            public int Port { get; set; } = 587;
-            public string SenderName { get; set; } = string.Empty;
-            public string SenderEmail { get; set; } = string.Empty;
-            public string Username { get; set; } = string.Empty;
-            public string Password { get; set; } = string.Empty;
-            public bool EnableSsl { get; set; } = true;
-            public string TestEmail { get; set; } = string.Empty;
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TestSmtpConnection([FromBody] TestSmtpInputModel model)
@@ -1190,7 +1142,8 @@ namespace InventoryManagementSystem.Controllers
                     return Json(new { success = false, message = "Invalid image file format. Supported: PNG, JPG, JPEG, SVG, WEBP." });
                 }
 
-                var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                var webRoot = _webHostEnvironment.WebRootPath ?? System.IO.Path.Combine(_webHostEnvironment.ContentRootPath, "wwwroot");
+                var uploadsFolder = System.IO.Path.Combine(webRoot, "uploads");
                 if (!System.IO.Directory.Exists(uploadsFolder))
                 {
                     System.IO.Directory.CreateDirectory(uploadsFolder);

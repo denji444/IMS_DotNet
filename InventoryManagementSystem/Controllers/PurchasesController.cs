@@ -6,8 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models;
+using InventoryManagementSystem.Models.ViewModels;
 using InventoryManagementSystem.Exceptions;
 using InventoryManagementSystem.Services;
+
+using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.Controllers
 {
@@ -16,11 +19,13 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly InventoryDbContext _context;
         private readonly IEmailSender _emailSender;
+        private readonly ILogger<PurchasesController> _logger;
 
-        public PurchasesController(InventoryDbContext context, IEmailSender emailSender)
+        public PurchasesController(InventoryDbContext context, IEmailSender emailSender, ILogger<PurchasesController> logger)
         {
             _context = context;
             _emailSender = emailSender;
+            _logger = logger;
         }
 
         public IActionResult Index()
@@ -473,9 +478,7 @@ namespace InventoryManagementSystem.Controllers
                     }
                     catch (Exception ex)
                     {
-                        // Log SMTP exception, but don't prevent the success response since the database transaction succeeded!
-                        // In a real application, you would log it.
-                        Console.WriteLine($"SMTP delivery failed: {ex.Message}");
+                        _logger.LogError(ex, "SMTP delivery failed for Purchase Order {PurchaseNo}", purchase.PurchaseNo);
                     }
 
                     return Json(new { success = true, message = "Purchase stock-in recorded successfully!" });
@@ -775,16 +778,6 @@ namespace InventoryManagementSystem.Controllers
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = "Payment recorded successfully!" });
-        }
-
-        public class PayInstallmentModel
-        {
-            public int InstallmentId { get; set; }
-            public decimal Amount { get; set; }
-            public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
-            public string? PaymentReference { get; set; }
-            public string? BankName { get; set; }
-            public DateTime? CheckDate { get; set; }
         }
     }
 }

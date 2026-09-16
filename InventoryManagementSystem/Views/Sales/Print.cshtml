@@ -1,255 +1,210 @@
 @model InventoryManagementSystem.Models.Sale
 @using InventoryManagementSystem.Models
 @{
-    Layout = null; // No navbar or site layout
+    Layout = "_PrintLayout";
+    ViewData["Title"] = $"Invoice - {Model.InvoiceNo}";
+    var company = ViewData["CompanyProfile"] as InventoryManagementSystem.Models.CompanyProfile;
+    var headerModel = new InventoryManagementSystem.Models.PrintHeaderViewModel
+    {
+        DocumentTitle = "Sales Invoice",
+        DocumentNumberLabel = "Invoice No:",
+        DocumentNumber = Model.InvoiceNo,
+        DateLabel = "Date:",
+        DateValue = Model.SaleDate.ToString("yyyy-MM-dd HH:mm"),
+        CompanyName = company?.CompanyName ?? "Inventory Management System (IMS)",
+        Tagline = company?.Tagline ?? "Smart Inventory, Sales & Enterprise Tracking",
+        Address = company?.Address ?? "Main Commercial Boulevard, Business District",
+        Phone = company?.Phone ?? "+92 (300) 123-4567 | +92 (42) 3555-0199",
+        Email = company?.Email ?? "info@imsportal.com | www.imsportal.com",
+        LogoPath = company?.LogoPath
+    };
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice - @Model.InvoiceNo</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-        body {
-            background-color: #fff;
-            color: #000;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            padding: 35px;
-        }
-        .invoice-box {
-            max-width: 850px;
-            margin: auto;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            border-radius: 5px;
-        }
-        @@media print {
-            body {
-                padding: 0;
-            }
-            .invoice-box {
-                border: none;
-                box-shadow: none;
-                padding: 0;
-                max-width: 100%;
-            }
-            .no-print {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-
-<div class="invoice-box">
-    <div class="d-flex justify-content-between align-items-center no-print mb-4">
-        <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Invoice</button>
-    </div>
-
-    @{
-        var company = ViewData["CompanyProfile"] as InventoryManagementSystem.Models.CompanyProfile;
-        var headerModel = new InventoryManagementSystem.Models.PrintHeaderViewModel
-        {
-            DocumentTitle = "Sales Invoice",
-            DocumentNumberLabel = "Invoice No:",
-            DocumentNumber = Model.InvoiceNo,
-            DateLabel = "Date:",
-            DateValue = Model.SaleDate.ToString("yyyy-MM-dd HH:mm"),
-            CompanyName = company?.CompanyName ?? "Inventory Management System (IMS)",
-            Tagline = company?.Tagline ?? "Smart Inventory, Sales & Enterprise Tracking",
-            Address = company?.Address ?? "Main Commercial Boulevard, Business District",
-            Phone = company?.Phone ?? "+92 (300) 123-4567 | +92 (42) 3555-0199",
-            Email = company?.Email ?? "info@imsportal.com | www.imsportal.com",
-            LogoPath = company?.LogoPath
-        };
-    }
-    @await Html.PartialAsync("_PrintHeader", headerModel)
-
-    <div class="row my-4">
-        <div class="col-6">
-            <h6 class="text-uppercase fw-bold text-secondary">Customer Invoice To:</h6>
-            <p class="mb-0"><strong>Name:</strong> @(Model.Customer?.FullName ?? "N/A")</p>
-            <p class="mb-0"><strong>Username:</strong> @(Model.Customer?.UserName ?? "N/A")</p>
-            <p class="mb-0"><strong>Phone:</strong> @(Model.Customer?.PhoneNumber ?? "N/A")</p>
-            <p class="mb-0"><strong>Email:</strong> @(Model.Customer?.Email ?? "N/A")</p>
-        </div>
-        <div class="col-6 text-end">
-            <h6 class="text-uppercase fw-bold text-secondary">Payment Details:</h6>
-            @if (Model.PaymentMode == PaymentMode.Lease)
-            {
-                <p class="mb-0"><strong>Mode:</strong> Lease / Installments</p>
-                <p class="mb-0"><strong>Frequency:</strong> @Model.InstallmentFrequency (@Model.InstallmentsCount Installments)</p>
-                <p class="mb-0"><strong>Down Payment Method:</strong> @Model.PaymentMethod.ToString()</p>
-                if (!string.IsNullOrEmpty(Model.BankName))
-                {
-                    <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
-                }
-                if (!string.IsNullOrEmpty(Model.PaymentReference))
-                {
-                    <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
-                }
-                if (Model.CheckDate.HasValue)
-                {
-                    <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
-                }
-            }
-            else
-            {
-                <p class="mb-0"><strong>Method:</strong> @Model.PaymentMethod.ToString()</p>
-                if (!string.IsNullOrEmpty(Model.BankName))
-                {
-                    <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
-                }
-                if (!string.IsNullOrEmpty(Model.PaymentReference))
-                {
-                    <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
-                }
-                if (Model.CheckDate.HasValue)
-                {
-                    <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
-                }
-                <p class="mb-0"><strong>Status:</strong> Fully Paid</p>
-            }
-        </div>
-    </div>
-
-    <table class="table table-bordered my-4">
-        <thead class="table-dark">
-            <tr>
-                <th>Product SKU</th>
-                <th>Item Name</th>
-                <th>Batch</th>
-                <th class="text-center">Quantity</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Total Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model.Items != null && Model.Items.Any())
-            {
-                foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>@(item.Product?.Sku ?? "N/A")</td>
-                        <td>@(item.Product != null ? (string.IsNullOrEmpty(item.Product.Variant) ? item.Product.Name : $"{item.Product.Name} ({item.Product.Variant})") : "N/A")</td>
-                        <td>@(string.IsNullOrEmpty(item.BatchNumber) ? "N/A" : item.BatchNumber)</td>
-                        <td class="text-center">@item.Quantity</td>
-                        <td class="text-end">PKR @item.UnitPrice.ToString("F2")</td>
-                        <td class="text-end fw-bold">PKR @item.TotalAmount.ToString("F2")</td>
-                    </tr>
-                }
-            }
-            else
-            {
-                <tr>
-                    <td>@(Model.Product?.Sku ?? "N/A")</td>
-                    <td>
-                        @(Model.Product != null ? (string.IsNullOrEmpty(Model.Product.Variant) ? Model.Product.Name : $"{Model.Product.Name} ({Model.Product.Variant})") : "N/A")
-                    </td>
-                    <td>@(string.IsNullOrEmpty(Model.BatchNumber) ? "N/A" : Model.BatchNumber)</td>
-                    <td class="text-center">@Model.Quantity</td>
-                    <td class="text-end">PKR @Model.UnitPrice.ToString("F2")</td>
-                    <td class="text-end fw-bold">PKR @Model.TotalAmount.ToString("F2")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    <div class="row justify-content-end">
-        <div class="col-4 text-end">
-            <h5 class="fw-bold text-dark">Grand Total: PKR @Model.TotalAmount.ToString("F2")</h5>
-        </div>
-    </div>
-
-    @if (!string.IsNullOrEmpty(Model.Notes))
-    {
-        <div class="border rounded p-3 my-4 bg-light">
-            <h6 class="fw-bold mb-1">Invoice Notes:</h6>
-            <p class="mb-0 text-muted small">@Model.Notes</p>
-        </div>
-    }
-
-    @if (Model.PaymentMode == PaymentMode.Lease)
-    {
-        <div class="my-4">
-            <h6 class="text-uppercase fw-bold text-secondary mb-3"><i class="fas fa-calendar-alt me-2"></i>Lease Installment Schedule</h6>
-            <table class="table table-bordered table-striped align-middle">
-                <thead class="table-secondary">
-                    <tr>
-                        <th>Installment #</th>
-                        <th>Due Date</th>
-                        <th class="text-end">Amount</th>
-                        <th class="text-end">Collected</th>
-                        <th>Collection Date & Method</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="background-color: #eef7ee;">
-                        <td>Down Payment</td>
-                        <td>@Model.SaleDate.ToString("yyyy-MM-dd")</td>
-                        <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
-                        <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
-                        <td>
-                            @Model.SaleDate.ToString("yyyy-MM-dd HH:mm")<br/>
-                            <span class="badge bg-success text-white">@Model.PaymentMethod.ToString() @(string.IsNullOrEmpty(Model.PaymentReference) ? "" : $"({Model.PaymentReference})")</span>
-                        </td>
-                        <td><span class="badge bg-success text-white">Paid</span></td>
-                    </tr>
-                    @if (Model.Installments != null && Model.Installments.Any())
-                    {
-                        foreach (var inst in Model.Installments.OrderBy(i => i.InstallmentNumber))
-                        {
-                            <tr>
-                                <td>Installment #@inst.InstallmentNumber</td>
-                                <td>@inst.DueDate.ToString("yyyy-MM-dd")</td>
-                                <td class="text-end">PKR @inst.Amount.ToString("F2")</td>
-                                <td class="text-end text-success">PKR @inst.PaidAmount.ToString("F2")</td>
-                                <td>
-                                    @(inst.PaymentDate.HasValue ? inst.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-")
-                                    @if (inst.PaymentMethod.HasValue)
-                                    {
-                                        <br/>
-                                        <span class="badge bg-info text-white">
-                                            @inst.PaymentMethod.Value.ToString()
-                                            @(string.IsNullOrEmpty(inst.BankName) ? "" : $" [{inst.BankName}]")
-                                            @(string.IsNullOrEmpty(inst.PaymentReference) ? "" : $" ({inst.PaymentReference})")
-                                        </span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (inst.Status == "Paid")
-                                    {
-                                        <span class="badge bg-success text-white">Collected</span>
-                                    }
-                                    else if (inst.Status == "Overdue")
-                                    {
-                                        <span class="badge bg-danger text-white">Overdue</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-
+<div class="d-flex justify-content-between align-items-center no-print mb-4">
+    <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Invoice</button>
 </div>
 
-<script>
-    // Automatically trigger print dialog when loaded
-    window.onload = function() {
-        window.print();
-    }
-</script>
-</body>
-</html>
+@await Html.PartialAsync("_PrintHeader", headerModel)
+
+<div class="row my-4">
+    <div class="col-6">
+        <h6 class="text-uppercase fw-bold text-secondary">Customer Invoice To:</h6>
+        <p class="mb-0"><strong>Name:</strong> @(Model.Customer?.FullName ?? "N/A")</p>
+        <p class="mb-0"><strong>Username:</strong> @(Model.Customer?.UserName ?? "N/A")</p>
+        <p class="mb-0"><strong>Phone:</strong> @(Model.Customer?.PhoneNumber ?? "N/A")</p>
+        <p class="mb-0"><strong>Email:</strong> @(Model.Customer?.Email ?? "N/A")</p>
+    </div>
+    <div class="col-6 text-end">
+        <h6 class="text-uppercase fw-bold text-secondary">Payment Details:</h6>
+        @if (Model.PaymentMode == PaymentMode.Lease)
+        {
+            <p class="mb-0"><strong>Mode:</strong> Lease / Installments</p>
+            <p class="mb-0"><strong>Frequency:</strong> @Model.InstallmentFrequency (@Model.InstallmentsCount Installments)</p>
+            <p class="mb-0"><strong>Down Payment Method:</strong> @Model.PaymentMethod.ToString()</p>
+            if (!string.IsNullOrEmpty(Model.BankName))
+            {
+                <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
+            }
+            if (!string.IsNullOrEmpty(Model.PaymentReference))
+            {
+                <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
+            }
+            if (Model.CheckDate.HasValue)
+            {
+                <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
+            }
+        }
+        else
+        {
+            <p class="mb-0"><strong>Method:</strong> @Model.PaymentMethod.ToString()</p>
+            if (!string.IsNullOrEmpty(Model.BankName))
+            {
+                <p class="mb-0"><strong>Bank / Platform:</strong> @Model.BankName</p>
+            }
+            if (!string.IsNullOrEmpty(Model.PaymentReference))
+            {
+                <p class="mb-0"><strong>Ref / Check / Txn #:</strong> @Model.PaymentReference</p>
+            }
+            if (Model.CheckDate.HasValue)
+            {
+                <p class="mb-0"><strong>Check Date:</strong> @Model.CheckDate.Value.ToString("yyyy-MM-dd")</p>
+            }
+            <p class="mb-0"><strong>Status:</strong> Fully Paid</p>
+        }
+    </div>
+</div>
+
+<table class="table table-bordered my-4">
+    <thead class="table-dark">
+        <tr>
+            <th>Product SKU</th>
+            <th>Item Name</th>
+            <th>Batch</th>
+            <th class="text-center">Quantity</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-end">Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Items != null && Model.Items.Any())
+        {
+            foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@(item.Product?.Sku ?? "N/A")</td>
+                    <td>@(item.Product != null ? (string.IsNullOrEmpty(item.Product.Variant) ? item.Product.Name : $"{item.Product.Name} ({item.Product.Variant})") : "N/A")</td>
+                    <td>@(string.IsNullOrEmpty(item.BatchNumber) ? "N/A" : item.BatchNumber)</td>
+                    <td class="text-center">@item.Quantity</td>
+                    <td class="text-end">PKR @item.UnitPrice.ToString("F2")</td>
+                    <td class="text-end fw-bold">PKR @item.TotalAmount.ToString("F2")</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td>@(Model.Product?.Sku ?? "N/A")</td>
+                <td>
+                    @(Model.Product != null ? (string.IsNullOrEmpty(Model.Product.Variant) ? Model.Product.Name : $"{Model.Product.Name} ({Model.Product.Variant})") : "N/A")
+                </td>
+                <td>@(string.IsNullOrEmpty(Model.BatchNumber) ? "N/A" : Model.BatchNumber)</td>
+                <td class="text-center">@Model.Quantity</td>
+                <td class="text-end">PKR @Model.UnitPrice.ToString("F2")</td>
+                <td class="text-end fw-bold">PKR @Model.TotalAmount.ToString("F2")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="row justify-content-end">
+    <div class="col-4 text-end">
+        <h5 class="fw-bold text-dark">Grand Total: PKR @Model.TotalAmount.ToString("F2")</h5>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Notes))
+{
+    <div class="border rounded p-3 my-4 bg-light">
+        <h6 class="fw-bold mb-1">Invoice Notes:</h6>
+        <p class="mb-0 text-muted small">@Model.Notes</p>
+    </div>
+}
+
+@if (Model.PaymentMode == PaymentMode.Lease)
+{
+    <div class="my-4">
+        <h6 class="text-uppercase fw-bold text-secondary mb-3"><i class="fas fa-calendar-alt me-2"></i>Lease Installment Schedule</h6>
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-secondary">
+                <tr>
+                    <th>Installment #</th>
+                    <th>Due Date</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-end">Collected</th>
+                    <th>Collection Date & Method</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background-color: #eef7ee;">
+                    <td>Down Payment</td>
+                    <td>@Model.SaleDate.ToString("yyyy-MM-dd")</td>
+                    <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
+                    <td class="text-end">PKR @Model.DownPayment.ToString("F2")</td>
+                    <td>
+                        @Model.SaleDate.ToString("yyyy-MM-dd HH:mm")<br/>
+                        <span class="badge bg-success text-white">@Model.PaymentMethod.ToString() @(string.IsNullOrEmpty(Model.PaymentReference) ? "" : $"({Model.PaymentReference})")</span>
+                    </td>
+                    <td><span class="badge bg-success text-white">Paid</span></td>
+                </tr>
+                @if (Model.Installments != null && Model.Installments.Any())
+                {
+                    foreach (var inst in Model.Installments.OrderBy(i => i.InstallmentNumber))
+                    {
+                        <tr>
+                            <td>Installment #@inst.InstallmentNumber</td>
+                            <td>@inst.DueDate.ToString("yyyy-MM-dd")</td>
+                            <td class="text-end">PKR @inst.Amount.ToString("F2")</td>
+                            <td class="text-end text-success">PKR @inst.PaidAmount.ToString("F2")</td>
+                            <td>
+                                @(inst.PaymentDate.HasValue ? inst.PaymentDate.Value.ToString("yyyy-MM-dd HH:mm") : "-")
+                                @if (inst.PaymentMethod.HasValue)
+                                {
+                                    <br/>
+                                    <span class="badge bg-info text-white">
+                                        @inst.PaymentMethod.Value.ToString()
+                                        @(string.IsNullOrEmpty(inst.BankName) ? "" : $" [{inst.BankName}]")
+                                        @(string.IsNullOrEmpty(inst.PaymentReference) ? "" : $" ({inst.PaymentReference})")
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (inst.Status == "Paid")
+                                {
+                                    <span class="badge bg-success text-white">Collected</span>
+                                }
+                                else if (inst.Status == "Overdue")
+                                {
+                                    <span class="badge bg-danger text-white">Overdue</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Automatically trigger print dialog when loaded
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+}

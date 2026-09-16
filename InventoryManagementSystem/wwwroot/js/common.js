@@ -228,6 +228,27 @@ $(document).ready(function () {
     }
 });
 
+// Global CNIC formatting utility (XXXXX-XXXXXXX-X)
+function formatCnic(value) {
+    if (!value) return "";
+    var cleaned = value.toString().replace(/\D/g, "");
+    if (cleaned.length > 13) cleaned = cleaned.substring(0, 13);
+    
+    if (cleaned.length <= 5) {
+        return cleaned;
+    } else if (cleaned.length <= 12) {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5);
+    } else {
+        return cleaned.substring(0, 5) + "-" + cleaned.substring(5, 12) + "-" + cleaned.substring(12);
+    }
+}
+window.formatCnic = formatCnic;
+
+$(document).on("input", ".cnic-input", function () {
+    var formatted = formatCnic(this.value);
+    this.value = formatted;
+});
+
 // Helper for Ajax forms submission with SweetAlert2 integration
 function handleFormSubmitAjax(formSelector, url, redirectUrlOnSuccess, successMessage) {
     $(formSelector).on("submit", function (e) {
@@ -313,3 +334,82 @@ function handleFormSubmitAjax(formSelector, url, redirectUrlOnSuccess, successMe
         });
     });
 }
+
+// Admin User Profile Management Modal Handler
+$(document).ready(function () {
+    $("#manageProfileForm").on("submit", function (e) {
+        e.preventDefault();
+        
+        var fullName = $("#profileFullName").val();
+        var currentPassword = $("#profileCurrentPassword").val();
+        var newPassword = $("#profileNewPassword").val();
+        var confirmPassword = $("#profileConfirmPassword").val();
+
+        if (newPassword && newPassword !== confirmPassword) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'New password and confirm password do not match.',
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+            return false;
+        }
+
+        var model = {
+            FullName: fullName,
+            CurrentPassword: currentPassword || null,
+            NewPassword: newPassword || null
+        };
+
+        var btn = $("#btnSaveProfile");
+        var originalText = btn.html();
+        btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+
+        var layoutToken = $('input[name="__RequestVerificationToken"]').val();
+
+        $.ajax({
+            url: "/Account/UpdateProfile",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(model),
+            headers: {
+                'RequestVerificationToken': layoutToken
+            },
+            success: function (response) {
+                btn.prop("disabled", false).html(originalText);
+                if (response.success) {
+                    $("#manageProfileModal").modal("hide");
+                    $("#profileCurrentPassword").val("");
+                    $("#profileNewPassword").val("");
+                    $("#profileConfirmPassword").val("");
+
+                    Swal.fire({
+                        title: 'Success!',
+                        text: response.message,
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6'
+                    }).then(function() {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            },
+            error: function (xhr) {
+                btn.prop("disabled", false).html(originalText);
+                var msg = xhr.responseJSON?.message || "An unexpected error occurred.";
+                Swal.fire({
+                    title: 'Error!',
+                    text: msg,
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            }
+        });
+    });
+});

@@ -90,17 +90,35 @@ namespace InventoryManagementSystem.Controllers
             viewModel.MonthlyPurchasesData = monthlyPurchases;
 
             // Top 5 Selling Products
-            var topProducts = await _context.Sales
-                .Where(s => s.ProductId.HasValue)
+            var multiItemCounts = await _context.SaleItems
+                .GroupBy(si => si.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TotalQuantity = g.Sum(si => si.Quantity)
+                })
+                .ToListAsync();
+
+            var legacyCounts = await _context.Sales
+                .Where(s => s.ProductId.HasValue && !s.Items.Any())
                 .GroupBy(s => s.ProductId!.Value)
                 .Select(g => new
                 {
                     ProductId = g.Key,
                     TotalQuantity = g.Sum(s => s.Quantity)
                 })
+                .ToListAsync();
+
+            var topProducts = multiItemCounts.Concat(legacyCounts)
+                .GroupBy(x => x.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TotalQuantity = g.Sum(x => x.TotalQuantity)
+                })
                 .OrderByDescending(g => g.TotalQuantity)
                 .Take(5)
-                .ToListAsync();
+                .ToList();
 
             var topProductIds = topProducts.Select(tp => tp.ProductId).ToList();
             var productDetails = await _context.Products

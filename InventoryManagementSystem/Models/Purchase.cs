@@ -81,10 +81,4 @@ namespace InventoryManagementSystem.Models
         [NotMapped]
         public Supplier? NewSupplier { get; set; }
     }
-
-    public enum PaymentMode
-    {
-        FullPayment = 0,
-        Lease = 1
-    }
 }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Inventory Management System</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px 15px;
+        }
+        .print-container {
+            max-width: 900px;
+            margin: auto;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            padding: 32px;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        @@media print {
+            body {
+                padding: 0;
+                background-color: #ffffff !important;
+            }
+            .print-container {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="print-container">
+        @RenderBody()
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

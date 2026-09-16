@@ -1,0 +1,117 @@
+<!-- SMTP Settings Tab Pane -->
+<div class="tab-pane fade" id="smtp" role="tabpanel" aria-labelledby="smtp-tab">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="fas fa-envelope-open-text me-2"></i>Configure Dynamic SMTP & Email Gateway</h5>
+            <span class="badge bg-info text-dark" id="smtpConfigSourceBadge">Checking Source...</span>
+        </div>
+        <div class="card-body p-4">
+            <form id="smtpForm">
+                <input type="hidden" id="smtpId" value="0" />
+
+                <div class="alert alert-info d-flex align-items-center mb-4 shadow-sm" role="alert">
+                    <i class="fas fa-info-circle fa-2x me-3 text-info"></i>
+                    <div>
+                        <strong>Dynamic Email Gateway:</strong> Configure your SMTP outgoing mail server here. Changes take effect immediately across all email features (Email Confirmation, Sales Invoices, Purchase Orders, and Notifications) without needing app restarts.
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold"><i class="fas fa-server me-1 text-primary"></i> SMTP Host / Server</label>
+                        <input type="text" class="form-control" id="smtpServer" placeholder="e.g. smtp.gmail.com or smtp.office365.com" required />
+                        <div class="form-text">Address of your outgoing SMTP mail server provider.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold"><i class="fas fa-plug me-1 text-primary"></i> SMTP Port</label>
+                        <input type="number" class="form-control" id="smtpPort" placeholder="e.g. 587 or 465" required min="1" max="65535" />
+                        <div class="form-text">Standard ports: 587 (TLS/STARTTLS), 465 (SSL), 25 (Unencrypted).</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fas fa-id-card me-1 text-primary"></i> Sender Display Name</label>
+                        <input type="text" class="form-control" id="smtpSenderName" placeholder="e.g. Inventory Management System" required />
+                        <div class="form-text">The friendly 'From' name shown in recipient inboxes.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fas fa-at me-1 text-primary"></i> Sender Email Address</label>
+                        <input type="email" class="form-control" id="smtpSenderEmail" placeholder="e.g. no-reply@yourcompany.com" required />
+                        <div class="form-text">The official email address sending outgoing emails.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fas fa-user-lock me-1 text-primary"></i> Authentication Username</label>
+                        <input type="text" class="form-control" id="smtpUsername" placeholder="e.g. your-email@gmail.com" />
+                        <div class="form-text">Leave blank if SMTP server does not require authentication.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fas fa-key me-1 text-primary"></i> Authentication Password / App Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="smtpPassword" placeholder="Enter SMTP password or App Password" />
+                            <button class="btn btn-outline-secondary" type="button" id="btnToggleSmtpPassword" onclick="togglePasswordVisibility('#smtpPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">For Gmail, use a 16-character App Password (requires 2FA).</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4 align-items-center">
+                    <div class="col-md-6">
+                        
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="small text-muted d-block mb-1"><i class="fas fa-history me-1"></i> Last Saved: <strong id="smtpLastUpdated">-</strong></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <button type="button" class="btn btn-outline-primary px-4 py-2 fw-bold" onclick="openTestSmtpModal()">
+                        <i class="fas fa-paper-plane me-2"></i> Send Test Email
+                    </button>
+                    <button type="submit" class="btn btn-success px-5 py-2 fw-bold shadow-sm" id="btnSaveSmtp">
+                        <i class="fas fa-save me-2"></i> Save SMTP Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Test SMTP Modal -->
+<div class="modal fade" id="testSmtpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold" id="testSmtpModalLabel">
+                    <i class="fas fa-paper-plane me-2"></i>Test SMTP Email Gateway
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="testSmtpForm">
+                <div class="modal-body p-4">
+                    <p class="text-muted small">Send a test email using the settings currently entered on the SMTP configuration form to verify connection and delivery live.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Recipient Test Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fas fa-envelope text-primary"></i></span>
+                            <input type="email" class="form-control" id="testRecipientEmail" placeholder="e.g. admin@example.com" required />
+                        </div>
+                        <div class="form-text">A test confirmation email will be dispatched to this inbox.</div>
+                    </div>
+                    <div id="testSmtpResultAlert" class="d-none"></div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary fw-bold" id="btnSendTestEmail">
+                        <i class="fas fa-paper-plane me-1"></i> Send Test Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

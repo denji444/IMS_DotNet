@@ -7,8 +7,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models;
+using InventoryManagementSystem.Models.ViewModels;
 using InventoryManagementSystem.Exceptions;
 using InventoryManagementSystem.Services;
+
+using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.Controllers
 {
@@ -18,15 +21,18 @@ namespace InventoryManagementSystem.Controllers
         private readonly InventoryDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _emailSender;
+        private readonly ILogger<SalesController> _logger;
 
         public SalesController(
             InventoryDbContext context,
             UserManager<ApplicationUser> userManager,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            ILogger<SalesController> logger)
         {
             _context = context;
             _userManager = userManager;
             _emailSender = emailSender;
+            _logger = logger;
         }
 
         public IActionResult Index()
@@ -414,7 +420,7 @@ namespace InventoryManagementSystem.Controllers
             }
             catch (Exception emailEx)
             {
-                Console.WriteLine($"SMTP receipt dispatch failed: {emailEx.Message}");
+                _logger.LogError(emailEx, "SMTP receipt dispatch failed for Sale Invoice {InvoiceNo}", sale.InvoiceNo);
             }
 
             return Json(new { success = true, message = "Sale invoice created and stock out processed successfully!" });
@@ -676,16 +682,6 @@ namespace InventoryManagementSystem.Controllers
             return Json(new { success = true, message = "Payment collection recorded successfully!" });
         }
 
-        public class ReceiveInstallmentModel
-        {
-            public int InstallmentId { get; set; }
-            public decimal Amount { get; set; }
-            public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
-            public string? PaymentReference { get; set; }
-            public string? BankName { get; set; }
-            public DateTime? CheckDate { get; set; }
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendReminderEmail([FromBody] ReminderEmailModel model)
@@ -700,6 +696,9 @@ namespace InventoryManagementSystem.Controllers
                     .ThenInclude(s => s.Customer)
                 .Include(si => si.Sale!)
                     .ThenInclude(s => s.Product)
+                .Include(si => si.Sale!)
+                    .ThenInclude(s => s.Items)
+                        .ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(si => si.Id == model.InstallmentId);
 
             if (installment == null)
@@ -713,13 +712,23 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = "Customer email details not found." });
             }
 
+            string productName = installment.Sale?.Product?.Name ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(productName) && installment.Sale?.Items != null && installment.Sale.Items.Any())
+            {
+                productName = string.Join(", ", installment.Sale.Items.Select(i => i.Product != null ? (!string.IsNullOrWhiteSpace(i.Product.Variant) ? $"{i.Product.Name} ({i.Product.Variant})" : i.Product.Name) : "Product"));
+            }
+            if (string.IsNullOrWhiteSpace(productName))
+            {
+                productName = "Purchased Items";
+            }
+
             string subject = $"Reminder: Lease Installment Payment due for invoice {installment.Sale!.InvoiceNo}";
 
             string htmlMessage = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;'>
                     <h2 style='color: #333; border-bottom: 2px solid #f0ad4e; padding-bottom: 10px;'>Lease Installment Payment Reminder</h2>
                     <p>Dear <strong>{customer.FullName}</strong>,</p>
-                    <p>This is a friendly reminder that installment <strong>#{installment.InstallmentNumber}</strong> for your purchase of <strong>{installment.Sale.Product?.Name}</strong> is due.</p>
+                    <p>This is a friendly reminder that installment <strong>#{installment.InstallmentNumber}</strong> for your purchase of <strong>{productName}</strong> is due.</p>
                     <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
                         <tr style='background-color: #f8f9fa;'>
                             <th style='padding: 10px; border: 1px solid #ddd; text-align: left;'>Invoice Number</th>
@@ -751,11 +760,6 @@ namespace InventoryManagementSystem.Controllers
             {
                 return Json(new { success = false, message = "Failed to send email: " + ex.Message });
             }
-        }
-
-        public class ReminderEmailModel
-        {
-            public int InstallmentId { get; set; }
         }
     }
 }

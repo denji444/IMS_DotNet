@@ -69,12 +69,7 @@ $(document).ready(function () {
         }
     });
 
-    // Auto-format CNIC dashes on input
-    $(document).on("input", ".cnic-input", function() {
-        var val = $(this).val();
-        var formatted = formatCnic(val);
-        $(this).val(formatted);
-    });
+
 
     // Form submit AJAX
     $("#customerForm").on("submit", function (e) {
@@ -145,20 +140,6 @@ $(document).ready(function () {
         });
     });
 });
-
-function formatCnic(value) {
-    if (!value) return "";
-    var cleaned = value.replace(/\D/g, "");
-    if (cleaned.length > 13) cleaned = cleaned.substring(0, 13);
-    
-    if (cleaned.length <= 5) {
-        return cleaned;
-    } else if (cleaned.length <= 12) {
-        return cleaned.substring(0, 5) + "-" + cleaned.substring(5);
-    } else {
-        return cleaned.substring(0, 5) + "-" + cleaned.substring(5, 12) + "-" + cleaned.substring(12);
-    }
-}
 
 function openCreateModal() {
     $("#customerForm")[0].reset();

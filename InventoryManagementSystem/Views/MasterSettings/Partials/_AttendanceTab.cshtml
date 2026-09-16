@@ -1,0 +1,76 @@
+<!-- Attendance Tab -->
+<div class="tab-pane fade" id="attendance" role="tabpanel" aria-labelledby="attendance-tab">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Manage Attendance</h5>
+            <button class="btn btn-primary btn-sm" onclick="openAttendanceModal(0)">
+                <i class="fas fa-calendar-check me-1"></i> Log Attendance
+            </button>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped w-100" id="attendanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="attendanceModalLabel">Log Attendance</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="attendanceForm">
+                <input type="hidden" id="attId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Employee</label>
+                        <select class="form-select select2-ajax" id="attEmployeeId" required style="width: 100%;"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control" id="attDate" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Clock In</label>
+                            <input type="time" class="form-control" id="attClockIn" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Clock Out</label>
+                            <input type="time" class="form-control" id="attClockOut" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select class="form-select" id="attStatus">
+                            <option value="Present">Present</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Late">Late</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveAttendance">Save Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

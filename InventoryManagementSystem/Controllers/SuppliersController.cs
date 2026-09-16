@@ -9,6 +9,8 @@ using InventoryManagementSystem.Exceptions;
 using InventoryManagementSystem.Services;
 using System;
 
+using Microsoft.Extensions.Logging;
+
 namespace InventoryManagementSystem.Controllers
 {
     [Authorize(Roles = "Admin")]
@@ -16,11 +18,13 @@ namespace InventoryManagementSystem.Controllers
     {
         private readonly InventoryDbContext _context;
         private readonly IEmailSender _emailSender;
+        private readonly ILogger<SuppliersController> _logger;
 
-        public SuppliersController(InventoryDbContext context, IEmailSender emailSender)
+        public SuppliersController(InventoryDbContext context, IEmailSender emailSender, ILogger<SuppliersController> logger)
         {
             _context = context;
             _emailSender = emailSender;
+            _logger = logger;
         }
 
         public IActionResult Index()
@@ -32,24 +36,38 @@ namespace InventoryManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetSuppliersData()
         {
-            var suppliers = await _context.Suppliers
-                .Select(s => new
+            var suppliers = await _context.Suppliers.ToListAsync();
+
+            var multiItemProducts = await _context.PurchaseItems
+                .Where(pi => pi.Product != null && pi.Purchase != null)
+                .Select(pi => new
                 {
-                    s.Id,
-                    s.Name,
-                    s.ContactName,
-                    s.Email,
-                    s.Phone,
-                    s.Address,
-                    s.Cnic,
-                    s.IsEmailVerified,
-                    PurchasedProducts = _context.Purchases
-                        .Where(pu => pu.SupplierId == s.Id && pu.Product != null)
-                        .Select(pu => new { pu.Product!.Name, pu.Product.Variant, pu.Product.Sku })
-                        .Distinct()
-                        .ToList()
+                    SupplierId = pi.Purchase!.SupplierId,
+                    Name = pi.Product!.Name,
+                    Variant = pi.Product.Variant,
+                    Sku = pi.Product.Sku
                 })
+                .Distinct()
                 .ToListAsync();
+
+            var legacyProducts = await _context.Purchases
+                .Where(pu => pu.Product != null && !pu.Items.Any())
+                .Select(pu => new
+                {
+                    pu.SupplierId,
+                    Name = pu.Product!.Name,
+                    Variant = pu.Product.Variant,
+                    Sku = pu.Product.Sku
+                })
+                .Distinct()
+                .ToListAsync();
+
+            var allPurchased = multiItemProducts.Concat(legacyProducts)
+                .GroupBy(x => x.SupplierId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => new { name = x.Name, variant = x.Variant, sku = x.Sku }).Distinct().ToList()
+                );
 
             var data = suppliers.Select(s => new
             {
@@ -60,12 +78,7 @@ namespace InventoryManagementSystem.Controllers
                 s.Address,
                 s.Cnic,
                 s.IsEmailVerified,
-                Products = s.PurchasedProducts.Select(p => new
-                {
-                    p.Name,
-                    p.Variant,
-                    p.Sku
-                }).ToList()
+                Products = allPurchased.TryGetValue(s.Id, out var prodList) ? (object)prodList : Array.Empty<object>()
             }).ToList();
 
             return Json(new { data = data });
@@ -151,7 +164,7 @@ namespace InventoryManagementSystem.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to send email to supplier: {ex.Message}");
+                _logger.LogError(ex, "Failed to send verification email to supplier {Email}", supplier.Email);
             }
 
             return Json(new { success = true, message = "Supplier created successfully! A verification email has been sent." });
@@ -226,7 +239,7 @@ namespace InventoryManagementSystem.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Failed to send email to supplier: {ex.Message}");
+                        _logger.LogError(ex, "Failed to send updated email verification to supplier {Email}", supplier.Email);
                     }
                 }
 

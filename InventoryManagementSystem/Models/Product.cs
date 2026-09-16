@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Mvc;
+using InventoryManagementSystem.Models.ViewModels;
 
 namespace InventoryManagementSystem.Models
 {
@@ -48,11 +49,5 @@ namespace InventoryManagementSystem.Models
 
         [NotMapped]
         public System.Collections.Generic.List<ProductVariantInput>? MultipleVariants { get; set; }
-    }
-
-    public class ProductVariantInput
-    {
-        public string Sku { get; set; } = string.Empty;
-        public string Variant { get; set; } = string.Empty;
     }
 }

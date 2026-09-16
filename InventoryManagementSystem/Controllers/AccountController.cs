@@ -66,13 +66,6 @@ namespace InventoryManagementSystem.Controllers
             return Json(new { success = false, message = "Invalid username or password." });
         }
 
-        public class UpdateProfileModel
-        {
-            public string FullName { get; set; } = string.Empty;
-            public string? CurrentPassword { get; set; }
-            public string? NewPassword { get; set; }
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
@@ -158,7 +151,7 @@ namespace InventoryManagementSystem.Controllers
             {
                 return RedirectToAction("Index", "Admin");
             }
-            return RedirectToAction("Index", "CustomerDashboard");
+            return RedirectToAction("Index", "Home");
         }
 
         private async Task<string> GetDashboardUrlForUser(ApplicationUser? user)
@@ -167,7 +160,7 @@ namespace InventoryManagementSystem.Controllers
             {
                 return Url.Action("Index", "Admin") ?? "/";
             }
-            return Url.Action("Index", "CustomerDashboard") ?? "/";
+            return Url.Action("Index", "Home") ?? "/";
         }
     }
 }

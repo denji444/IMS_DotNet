@@ -15,7 +15,7 @@ builder.Services.AddDbContext<InventoryDbContext>(options =>
 // Configure SmtpSettings and Register IEmailSender
 builder.Services.AddDataProtection();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
-builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>

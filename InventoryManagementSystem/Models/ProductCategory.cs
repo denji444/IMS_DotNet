@@ -16,16 +16,4 @@ namespace InventoryManagementSystem.Models
 
         public ICollection<ProductCategoryTypeOption> TypeOptions { get; set; } = new List<ProductCategoryTypeOption>();
     }
-
-    public class ProductCategoryTypeOption
-    {
-        public int Id { get; set; }
-
-        public int ProductCategoryId { get; set; }
-        public ProductCategory? Category { get; set; }
-
-        [Required]
-        [StringLength(100)]
-        public string TypeName { get; set; } = string.Empty;
-    }
 }

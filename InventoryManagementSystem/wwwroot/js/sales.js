@@ -1096,23 +1096,4 @@ function sendReminderEmail(installmentId) {
     });
 }
 
-function formatCnic(val) {
-    if (!val) return "";
-    var digits = val.replace(/\D/g, "").substring(0, 13);
-    var formatted = "";
-    if (digits.length > 0) {
-        formatted += digits.substring(0, 5);
-    }
-    if (digits.length > 5) {
-        formatted += "-" + digits.substring(5, 12);
-    }
-    if (digits.length > 12) {
-        formatted += "-" + digits.substring(12, 13);
-    }
-    return formatted;
-}
 
-$(document).on("input", ".cnic-input", function () {
-    var formatted = formatCnic(this.value);
-    this.value = formatted;
-});

@@ -1,0 +1,192 @@
+<!-- Employees Tab -->
+<div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Manage Employees</h5>
+            <button class="btn btn-primary btn-sm" onclick="openEmployeeModal(0)">
+                <i class="fas fa-user-plus me-1"></i> Add Employee
+            </button>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped w-100" id="employeesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Department</th>
+                            <th>Designation</th>
+                            <th>Hire Date</th>
+                            <th>Salary</th>
+                            <th>Status</th>
+                            <th class="text-center">Profile</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Account & User Profile Control Modal -->
+<div class="modal fade" id="employeeAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title fw-bold" id="empAccountModalLabel">
+                    <i class="fas fa-user-shield me-2 text-info"></i>Employee User Account
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="empAccEmployeeId" value="0" />
+                
+                <!-- Employee Summary Header -->
+                <div class="d-flex align-items-center bg-light p-3 rounded mb-4 border">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px; font-size: 22px;">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" id="empAccFullName">Employee Name</h5>
+                        <p class="text-muted small mb-0"><span id="empAccDesignation">Designation</span> &bull; <span class="badge bg-secondary" id="empAccDepartment">Department</span></p>
+                    </div>
+                </div>
+
+                <!-- Credentials Info Section -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-envelope text-primary"></i></span>
+                        <input type="text" class="form-control bg-light" id="empAccEmail" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#empAccEmail', 'Email copied!')" title="Copy Email">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-user text-primary"></i></span>
+                        <input type="text" class="form-control bg-light" id="empAccUsername" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#empAccUsername', 'Username copied!')" title="Copy Username">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Password & Credentials Control</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-white"><i class="fas fa-lock text-primary"></i></span>
+                        <input type="password" class="form-control bg-light" id="empAccPassword" value="Default@123" readonly />
+                        <button class="btn btn-outline-secondary" type="button" id="btnToggleShowPassword" onclick="togglePasswordVisibility()" title="Show/Hide Password">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted extra-small" style="font-size: 0.8rem;"><i class="fas fa-info-circle me-1"></i>Default Password: <strong>Default@123</strong></span>
+                        <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-bold" id="btnResetPassword" onclick="resetEmployeePassword()">
+                            <i class="fas fa-key me-1"></i> Reset to Default
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <!-- Account Access Status Control -->
+                <div class="p-3 rounded border bg-light">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">
+                                <i class="fas fa-shield-alt me-1 text-primary"></i> Account Access Status
+                            </h6>
+                            <p class="text-muted extra-small mb-0" style="font-size: 0.82rem;" id="accountStatusHelpText">
+                                Toggle to Restrict or Activate user system access.
+                            </p>
+                        </div>
+                        <div class="form-check form-switch form-switch-md ms-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="empAccRestrictedToggle" style="width: 2.5em; height: 1.25em; cursor: pointer;" onchange="toggleAccountRestriction(this)">
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <span class="badge bg-success py-1 px-3" id="empAccStatusBadge">ACCOUNT ACTIVE</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer bg-light border-0 py-3">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Modal -->
+<div class="modal fade" id="employeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="employeeModalLabel">Add Employee</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="employeeForm">
+                <input type="hidden" id="empId" name="Id" value="0" />
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Full Name</label>
+                            <input type="text" class="form-control" id="empFullName" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email Address</label>
+                            <input type="email" class="form-control" id="empEmail" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Phone Number</label>
+                            <input type="text" class="form-control" id="empPhone" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Department</label>
+                            <select class="form-select" id="empDepartmentId">
+                                <option value="">Select Department</option>
+                                @foreach (var dept in (List<Department>)ViewBag.DepartmentList)
+                                {
+                                    <option value="@dept.Id">@dept.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Designation</label>
+                            <input type="text" class="form-control" id="empDesignation" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Hire Date</label>
+                            <input type="date" class="form-control" id="empHireDate" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Salary (Monthly)</label>
+                            <input type="number" step="0.01" class="form-control" id="empSalary" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" id="empStatus">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Terminated">Terminated</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveEmployee">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

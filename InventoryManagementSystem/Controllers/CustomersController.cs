@@ -6,9 +6,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using InventoryManagementSystem.Data;
 using InventoryManagementSystem.Models;
+using InventoryManagementSystem.Models.ViewModels;
 using InventoryManagementSystem.Exceptions;
 using InventoryManagementSystem.Services;
 using System;
+
+using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.Controllers
 {
@@ -18,15 +21,18 @@ namespace InventoryManagementSystem.Controllers
         private readonly InventoryDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _emailSender;
+        private readonly ILogger<CustomersController> _logger;
 
         public CustomersController(
             InventoryDbContext context, 
             UserManager<ApplicationUser> userManager,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            ILogger<CustomersController> logger)
         {
             _context = context;
             _userManager = userManager;
             _emailSender = emailSender;
+            _logger = logger;
         }
 
         public IActionResult Index()
@@ -163,7 +169,7 @@ namespace InventoryManagementSystem.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"SMTP delivery failed: {ex.Message}");
+                    _logger.LogError(ex, "Failed to send welcome email to customer {Email}", user.Email);
                 }
 
                 return Json(new { success = true, message = "Customer created successfully!" });
@@ -245,21 +251,5 @@ namespace InventoryManagementSystem.Controllers
             string errors = string.Join(" ", result.Errors.Select(e => e.Description));
             return Json(new { success = false, message = errors });
         }
-    }
-
-    // Input DTO model for AJAX validation
-    public class CustomerInputModel
-    {
-        public string? Id { get; set; }
-
-        public string FirstName { get; set; } = string.Empty;
-
-        public string LastName { get; set; } = string.Empty;
-
-        public string Email { get; set; } = string.Empty;
-
-        public string? Phone { get; set; }
-
-        public string? Cnic { get; set; }
     }
 }

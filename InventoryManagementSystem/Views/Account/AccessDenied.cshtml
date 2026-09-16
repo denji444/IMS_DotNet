@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center align-items-center min-vh-75 py-5">
+    <div class="col-md-6 text-center">
+        <div class="card shadow border-0 p-5 rounded-4">
+            <div class="mb-4">
+                <div class="bg-danger-subtle text-danger d-inline-flex p-4 rounded-circle mb-3">
+                    <i class="fas fa-shield-alt fa-4x"></i>
+                </div>
+                <h2 class="fw-bold text-danger">Access Denied</h2>
+                <p class="text-muted lead">You do not have permission to access this resource or administrative area.</p>
+            </div>
+            <div>
+                <p class="small text-secondary mb-4">If you believe this is an error, please contact the system administrator to verify your assigned role and permissions.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary px-4 py-2">
+                        <i class="fas fa-home me-2"></i>Return Home
+                    </a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Admin" asp-action="Index" class="btn btn-dark px-4 py-2">
+                            <i class="fas fa-chart-line me-2"></i>Admin Dashboard
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-dark px-4 py-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

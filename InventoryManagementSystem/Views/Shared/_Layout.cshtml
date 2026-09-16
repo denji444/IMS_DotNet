@@ -1,5 +1,4 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<InventoryManagementSystem.Models.ApplicationUser> UserManager
-@inject InventoryManagementSystem.Data.InventoryDbContext DbContext
 @{
     InventoryManagementSystem.Models.ApplicationUser? currentUser = null;
     if (User.Identity?.IsAuthenticated == true)
@@ -243,86 +242,6 @@
                 </div>
             </div>
         </div>
-
-        <script>
-            $(document).ready(function () {
-                $("#manageProfileForm").on("submit", function (e) {
-                    e.preventDefault();
-                    
-                    var fullName = $("#profileFullName").val();
-                    var currentPassword = $("#profileCurrentPassword").val();
-                    var newPassword = $("#profileNewPassword").val();
-                    var confirmPassword = $("#profileConfirmPassword").val();
-
-                    if (newPassword && newPassword !== confirmPassword) {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'New password and confirm password do not match.',
-                            icon: 'error',
-                            confirmButtonColor: '#d33'
-                        });
-                        return false;
-                    }
-
-                    var model = {
-                        FullName: fullName,
-                        CurrentPassword: currentPassword || null,
-                        NewPassword: newPassword || null
-                    };
-
-                    var btn = $("#btnSaveProfile");
-                    var originalText = btn.html();
-                    btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
-
-                    var layoutToken = $('input[name="__RequestVerificationToken"]').val();
-
-                    $.ajax({
-                        url: "/Account/UpdateProfile",
-                        type: "POST",
-                        contentType: "application/json",
-                        data: JSON.stringify(model),
-                        headers: {
-                            'RequestVerificationToken': layoutToken
-                        },
-                        success: function (response) {
-                            btn.prop("disabled", false).html(originalText);
-                            if (response.success) {
-                                $("#manageProfileModal").modal("hide");
-                                $("#profileCurrentPassword").val("");
-                                $("#profileNewPassword").val("");
-                                $("#profileConfirmPassword").val("");
-
-                                Swal.fire({
-                                    title: 'Success!',
-                                    text: response.message,
-                                    icon: 'success',
-                                    confirmButtonColor: '#3085d6'
-                                }).then(function() {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: response.message,
-                                    icon: 'error',
-                                    confirmButtonColor: '#d33'
-                                });
-                            }
-                        },
-                        error: function (xhr) {
-                            btn.prop("disabled", false).html(originalText);
-                            var msg = xhr.responseJSON?.message || "An unexpected error occurred.";
-                            Swal.fire({
-                                title: 'Error!',
-                                text: msg,
-                                icon: 'error',
-                                confirmButtonColor: '#d33'
-                            });
-                        }
-                    });
-                });
-            });
-        </script>
     }
 </body>
 </html>

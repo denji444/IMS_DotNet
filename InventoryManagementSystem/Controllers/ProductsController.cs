@@ -383,6 +383,8 @@ namespace InventoryManagementSystem.Controllers
                                 Sku = variant.Sku.Trim(),
                                 Name = product.Name.Trim(),
                                 Variant = variant.Variant.Trim(),
+                                CategoryName = product.CategoryName,
+                                ProductType = product.ProductType,
                                 Description = product.Description,
                                 Price = product.Price,
                                 StockQuantity = product.StockQuantity
@@ -426,10 +428,12 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = "Product not found." });
             }
 
-            // Check if there are purchases associated with this product
-            bool hasPurchases = await _context.Purchases.AnyAsync(p => p.ProductId == id);
-            // Check if there are sales associated with this product
-            bool hasSales = await _context.Sales.AnyAsync(s => s.ProductId == id);
+            // Check if there are purchases associated with this product (single-item or multi-item vouchers)
+            bool hasPurchases = await _context.Purchases.AnyAsync(p => p.ProductId == id) ||
+                                await _context.PurchaseItems.AnyAsync(pi => pi.ProductId == id);
+            // Check if there are sales associated with this product (single-item or multi-item invoices)
+            bool hasSales = await _context.Sales.AnyAsync(s => s.ProductId == id) ||
+                            await _context.SaleItems.AnyAsync(si => si.ProductId == id);
 
             if (hasPurchases || hasSales)
             {

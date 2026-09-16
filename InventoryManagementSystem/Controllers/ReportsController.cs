@@ -35,10 +35,14 @@ namespace InventoryManagementSystem.Controllers
                     ProductName = p.Name,
                     Variant = p.Variant,
                     AvailableQuantity = p.StockQuantity,
-                    PurchasedQuantity = _context.Purchases.Where(pu => pu.ProductId == p.Id).Sum(pu => (int?)pu.Quantity) ?? 0,
-                    PurchasedCost = _context.Purchases.Where(pu => pu.ProductId == p.Id).Sum(pu => (decimal?)pu.TotalCost) ?? 0,
-                    SoldQuantity = _context.Sales.Where(s => s.ProductId == p.Id).Sum(s => (int?)s.Quantity) ?? 0,
-                    SalesRevenue = _context.Sales.Where(s => s.ProductId == p.Id).Sum(s => (decimal?)s.TotalAmount) ?? 0
+                    PurchasedQuantity = (_context.PurchaseItems.Where(pi => pi.ProductId == p.Id).Sum(pi => (int?)pi.Quantity) ?? 0) +
+                                        (_context.Purchases.Where(pu => pu.ProductId == p.Id && !pu.Items.Any()).Sum(pu => (int?)pu.Quantity) ?? 0),
+                    PurchasedCost = (_context.PurchaseItems.Where(pi => pi.ProductId == p.Id).Sum(pi => (decimal?)pi.TotalCost) ?? 0) +
+                                    (_context.Purchases.Where(pu => pu.ProductId == p.Id && !pu.Items.Any()).Sum(pu => (decimal?)pu.TotalCost) ?? 0),
+                    SoldQuantity = (_context.SaleItems.Where(si => si.ProductId == p.Id).Sum(si => (int?)si.Quantity) ?? 0) +
+                                   (_context.Sales.Where(s => s.ProductId == p.Id && !s.Items.Any()).Sum(s => (int?)s.Quantity) ?? 0),
+                    SalesRevenue = (_context.SaleItems.Where(si => si.ProductId == p.Id).Sum(si => (decimal?)si.TotalAmount) ?? 0) +
+                                   (_context.Sales.Where(s => s.ProductId == p.Id && !s.Items.Any()).Sum(s => (decimal?)s.TotalAmount) ?? 0)
                 })
                 .ToListAsync();
 
@@ -67,12 +71,16 @@ namespace InventoryManagementSystem.Controllers
         {
             var salesQuery = _context.Sales.AsQueryable();
             var purchasesQuery = _context.Purchases.AsQueryable();
+            var saleItemsQuery = _context.SaleItems.AsQueryable();
+            var purchaseItemsQuery = _context.PurchaseItems.AsQueryable();
 
             if (startDate.HasValue)
             {
                 var start = startDate.Value.Date;
                 salesQuery = salesQuery.Where(s => s.SaleDate >= start);
                 purchasesQuery = purchasesQuery.Where(p => p.PurchaseDate >= start);
+                saleItemsQuery = saleItemsQuery.Where(si => si.Sale != null && si.Sale.SaleDate >= start);
+                purchaseItemsQuery = purchaseItemsQuery.Where(pi => pi.Purchase != null && pi.Purchase.PurchaseDate >= start);
             }
 
             if (endDate.HasValue)
@@ -80,6 +88,8 @@ namespace InventoryManagementSystem.Controllers
                 var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
                 salesQuery = salesQuery.Where(s => s.SaleDate <= end);
                 purchasesQuery = purchasesQuery.Where(p => p.PurchaseDate <= end);
+                saleItemsQuery = saleItemsQuery.Where(si => si.Sale != null && si.Sale.SaleDate <= end);
+                purchaseItemsQuery = purchaseItemsQuery.Where(pi => pi.Purchase != null && pi.Purchase.PurchaseDate <= end);
             }
 
             var grossRevenue = await salesQuery.SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
@@ -110,8 +120,10 @@ namespace InventoryManagementSystem.Controllers
                     p.Sku,
                     ProductName = p.Name,
                     p.Variant,
-                    Revenue = salesQuery.Where(s => s.ProductId == p.Id).Sum(s => (decimal?)s.TotalAmount) ?? 0m,
-                    Cost = purchasesQuery.Where(pu => pu.ProductId == p.Id).Sum(pu => (decimal?)pu.TotalCost) ?? 0m
+                    Revenue = (saleItemsQuery.Where(si => si.ProductId == p.Id).Sum(si => (decimal?)si.TotalAmount) ?? 0m) +
+                              (salesQuery.Where(s => s.ProductId == p.Id && !s.Items.Any()).Sum(s => (decimal?)s.TotalAmount) ?? 0m),
+                    Cost = (purchaseItemsQuery.Where(pi => pi.ProductId == p.Id).Sum(pi => (decimal?)pi.TotalCost) ?? 0m) +
+                           (purchasesQuery.Where(pu => pu.ProductId == p.Id && !pu.Items.Any()).Sum(pu => (decimal?)pu.TotalCost) ?? 0m)
                 })
                 .Where(x => x.Revenue > 0 || x.Cost > 0)
                 .ToListAsync();
