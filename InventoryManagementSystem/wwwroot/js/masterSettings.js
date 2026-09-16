@@ -16,7 +16,7 @@ $(document).ready(function () {
     // Sync side navbar active selection with on-screen tab switch
     function syncSidebarSelection(tabId) {
         $('#masterSettingsCollapse .list-group-item').removeClass('active-sublink');
-        
+
         if (tabId === 'employees') {
             $('#side-nav-employees').addClass('active-sublink');
         } else if (tabId === 'departments') {
@@ -149,21 +149,21 @@ function initTables() {
             { "data": "departmentName", "width": "15%" },
             { "data": "designation", "width": "12%" },
             { "data": "hireDate", "width": "10%" },
-            { 
-                "data": "salary", 
-                "render": function(d) { return 'PKR ' + parseFloat(d).toFixed(2); },
-                "width": "9%" 
+            {
+                "data": "salary",
+                "render": function (d) { return 'PKR ' + parseFloat(d).toFixed(2); },
+                "width": "9%"
             },
-            { 
+            {
                 "data": "status",
-                "render": function(d) {
+                "render": function (d) {
                     var badge = "bg-success";
                     if (d === "Inactive") badge = "bg-secondary";
                     else if (d === "On Leave") badge = "bg-warning text-dark";
                     else if (d === "Terminated") badge = "bg-danger";
                     return `<span class="badge ${badge}">${d}</span>`;
                 },
-                "width": "8%" 
+                "width": "8%"
             },
             {
                 "data": "id",
@@ -210,10 +210,10 @@ function initTables() {
             { "data": "id", "width": "10%" },
             { "data": "name", "width": "30%" },
             { "data": "description", "width": "40%" },
-            { 
+            {
                 "data": "employeeCount",
-                "render": function(d) { return `<span class="badge bg-secondary">${d} Employee(s)</span>`; },
-                "width": "10%" 
+                "render": function (d) { return `<span class="badge bg-secondary">${d} Employee(s)</span>`; },
+                "width": "10%"
             },
             {
                 "data": "id",
@@ -247,9 +247,9 @@ function initTables() {
             { "data": "date", "width": "20%" },
             { "data": "clockIn", "width": "15%" },
             { "data": "clockOut", "width": "15%" },
-            { 
+            {
                 "data": "status",
-                "render": function(d) {
+                "render": function (d) {
                     var badge = "bg-success";
                     if (d === "Absent") badge = "bg-danger";
                     else if (d === "Late") badge = "bg-warning text-dark";
@@ -257,7 +257,7 @@ function initTables() {
                     else if (d && d.startsWith("On Leave")) badge = "bg-primary text-white";
                     return `<span class="badge ${badge}">${d}</span>`;
                 },
-                "width": "10%" 
+                "width": "10%"
             },
             {
                 "data": "id",
@@ -291,15 +291,15 @@ function initTables() {
             { "data": "startDate", "width": "15%" },
             { "data": "endDate", "width": "15%" },
             { "data": "leaveType", "width": "15%" },
-            { 
+            {
                 "data": "status",
-                "render": function(d) {
+                "render": function (d) {
                     var badge = "bg-warning text-dark";
                     if (d === "Approved") badge = "bg-success";
                     else if (d === "Rejected") badge = "bg-danger";
                     return `<span class="badge ${badge}">${d}</span>`;
                 },
-                "width": "10%" 
+                "width": "10%"
             },
             { "data": "notes", "width": "12%" },
             {
@@ -330,40 +330,40 @@ function initTables() {
             "datatype": "json"
         },
         "columns": [
-            { 
-                "data": "name", 
+            {
+                "data": "name",
                 "width": "20%",
-                "render": function(d) {
+                "render": function (d) {
                     return `<strong class="text-dark"><i class="fas fa-folder text-warning me-2"></i>${d}</strong>`;
                 }
             },
-            { 
-                "data": "description", 
+            {
+                "data": "description",
                 "width": "25%",
-                "render": function(d) {
+                "render": function (d) {
                     return d ? d : '<span class="text-muted fst-italic">No description</span>';
                 }
             },
-            { 
+            {
                 "data": "typeOptions",
                 "width": "35%",
-                "render": function(types) {
+                "render": function (types) {
                     if (!types || types.length === 0) {
                         return '<span class="text-muted fst-italic small">No dynamic types configured</span>';
                     }
-                    var listItems = types.map(function(t) {
+                    var listItems = types.map(function (t) {
                         return `<li class="py-1 d-flex align-items-center text-dark"><i class="fas fa-check-circle text-primary me-2" style="font-size: 0.78rem;"></i><span>${t}</span></li>`;
                     }).join('');
                     return `<ul class="list-unstyled mb-0 small">${listItems}</ul>`;
                 }
             },
-            { 
+            {
                 "data": "productCount",
                 "className": "text-center",
-                "render": function(d) { 
-                    return `<span class="badge ${d > 0 ? 'bg-info text-dark' : 'bg-secondary'}">${d} Product(s)</span>`; 
+                "render": function (d) {
+                    return `<span class="badge ${d > 0 ? 'bg-info text-dark' : 'bg-secondary'}">${d} Product(s)</span>`;
                 },
-                "width": "10%" 
+                "width": "10%"
             },
             {
                 "data": "id",
@@ -583,8 +583,8 @@ function setupFormHandlers() {
 
         btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-2"></i> Testing Connection...');
         alertDiv.removeClass("d-none alert-success alert-danger")
-                .addClass("alert alert-info")
-                .html('<i class="fas fa-sync fa-spin me-2"></i> Connecting to SMTP server and sending test email... Please wait.');
+            .addClass("alert alert-info")
+            .html('<i class="fas fa-sync fa-spin me-2"></i> Connecting to SMTP server and sending test email... Please wait.');
 
         $.ajax({
             url: "/MasterSettings/TestSmtpConnection",
@@ -595,20 +595,20 @@ function setupFormHandlers() {
                 btn.prop("disabled", false).html('<i class="fas fa-paper-plane me-1"></i> Send Test Email');
                 if (res.success) {
                     alertDiv.removeClass("alert-info alert-danger")
-                            .addClass("alert alert-success")
-                            .html('<i class="fas fa-check-circle me-2"></i>' + res.message);
+                        .addClass("alert alert-success")
+                        .html('<i class="fas fa-check-circle me-2"></i>' + res.message);
                 } else {
                     alertDiv.removeClass("alert-info alert-success")
-                            .addClass("alert alert-danger")
-                            .html('<i class="fas fa-exclamation-triangle me-2"></i>' + res.message);
+                        .addClass("alert alert-danger")
+                        .html('<i class="fas fa-exclamation-triangle me-2"></i>' + res.message);
                 }
             },
             error: function (xhr) {
                 btn.prop("disabled", false).html('<i class="fas fa-paper-plane me-1"></i> Send Test Email');
                 var msg = xhr.responseJSON?.message || "Error testing SMTP connection.";
                 alertDiv.removeClass("alert-info alert-success")
-                        .addClass("alert alert-danger")
-                        .html('<i class="fas fa-exclamation-triangle me-2"></i>' + msg);
+                    .addClass("alert alert-danger")
+                    .html('<i class="fas fa-exclamation-triangle me-2"></i>' + msg);
             }
         });
     });
@@ -720,7 +720,7 @@ function openAttendanceModal(id) {
             $("#attStatus").val(data.status);
 
             // Fetch employee details to show in select2
-            $.get("/MasterSettings/GetEmployee/" + data.employeeId, function(emp) {
+            $.get("/MasterSettings/GetEmployee/" + data.employeeId, function (emp) {
                 var option = new Option(emp.fullName + " (" + emp.designation + ")", data.employeeId, true, true);
                 $("#attEmployeeId").empty().append(option).trigger('change');
                 $("#attendanceModalLabel").text("Edit Attendance Log");
@@ -748,7 +748,7 @@ function openLeaveModal(id) {
             $("#leaveStatus").val(data.status);
             $("#leaveNotes").val(data.notes);
 
-            $.get("/MasterSettings/GetEmployee/" + data.employeeId, function(emp) {
+            $.get("/MasterSettings/GetEmployee/" + data.employeeId, function (emp) {
                 var option = new Option(emp.fullName + " (" + emp.designation + ")", data.employeeId, true, true);
                 $("#leaveEmployeeId").empty().append(option).trigger('change');
                 $("#leaveModalLabel").text("Edit Leave Request");
@@ -1071,7 +1071,7 @@ function toggleAccountRestriction(toggleElem) {
     var empName = $("#empAccFullName").text();
 
     var actionTitle = isRestricted ? "Restrict Account?" : "Activate Account?";
-    var actionText = isRestricted 
+    var actionText = isRestricted
         ? `Are you sure you want to RESTRICT access for "${empName}"? They will not be able to log into the system.`
         : `Are you sure you want to ACTIVATE access for "${empName}"?`;
 
