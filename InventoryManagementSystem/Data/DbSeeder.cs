@@ -385,6 +385,22 @@ namespace InventoryManagementSystem.Data
                 dbContext.ProductCategories.AddRange(mobileCategory, laptopCategory, bookCategory, electronicsCategory, generalCategory);
                 await dbContext.SaveChangesAsync();
             }
+
+            // Seed default Company Profile if none exists
+            if (!await dbContext.CompanyProfiles.AnyAsync())
+            {
+                dbContext.CompanyProfiles.Add(new CompanyProfile
+                {
+                    CompanyName = "Inventory Management System (IMS)",
+                    Tagline = "Smart Inventory, Sales & Enterprise Tracking",
+                    Address = "Main Commercial Boulevard, Business District",
+                    Phone = "+92 (300) 123-4567 | +92 (42) 3555-0199",
+                    Email = "info@imsportal.com | www.imsportal.com",
+                    LogoPath = "",
+                    UpdatedAt = DateTime.Now
+                });
+                await dbContext.SaveChangesAsync();
+            }
         }
     }
 }

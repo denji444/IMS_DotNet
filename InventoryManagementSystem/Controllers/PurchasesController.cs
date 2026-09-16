@@ -131,10 +131,42 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAvailableBatchesForProduct(int productId)
+        public async Task<IActionResult> GetAvailableBatchesForProduct(int? productId, bool includeAll = true)
         {
+            if (!productId.HasValue || productId.Value <= 0)
+            {
+                var allPurchaseBatches = await _context.PurchaseItems
+                    .Where(pi => !string.IsNullOrWhiteSpace(pi.BatchNumber))
+                    .Select(pi => (pi.BatchNumber ?? "").Trim())
+                    .Distinct()
+                    .ToListAsync();
+
+                var legacyPurchaseBatches = await _context.Purchases
+                    .Where(p => !string.IsNullOrWhiteSpace(p.BatchNumber) && !p.Items.Any())
+                    .Select(p => (p.BatchNumber ?? "").Trim())
+                    .Distinct()
+                    .ToListAsync();
+
+                var allBatches = allPurchaseBatches.Concat(legacyPurchaseBatches)
+                    .Where(b => !string.IsNullOrWhiteSpace(b))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(b => new
+                    {
+                        batchNumber = b,
+                        displayName = b,
+                        availableQuantity = 0,
+                        purchaseRate = 0m,
+                        demandRate = (decimal?)null,
+                        fixRate = (decimal?)null
+                    })
+                    .ToList();
+
+                return Json(allBatches);
+            }
+
+            int id = productId.Value;
             var purchaseItems = await _context.PurchaseItems
-                .Where(pi => pi.ProductId == productId)
+                .Where(pi => pi.ProductId == id)
                 .Select(pi => new
                 {
                     pi.BatchNumber,
@@ -146,7 +178,7 @@ namespace InventoryManagementSystem.Controllers
                 .ToListAsync();
 
             var legacyPurchases = await _context.Purchases
-                .Where(p => p.ProductId == productId && !p.Items.Any())
+                .Where(p => p.ProductId == id && !p.Items.Any())
                 .Select(p => new
                 {
                     p.BatchNumber,
@@ -160,18 +192,18 @@ namespace InventoryManagementSystem.Controllers
             var allPurchases = purchaseItems.Concat(legacyPurchases).ToList();
 
             var saleItems = await _context.SaleItems
-                .Where(si => si.ProductId == productId)
+                .Where(si => si.ProductId == id)
                 .Select(si => new { si.BatchNumber, si.Quantity })
                 .ToListAsync();
 
             var legacySales = await _context.Sales
-                .Where(s => s.ProductId == productId && !s.Items.Any())
+                .Where(s => s.ProductId == id && !s.Items.Any())
                 .Select(s => new { s.BatchNumber, s.Quantity })
                 .ToListAsync();
 
             var allSales = saleItems.Concat(legacySales).ToList();
 
-            var batchGroups = allPurchases
+            var batchGroupsQuery = allPurchases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.BatchNumber) ? "Unbatched / General Stock" : p.BatchNumber.Trim())
                 .Select(g => {
                     string batchName = g.Key;
@@ -197,11 +229,14 @@ namespace InventoryManagementSystem.Controllers
                         demandRate = demandRate,
                         fixRate = fixRate
                     };
-                })
-                .Where(b => b.availableQuantity > 0)
-                .ToList();
+                });
 
-            return Json(batchGroups);
+            if (!includeAll)
+            {
+                batchGroupsQuery = batchGroupsQuery.Where(b => b.availableQuantity > 0);
+            }
+
+            return Json(batchGroupsQuery.ToList());
         }
 
         [HttpPost]
@@ -666,6 +701,7 @@ namespace InventoryManagementSystem.Controllers
                 return NotFound();
             }
 
+            ViewData["CompanyProfile"] = await _context.CompanyProfiles.FirstOrDefaultAsync();
             return View(purchase);
         }
 

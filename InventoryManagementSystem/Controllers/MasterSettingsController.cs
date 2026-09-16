@@ -1144,5 +1144,75 @@ namespace InventoryManagementSystem.Controllers
 
         #endregion
 
+        #region Company Profile Endpoints
+
+        [HttpGet]
+        public async Task<IActionResult> GetCompanyProfileData()
+        {
+            var profile = await _context.CompanyProfiles.FirstOrDefaultAsync();
+            if (profile == null)
+            {
+                profile = new CompanyProfile();
+            }
+            return Json(new { success = true, data = profile });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveCompanyProfile([FromForm] CompanyProfile model, Microsoft.AspNetCore.Http.IFormFile? logoFile)
+        {
+            if (string.IsNullOrWhiteSpace(model.CompanyName))
+            {
+                return Json(new { success = false, message = "Company Name is required." });
+            }
+
+            var existing = await _context.CompanyProfiles.FirstOrDefaultAsync();
+            if (existing == null)
+            {
+                existing = new CompanyProfile();
+                _context.CompanyProfiles.Add(existing);
+            }
+
+            existing.CompanyName = model.CompanyName.Trim();
+            existing.Tagline = (model.Tagline ?? "").Trim();
+            existing.Address = (model.Address ?? "").Trim();
+            existing.Phone = (model.Phone ?? "").Trim();
+            existing.Email = (model.Email ?? "").Trim();
+            existing.UpdatedAt = DateTime.Now;
+
+            // Handle logo file upload if provided
+            if (logoFile != null && logoFile.Length > 0)
+            {
+                var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp" };
+                var ext = System.IO.Path.GetExtension(logoFile.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(ext))
+                {
+                    return Json(new { success = false, message = "Invalid image file format. Supported: PNG, JPG, JPEG, SVG, WEBP." });
+                }
+
+                var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                if (!System.IO.Directory.Exists(uploadsFolder))
+                {
+                    System.IO.Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var fileName = $"company-logo_{DateTime.Now:yyyyMMddHHmmss}{ext}";
+                var filePath = System.IO.Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                {
+                    await logoFile.CopyToAsync(stream);
+                }
+
+                existing.LogoPath = $"/uploads/{fileName}";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Company Profile updated successfully!", profile = existing });
+        }
+
+        #endregion
+
     }
 }

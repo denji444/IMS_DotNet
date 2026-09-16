@@ -69,24 +69,31 @@
         <button onclick="window.close();" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i> Close</button>
     </div>
 
-    <div class="statement-header d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="fw-bold mb-0">IMS PORTAL</h2>
-            <p class="text-muted mb-0">Inventory Management System</p>
-        </div>
-        <div class="text-end">
-            <h4 class="fw-bold text-uppercase text-secondary">Customer Account Statement</h4>
-            <p class="mb-0"><strong>Generated Date:</strong> @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</p>
-            @if (startDate.HasValue || endDate.HasValue)
-            {
-                <p class="mb-0 text-muted small">
-                    <strong>Period:</strong> 
-                    @(startDate.HasValue ? startDate.Value.ToString("yyyy-MM-dd") : "Beginning") to 
-                    @(endDate.HasValue ? endDate.Value.ToString("yyyy-MM-dd") : "Present")
-                </p>
-            }
-        </div>
-    </div>
+    @{
+        string periodText = "";
+        if (startDate.HasValue || endDate.HasValue)
+        {
+            periodText = $"Period: {(startDate.HasValue ? startDate.Value.ToString("yyyy-MM-dd") : "Beginning")} to {(endDate.HasValue ? endDate.Value.ToString("yyyy-MM-dd") : "Present")}";
+        }
+
+        var company = ViewData["CompanyProfile"] as InventoryManagementSystem.Models.CompanyProfile;
+        var headerModel = new InventoryManagementSystem.Models.PrintHeaderViewModel
+        {
+            DocumentTitle = "Customer Account Statement",
+            DocumentNumberLabel = "Customer:",
+            DocumentNumber = customer?.FullName ?? "N/A",
+            DateLabel = "Generated Date:",
+            DateValue = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+            AdditionalInfo = periodText,
+            CompanyName = company?.CompanyName ?? "Inventory Management System (IMS)",
+            Tagline = company?.Tagline ?? "Smart Inventory, Sales & Enterprise Tracking",
+            Address = company?.Address ?? "Main Commercial Boulevard, Business District",
+            Phone = company?.Phone ?? "+92 (300) 123-4567 | +92 (42) 3555-0199",
+            Email = company?.Email ?? "info@imsportal.com | www.imsportal.com",
+            LogoPath = company?.LogoPath
+        };
+    }
+    @await Html.PartialAsync("_PrintHeader", headerModel)
 
     <div class="row my-4">
         <div class="col-6">

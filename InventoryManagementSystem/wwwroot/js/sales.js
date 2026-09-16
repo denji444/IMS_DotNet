@@ -140,6 +140,27 @@ $(document).ready(function () {
         }
     });
 
+    // Initialize Category Filter Select2
+    $("#itemCategoryFilter").select2({
+        dropdownParent: $("#saleModal"),
+        placeholder: "-- All Categories --",
+        allowClear: true
+    });
+
+    // Initialize Product Type Filter Select2
+    $("#itemTypeFilter").select2({
+        dropdownParent: $("#saleModal"),
+        placeholder: "-- All Product Types --",
+        allowClear: true
+    });
+
+    // Initialize Batch Select2
+    $("#saleBatchSelect").select2({
+        dropdownParent: $("#saleModal"),
+        placeholder: "-- General / Unbatched Stock --",
+        allowClear: true
+    });
+
     // Initialize Product Select2 with Category & Type Filter support
     $("#productSelect").select2({
         dropdownParent: $("#saleModal"),
@@ -179,8 +200,11 @@ $(document).ready(function () {
                             $typeSelect.append(new Option(t, t));
                         });
                     }
+                    $typeSelect.trigger('change.select2');
                 }
             });
+        } else {
+            $typeSelect.trigger('change.select2');
         }
         $("#productSelect").val(null).trigger('change');
     });
@@ -191,6 +215,41 @@ $(document).ready(function () {
 
     var currentBatchesData = [];
     var currentBatchFixRate = null;
+
+    function loadRegisteredBatchesForSale(productId) {
+        var url = "/Purchases/GetAvailableBatchesForProduct?includeAll=true";
+        if (productId) {
+            url += "&productId=" + productId;
+        }
+        $.ajax({
+            url: url,
+            type: "GET",
+            success: function (batches) {
+                currentBatchesData = batches || [];
+                var $batchSelect = $("#saleBatchSelect");
+                var currentVal = $batchSelect.val();
+                $batchSelect.empty().append('<option value="">-- General / Unbatched Stock --</option>');
+                if (batches && batches.length > 0) {
+                    $.each(batches, function (i, b) {
+                        var bVal = b.batchNumber;
+                        if (bVal) {
+                            $batchSelect.append(new Option(b.displayName, bVal));
+                        }
+                    });
+                }
+                if (currentVal && $batchSelect.find("option[value='" + currentVal + "']").length > 0) {
+                    $batchSelect.val(currentVal);
+                } else {
+                    $batchSelect.val("");
+                }
+                $batchSelect.trigger("change.select2");
+                $batchSelect.trigger("change");
+            }
+        });
+    }
+
+    // Load initial registered batches on page ready
+    loadRegisteredBatchesForSale(null);
 
     // Prefill price and update stock info when Product changes
     $("#productSelect").on("change", function () {
@@ -206,23 +265,7 @@ $(document).ready(function () {
                 }
             });
 
-            // Fetch active batches for selected product
-            $.ajax({
-                url: "/Purchases/GetAvailableBatchesForProduct?productId=" + id,
-                type: "GET",
-                success: function (batches) {
-                    currentBatchesData = batches || [];
-                    var $batchSelect = $("#saleBatchSelect");
-                    $batchSelect.empty();
-                    $batchSelect.append('<option value="">-- General / Unbatched Stock --</option>');
-                    if (batches && batches.length > 0) {
-                        $.each(batches, function (i, b) {
-                            $batchSelect.append(new Option(b.displayName, b.batchNumber));
-                        });
-                    }
-                    $batchSelect.trigger("change");
-                }
-            });
+            loadRegisteredBatchesForSale(id);
         } else {
             $("#batchRatesContainer").addClass("d-none");
             $("#availableStockQty").text("0");
@@ -230,7 +273,7 @@ $(document).ready(function () {
             $("#batchFixRateDisplay").text("N/A");
             $("#batchDemandRateDisplay").text("N/A");
             $("#unitPrice").val("");
-            $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
+            loadRegisteredBatchesForSale(null);
         }
     });
 
@@ -559,6 +602,7 @@ function loadCategoryAndTypeFilters() {
                     $cat.append(new Option(c.name, c.name));
                 });
             }
+            $cat.trigger('change.select2');
         }
     });
 }
@@ -610,7 +654,7 @@ function openCreateModal() {
     $("#saleForm")[0].reset();
     $("#saleId").val(0);
     $("#itemCategoryFilter").val("").trigger('change');
-    $("#itemTypeFilter").val("");
+    $("#itemTypeFilter").val("").trigger('change');
     $("#customerSelect").val(null).trigger('change');
     $("#customerSelect").attr("required", "required");
     $("#customerSelectContainer").removeClass("d-none");
@@ -619,7 +663,7 @@ function openCreateModal() {
     $("#newCustomerFields").addClass("d-none");
     clearNewCustomerFields();
     $("#productSelect").val(null).trigger('change');
-    $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>');
+    $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>').trigger('change');
     $("#availableStockContainer").addClass("d-none");
     $("#availableStockQty").text("0");
     $(".text-danger").text("");

@@ -11,6 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Voucher - @Model.PurchaseNo</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
             background-color: #fff;
@@ -19,17 +20,12 @@
             padding: 30px;
         }
         .invoice-box {
-            max-width: 800px;
+            max-width: 850px;
             margin: auto;
             border: 1px solid #eee;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
             padding: 30px;
             border-radius: 5px;
-        }
-        .invoice-header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
         }
         @@media print {
             body {
@@ -39,6 +35,7 @@
                 border: none;
                 box-shadow: none;
                 padding: 0;
+                max-width: 100%;
             }
             .no-print {
                 display: none;
@@ -50,20 +47,27 @@
 
 <div class="invoice-box">
     <div class="d-flex justify-content-between align-items-center no-print mb-4">
-        <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print"></i> Print Voucher</button>
+        <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Voucher</button>
     </div>
 
-    <div class="invoice-header d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="fw-bold mb-0">IMS PORTAL</h2>
-            <p class="text-muted mb-0">Inventory Management System</p>
-        </div>
-        <div class="text-end">
-            <h4 class="fw-bold text-uppercase text-secondary">Purchase Voucher</h4>
-            <p class="mb-0"><strong>Voucher No:</strong> @Model.PurchaseNo</p>
-            <p class="mb-0"><strong>Date:</strong> @Model.PurchaseDate.ToString("yyyy-MM-dd HH:mm")</p>
-        </div>
-    </div>
+    @{
+        var company = ViewData["CompanyProfile"] as InventoryManagementSystem.Models.CompanyProfile;
+        var headerModel = new InventoryManagementSystem.Models.PrintHeaderViewModel
+        {
+            DocumentTitle = "Purchase Invoice",
+            DocumentNumberLabel = "Invoice No:",
+            DocumentNumber = Model.PurchaseNo,
+            DateLabel = "Date:",
+            DateValue = Model.PurchaseDate.ToString("yyyy-MM-dd HH:mm"),
+            CompanyName = company?.CompanyName ?? "Inventory Management System (IMS)",
+            Tagline = company?.Tagline ?? "Smart Inventory, Sales & Enterprise Tracking",
+            Address = company?.Address ?? "Main Commercial Boulevard, Business District",
+            Phone = company?.Phone ?? "+92 (300) 123-4567 | +92 (42) 3555-0199",
+            Email = company?.Email ?? "info@imsportal.com | www.imsportal.com",
+            LogoPath = company?.LogoPath
+        };
+    }
+    @await Html.PartialAsync("_PrintHeader", headerModel)
 
     <div class="row my-4">
         <div class="col-6">

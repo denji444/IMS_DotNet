@@ -26,6 +26,7 @@ namespace InventoryManagementSystem.Data
         public DbSet<ProductCategory> ProductCategories { get; set; }
         public DbSet<ProductCategoryTypeOption> ProductCategoryTypeOptions { get; set; }
         public DbSet<SmtpSetting> SmtpSettings { get; set; }
+        public DbSet<CompanyProfile> CompanyProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

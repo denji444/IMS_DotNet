@@ -208,6 +208,7 @@ namespace InventoryManagementSystem.Controllers
                 {
                     fixRate = await _context.PurchaseItems
                         .Where(pi => pi.ProductId == item.ProductId && pi.BatchNumber == item.BatchNumber && pi.FixRate.HasValue)
+                        .OrderBy(pi => pi.Id)
                         .Select(pi => pi.FixRate)
                         .LastOrDefaultAsync();
 
@@ -215,6 +216,7 @@ namespace InventoryManagementSystem.Controllers
                     {
                         fixRate = await _context.Purchases
                             .Where(p => p.ProductId == item.ProductId && p.BatchNumber == item.BatchNumber && p.FixRate.HasValue)
+                            .OrderBy(p => p.Id)
                             .Select(p => p.FixRate)
                             .LastOrDefaultAsync();
                     }
@@ -598,6 +600,7 @@ namespace InventoryManagementSystem.Controllers
                 return NotFound();
             }
 
+            ViewData["CompanyProfile"] = await _context.CompanyProfiles.FirstOrDefaultAsync();
             return View(sale);
         }
 

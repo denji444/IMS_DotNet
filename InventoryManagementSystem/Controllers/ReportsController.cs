@@ -429,6 +429,7 @@ namespace InventoryManagementSystem.Controllers
             ViewData["Customer"] = customer;
             ViewData["StartDate"] = startDate;
             ViewData["EndDate"] = endDate;
+            ViewData["CompanyProfile"] = await _context.CompanyProfiles.FirstOrDefaultAsync();
 
             return View(sales);
         }

@@ -1,0 +1,204 @@
+@model InventoryManagementSystem.Models.PrintHeaderViewModel
+@{
+    var header = Model ?? new InventoryManagementSystem.Models.PrintHeaderViewModel();
+}
+
+<style>
+    @@media print {
+        .letterhead-container {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+    
+    .letterhead-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #1e293b;
+        margin-bottom: 25px;
+        position: relative;
+    }
+    .letterhead-top-bar {
+        height: 6px;
+        background: linear-gradient(90deg, #0f172a 0%, #1e293b 55%, #2563eb 100%);
+        border-radius: 4px 4px 0 0;
+        margin-bottom: 20px;
+    }
+    .letterhead-body {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .letterhead-brand-section {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        flex: 1;
+    }
+    .letterhead-logo-icon {
+        width: 58px;
+        height: 58px;
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+        flex-shrink: 0;
+    }
+    .letterhead-logo-img-container {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .letterhead-logo-img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .letterhead-brand-details h2 {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+        margin: 0 0 2px 0;
+        line-height: 1.2;
+    }
+    .letterhead-brand-details .tagline {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2563eb;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 8px;
+    }
+    .letterhead-contact-grid {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 18px;
+        row-gap: 4px;
+        font-size: 0.78rem;
+        color: #475569;
+        margin-top: 6px;
+    }
+    .letterhead-contact-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .letterhead-doc-box {
+        text-align: right;
+        min-width: 240px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    .letterhead-doc-badge {
+        display: inline-block;
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 4px 12px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .letterhead-doc-meta {
+        font-size: 0.82rem;
+        color: #334155;
+        line-height: 1.55;
+    }
+    .letterhead-doc-meta strong {
+        color: #0f172a;
+    }
+    .letterhead-divider {
+        margin-top: 18px;
+        border: 0;
+        height: 0;
+        border-top: 2px solid #0f172a;
+        border-bottom: 1px solid #2563eb;
+    }
+</style>
+
+<div class="letterhead-container">
+    <div class="letterhead-top-bar"></div>
+    <div class="letterhead-body">
+        <div class="letterhead-brand-section">
+            @if (!string.IsNullOrWhiteSpace(header.LogoPath))
+            {
+                <div class="letterhead-logo-img-container">
+                    <img src="@header.LogoPath" alt="Company Logo" class="letterhead-logo-img" />
+                </div>
+            }
+            else
+            {
+                <div class="letterhead-logo-icon">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            }
+            <div class="letterhead-brand-details">
+                <h2>@header.CompanyName</h2>
+                @if (!string.IsNullOrWhiteSpace(header.Tagline))
+                {
+                    <div class="tagline">@header.Tagline</div>
+                }
+                <div class="letterhead-contact-grid">
+                    @if (!string.IsNullOrWhiteSpace(header.Address))
+                    {
+                        <div class="letterhead-contact-item">
+                            <i class="fas fa-map-marker-alt text-primary small"></i>
+                            <span>@header.Address</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(header.Phone))
+                    {
+                        <div class="letterhead-contact-item">
+                            <i class="fas fa-phone text-primary small"></i>
+                            <span>@header.Phone</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(header.Email))
+                    {
+                        <div class="letterhead-contact-item">
+                            <i class="fas fa-envelope text-primary small"></i>
+                            <span>@header.Email</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="letterhead-doc-box">
+            <div class="letterhead-doc-badge">@header.DocumentTitle</div>
+            <div class="letterhead-doc-meta">
+                @if (!string.IsNullOrEmpty(header.DocumentNumber))
+                {
+                    <div><strong>@header.DocumentNumberLabel</strong> @header.DocumentNumber</div>
+                }
+                @if (!string.IsNullOrEmpty(header.DateValue))
+                {
+                    <div><strong>@header.DateLabel</strong> @header.DateValue</div>
+                }
+                @if (!string.IsNullOrEmpty(header.AdditionalInfo))
+                {
+                    <div class="small text-muted mt-1">@header.AdditionalInfo</div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="letterhead-divider"></div>
+</div>

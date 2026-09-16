@@ -101,13 +101,13 @@
                         <div class="row g-2 mb-2">
                             <div class="col-md-6">
                                 <label class="form-label text-secondary small fw-bold mb-1">Filter Category</label>
-                                <select class="form-select form-select-sm" id="itemCategoryFilter">
+                                <select class="form-select form-select-sm w-100" id="itemCategoryFilter">
                                     <option value="">-- All Categories --</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary small fw-bold mb-1">Filter Product Type</label>
-                                <select class="form-select form-select-sm" id="itemTypeFilter">
+                                <select class="form-select form-select-sm w-100" id="itemTypeFilter">
                                     <option value="">-- All Product Types --</option>
                                 </select>
                             </div>
@@ -122,7 +122,9 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-layer-group text-primary me-1"></i>Batch Name / Number</label>
-                                <input class="form-control form-control-sm" id="batchNumber" placeholder="e.g. BATCH-2026-01" required />
+                                <select class="form-select form-select-sm w-100" id="batchNumber">
+                                    <option value="">Select or Type Batch...</option>
+                                </select>
                             </div>
                         </div>
 

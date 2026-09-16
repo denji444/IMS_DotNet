@@ -164,6 +164,28 @@ $(document).ready(function () {
         }
     });
 
+    // Initialize Category Filter Select2
+    $("#itemCategoryFilter").select2({
+        dropdownParent: $("#purchaseModal"),
+        placeholder: "-- All Categories --",
+        allowClear: true
+    });
+
+    // Initialize Product Type Filter Select2
+    $("#itemTypeFilter").select2({
+        dropdownParent: $("#purchaseModal"),
+        placeholder: "-- All Product Types --",
+        allowClear: true
+    });
+
+    // Initialize Batch Select2 with Tagging
+    $("#batchNumber").select2({
+        dropdownParent: $("#purchaseModal"),
+        placeholder: "Select or Type Batch...",
+        allowClear: true,
+        tags: true
+    });
+
     // Initialize Product Select2 with Category & Type Filter support
     $("#productSelect").select2({
         dropdownParent: $("#purchaseModal"),
@@ -203,8 +225,11 @@ $(document).ready(function () {
                             $typeSelect.append(new Option(t, t));
                         });
                     }
+                    $typeSelect.trigger('change.select2');
                 }
             });
+        } else {
+            $typeSelect.trigger('change.select2');
         }
         $("#productSelect").val(null).trigger('change');
     });
@@ -213,7 +238,48 @@ $(document).ready(function () {
         $("#productSelect").val(null).trigger('change');
     });
 
-    // Listen to product selection to automatically populate unit cost and check overbought stock
+    function loadRegisteredBatchesForPurchase(productId) {
+        var url = "/Purchases/GetAvailableBatchesForProduct?includeAll=true";
+        if (productId) {
+            url += "&productId=" + productId;
+        }
+        $.ajax({
+            url: url,
+            type: "GET",
+            success: function (batches) {
+                var $batchSelect = $("#batchNumber");
+                var currentVal = $batchSelect.val();
+                $batchSelect.empty().append('<option value="">Select or Type Batch...</option>');
+                if (batches && batches.length > 0) {
+                    var existing = new Set();
+                    $.each(batches, function (i, b) {
+                        var bVal = b.batchNumber || b.displayName;
+                        if (bVal && !existing.has(bVal)) {
+                            existing.add(bVal);
+                            var text = b.displayName || bVal;
+                            $batchSelect.append(new Option(text, bVal));
+                        }
+                    });
+                }
+                if (currentVal && $batchSelect.find("option[value='" + currentVal + "']").length > 0) {
+                    $batchSelect.val(currentVal);
+                } else {
+                    $batchSelect.val(null);
+                }
+                $batchSelect.trigger("change.select2");
+            }
+        });
+    }
+
+    // Load initial registered batches on page ready
+    loadRegisteredBatchesForPurchase(null);
+
+    // Listen to product selection to automatically populate unit cost and fetch existing batches
+    $("#productSelect").on("change", function () {
+        var id = $(this).val();
+        loadRegisteredBatchesForPurchase(id);
+    });
+
     $("#productSelect").on("select2:select", function (e) {
         var data = e.params.data;
         if (data && data.price) {
@@ -236,7 +302,8 @@ $(document).ready(function () {
     $("#btnAddPurchaseItem").on("click", function() {
         var productId = parseInt($("#productSelect").val());
         var productText = $("#productSelect option:selected").text();
-        var batchNumber = $("#batchNumber").val().trim();
+        var rawBatch = $("#batchNumber").val();
+        var batchNumber = (rawBatch && typeof rawBatch === 'string') ? rawBatch.trim() : (Array.isArray(rawBatch) ? rawBatch.join(', ').trim() : "");
         var qty = parseInt($("#purchaseQty").val()) || 0;
         var unitPrice = parseFloat($("#unitPrice").val()) || 0;
         var demandRateRaw = $("#demandRate").val().trim();
@@ -299,6 +366,7 @@ $(document).ready(function () {
 
         // Clear product inputs
         $("#productSelect").val(null).trigger('change');
+        $("#batchNumber").val(null).trigger('change');
         $("#purchaseQty").val(1);
         $("#unitPrice").val("");
         $("#demandRate").val("");
@@ -506,6 +574,7 @@ function loadCategoryAndTypeFilters() {
                     $cat.append(new Option(c.name, c.name));
                 });
             }
+            $cat.trigger('change.select2');
         }
     });
 }
@@ -562,7 +631,7 @@ function openCreateModal() {
     $("#purchaseForm")[0].reset();
     $("#purchaseId").val(0);
     $("#itemCategoryFilter").val("").trigger('change');
-    $("#itemTypeFilter").val("");
+    $("#itemTypeFilter").val("").trigger('change');
     $("#supplierSelect").val(null).trigger('change');
     $("#supplierSelect").attr("required", "required");
     $("#supplierSelectContainer").removeClass("d-none");
@@ -571,7 +640,7 @@ function openCreateModal() {
     $("#newSupplierFields").addClass("d-none");
     clearNewSupplierFields();
     $("#productSelect").val(null).trigger('change');
-    $("#batchNumber").val("");
+    $("#batchNumber").val(null).trigger('change');
     $(".text-danger").text("");
     $("#paymentMode").val("0").trigger('change').prop('disabled', false);
     $("#paymentMethod").val("0").trigger('change');
