@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -17,7 +18,7 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class MasterSettingsController : Controller
     {
         private readonly InventoryDbContext _context;
@@ -40,8 +41,43 @@ namespace InventoryManagementSystem.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? tab = null)
         {
+            var requestedTab = tab?.ToLower() ?? "employees";
+            if (requestedTab == "categories")
+            {
+                return RedirectToAction("Index", "Products", new { tab = "categories" });
+            }
+
+            string section;
+            if (requestedTab == "company" || requestedTab == "smtp")
+            {
+                section = "Settings";
+            }
+            else
+            {
+                section = "Staff";
+                if (requestedTab != "employees" && requestedTab != "departments" && requestedTab != "attendance" && requestedTab != "leaves")
+                {
+                    requestedTab = "employees";
+                }
+            }
+
+            // Tab-level permission authorization guard for non-admins
+            if (!User.IsInRole("Admin"))
+            {
+                bool isAllowed = User.HasClaim("Permission", section);
+                if (!isAllowed)
+                {
+                    if (User.HasClaim("Permission", "Staff"))
+                        return RedirectToAction(nameof(Index), new { tab = "employees" });
+                    if (User.HasClaim("Permission", "Settings"))
+                        return RedirectToAction(nameof(Index), new { tab = "company" });
+
+                    return RedirectToAction("AccessDenied", "Account");
+                }
+            }
+
             // Seed standard inventory departments if none exist
             if (!await _context.Departments.AnyAsync())
             {
@@ -55,6 +91,8 @@ namespace InventoryManagementSystem.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            ViewBag.CurrentSection = section;
+            ViewBag.ActiveTab = requestedTab;
             ViewBag.DepartmentList = await _context.Departments.OrderBy(d => d.Name).ToListAsync();
             return View();
         }
@@ -62,6 +100,7 @@ namespace InventoryManagementSystem.Controllers
         #region Departments AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetDepartmentsData()
         {
             var data = await _context.Departments
@@ -78,6 +117,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetDepartment(int id)
         {
             var dept = await _context.Departments.FindAsync(id);
@@ -87,6 +127,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> SaveDepartment([FromBody] Department model)
         {
             if (!ModelState.IsValid)
@@ -115,6 +156,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> DeleteDepartment(int id)
         {
             var dept = await _context.Departments.FindAsync(id);
@@ -133,6 +175,7 @@ namespace InventoryManagementSystem.Controllers
         #region Employees AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetEmployeesData()
         {
             var data = await _context.Employees
@@ -158,6 +201,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetEmployee(int id)
         {
             var emp = await _context.Employees
@@ -182,6 +226,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> SaveEmployee([FromBody] EmployeeInputModel model)
         {
             if (!ModelState.IsValid)
@@ -284,6 +329,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             var employee = await _context.Employees
@@ -311,6 +357,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetEmployeesJson(string? q)
         {
             var query = _context.Employees
@@ -336,6 +383,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetEmployeeUserAccount(int id)
         {
             var employee = await _context.Employees
@@ -354,6 +402,8 @@ namespace InventoryManagementSystem.Controllers
             }
 
             bool isRestricted = await _userManager.IsLockedOutAsync(employee.User);
+            var claims = await _userManager.GetClaimsAsync(employee.User);
+            var permissions = claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList();
 
             return Json(new
             {
@@ -366,6 +416,7 @@ namespace InventoryManagementSystem.Controllers
                 departmentName = employee.Department?.Name ?? "Unassigned",
                 defaultPassword = "Default@123",
                 isRestricted = isRestricted,
+                permissions = permissions,
                 lockoutEnd = employee.User.LockoutEnd.HasValue && employee.User.LockoutEnd.Value > DateTimeOffset.UtcNow
                     ? employee.User.LockoutEnd.Value.ToString("yyyy-MM-dd HH:mm")
                     : null
@@ -374,6 +425,53 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
+        public async Task<IActionResult> SaveEmployeePermissions([FromBody] EmployeePermissionsModel model)
+        {
+            var employee = await _context.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
+
+            if (employee == null || employee.User == null)
+            {
+                return Json(new { success = false, message = "Employee or user account not found." });
+            }
+
+            var existingClaims = await _userManager.GetClaimsAsync(employee.User);
+            var permissionClaims = existingClaims.Where(c => c.Type == "Permission").ToList();
+
+            if (permissionClaims.Any())
+            {
+                var removeResult = await _userManager.RemoveClaimsAsync(employee.User, permissionClaims);
+                if (!removeResult.Succeeded)
+                {
+                    string errors = string.Join(" ", removeResult.Errors.Select(e => e.Description));
+                    return Json(new { success = false, message = "Failed to update permissions: " + errors });
+                }
+            }
+
+            if (model.Permissions != null && model.Permissions.Any())
+            {
+                var newClaims = model.Permissions
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Distinct()
+                    .Select(p => new Claim("Permission", p))
+                    .ToList();
+
+                var addResult = await _userManager.AddClaimsAsync(employee.User, newClaims);
+                if (!addResult.Succeeded)
+                {
+                    string errors = string.Join(" ", addResult.Errors.Select(e => e.Description));
+                    return Json(new { success = false, message = "Failed to assign permissions: " + errors });
+                }
+            }
+
+            return Json(new { success = true, message = "Employee menu permissions updated successfully!" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> ResetEmployeePassword([FromBody] ResetPasswordInputModel model)
         {
             var employee = await _context.Employees
@@ -412,6 +510,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> ToggleEmployeeAccountStatus([FromBody] AccountStatusToggleModel model)
         {
             var employee = await _context.Employees
@@ -457,6 +556,7 @@ namespace InventoryManagementSystem.Controllers
         #region Attendance AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetAttendanceData()
         {
             var rawData = await _context.EmployeeAttendances
@@ -480,6 +580,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetAttendance(int id)
         {
             var log = await _context.EmployeeAttendances.FindAsync(id);
@@ -498,6 +599,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> SaveAttendance([FromBody] AttendanceInputModel model)
         {
             if (model.EmployeeId <= 0)
@@ -572,6 +674,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> DeleteAttendance(int id)
         {
             var log = await _context.EmployeeAttendances.FindAsync(id);
@@ -587,6 +690,7 @@ namespace InventoryManagementSystem.Controllers
         #region Leaves AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetLeavesData()
         {
             var data = await _context.EmployeeLeaves
@@ -609,6 +713,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> GetLeave(int id)
         {
             var leave = await _context.EmployeeLeaves.FindAsync(id);
@@ -628,6 +733,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> SaveLeave([FromBody] EmployeeLeave model)
         {
             if (model.EmployeeId <= 0)
@@ -699,6 +805,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Staff")]
         public async Task<IActionResult> DeleteLeave(int id)
         {
             var leave = await _context.EmployeeLeaves.FindAsync(id);
@@ -781,6 +888,7 @@ namespace InventoryManagementSystem.Controllers
         #region Categories & Types AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Inventory")]
         public async Task<IActionResult> GetCategoriesData()
         {
             var categories = await _context.ProductCategories
@@ -800,6 +908,7 @@ namespace InventoryManagementSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Inventory")]
         public async Task<IActionResult> GetCategory(int id)
         {
             var category = await _context.ProductCategories
@@ -819,6 +928,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Inventory")]
         public async Task<IActionResult> SaveCategory([FromBody] CategoryInputModel model)
         {
             if (string.IsNullOrWhiteSpace(model.Name))
@@ -894,6 +1004,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Inventory")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.ProductCategories
@@ -923,6 +1034,7 @@ namespace InventoryManagementSystem.Controllers
         #region SMTP Settings AJAX Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Settings")]
         public async Task<IActionResult> GetSmtpSettingsData()
         {
             var dbSmtp = await _context.SmtpSettings.OrderByDescending(s => s.Id).FirstOrDefaultAsync();
@@ -971,6 +1083,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Settings")]
         public async Task<IActionResult> SaveSmtpSettings([FromBody] SmtpSetting model)
         {
             if (!ModelState.IsValid)
@@ -1020,6 +1133,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Settings")]
         public async Task<IActionResult> TestSmtpConnection([FromBody] TestSmtpInputModel model)
         {
             if (string.IsNullOrWhiteSpace(model.TestEmail))
@@ -1099,6 +1213,7 @@ namespace InventoryManagementSystem.Controllers
         #region Company Profile Endpoints
 
         [HttpGet]
+        [Authorize(Policy = "Settings")]
         public async Task<IActionResult> GetCompanyProfileData()
         {
             var profile = await _context.CompanyProfiles.FirstOrDefaultAsync();
@@ -1111,6 +1226,7 @@ namespace InventoryManagementSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Settings")]
         public async Task<IActionResult> SaveCompanyProfile([FromForm] CompanyProfile model, Microsoft.AspNetCore.Http.IFormFile? logoFile)
         {
             if (string.IsNullOrWhiteSpace(model.CompanyName))

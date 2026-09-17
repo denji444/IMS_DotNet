@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Sales")]
     public class CustomersController : Controller
     {
         private readonly InventoryDbContext _context;
@@ -37,7 +37,7 @@ namespace InventoryManagementSystem.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            return RedirectToAction("Index", "Sales", new { tab = "customers" });
         }
 
         // DataTables AJAX Endpoint

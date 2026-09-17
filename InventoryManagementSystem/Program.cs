@@ -40,6 +40,17 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
+// Configure Module Authorization Policies
+var modules = new[] { "Dashboard", "Inventory", "Purchases", "Sales", "Staff", "Settings", "Reports" };
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var module in modules)
+    {
+        options.AddPolicy(module, policy =>
+            policy.RequireAssertion(ctx => ctx.User.IsInRole("Admin") || ctx.User.HasClaim("Permission", module)));
+    }
+});
+
 // Add services to the container, including our AJAX exception filter globally.
 builder.Services.AddControllersWithViews(options =>
 {

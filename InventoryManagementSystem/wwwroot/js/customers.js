@@ -1,8 +1,9 @@
-var table;
+var customersTable;
 
 $(document).ready(function () {
     // Initialize DataTable
-    table = $("#customersTable").DataTable({
+    if ($("#customersTable").length) {
+        customersTable = $("#customersTable").DataTable({
         "ajax": {
             "url": "/Customers/GetCustomersData",
             "type": "GET",
@@ -68,6 +69,7 @@ $(document).ready(function () {
             "emptyTable": "No customers found."
         }
     });
+    }
 
 
 
@@ -108,7 +110,9 @@ $(document).ready(function () {
                 btn.prop("disabled", false).html(originalText);
                 if (response.success) {
                     $("#customerModal").modal("hide");
-                    table.ajax.reload();
+                    if (customersTable) {
+                        customersTable.ajax.reload(null, false);
+                    }
                     Swal.fire({
                         title: 'Success!',
                         text: response.message,
@@ -196,7 +200,9 @@ function deleteCustomer(id) {
                 },
                 success: function (response) {
                     if (response.success) {
-                        table.ajax.reload();
+                        if (customersTable) {
+                            customersTable.ajax.reload(null, false);
+                        }
                         Swal.fire({
                             title: 'Deleted!',
                             text: response.message,

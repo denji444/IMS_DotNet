@@ -9,7 +9,7 @@ using InventoryManagementSystem.Models.ViewModels;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Reports")]
     public class ReportsController : Controller
     {
         private readonly InventoryDbContext _context;
@@ -27,24 +27,58 @@ namespace InventoryManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetReportData()
         {
-            var reportData = await _context.Products
-                .Select(p => new ProductReportViewModel
+            var products = await _context.Products.AsNoTracking().ToListAsync();
+
+            // Aggregated Purchases by Product
+            var multiPurc = await _context.PurchaseItems.AsNoTracking()
+                .GroupBy(pi => pi.ProductId)
+                .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.Quantity), Cost = g.Sum(x => x.TotalCost) })
+                .ToListAsync();
+
+            var legacyPurc = await _context.Purchases.AsNoTracking()
+                .Where(pu => pu.ProductId.HasValue && !pu.Items.Any())
+                .GroupBy(pu => pu.ProductId!.Value)
+                .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.Quantity), Cost = g.Sum(x => x.TotalCost) })
+                .ToListAsync();
+
+            var purcDict = multiPurc.Concat(legacyPurc)
+                .GroupBy(x => x.ProductId)
+                .ToDictionary(g => g.Key, g => new { Qty = g.Sum(x => x.Qty), Cost = g.Sum(x => x.Cost) });
+
+            // Aggregated Sales by Product
+            var multiSales = await _context.SaleItems.AsNoTracking()
+                .GroupBy(si => si.ProductId)
+                .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.Quantity), Revenue = g.Sum(x => x.TotalAmount) })
+                .ToListAsync();
+
+            var legacySales = await _context.Sales.AsNoTracking()
+                .Where(s => s.ProductId.HasValue && !s.Items.Any())
+                .GroupBy(s => s.ProductId!.Value)
+                .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.Quantity), Revenue = g.Sum(x => x.TotalAmount) })
+                .ToListAsync();
+
+            var salesDict = multiSales.Concat(legacySales)
+                .GroupBy(x => x.ProductId)
+                .ToDictionary(g => g.Key, g => new { Qty = g.Sum(x => x.Qty), Revenue = g.Sum(x => x.Revenue) });
+
+            var reportData = products.Select(p =>
+            {
+                purcDict.TryGetValue(p.Id, out var purcInfo);
+                salesDict.TryGetValue(p.Id, out var salesInfo);
+
+                return new ProductReportViewModel
                 {
                     ProductId = p.Id,
                     Sku = p.Sku,
                     ProductName = p.Name,
                     Variant = p.Variant,
                     AvailableQuantity = p.StockQuantity,
-                    PurchasedQuantity = (_context.PurchaseItems.Where(pi => pi.ProductId == p.Id).Sum(pi => (int?)pi.Quantity) ?? 0) +
-                                        (_context.Purchases.Where(pu => pu.ProductId == p.Id && !pu.Items.Any()).Sum(pu => (int?)pu.Quantity) ?? 0),
-                    PurchasedCost = (_context.PurchaseItems.Where(pi => pi.ProductId == p.Id).Sum(pi => (decimal?)pi.TotalCost) ?? 0) +
-                                    (_context.Purchases.Where(pu => pu.ProductId == p.Id && !pu.Items.Any()).Sum(pu => (decimal?)pu.TotalCost) ?? 0),
-                    SoldQuantity = (_context.SaleItems.Where(si => si.ProductId == p.Id).Sum(si => (int?)si.Quantity) ?? 0) +
-                                   (_context.Sales.Where(s => s.ProductId == p.Id && !s.Items.Any()).Sum(s => (int?)s.Quantity) ?? 0),
-                    SalesRevenue = (_context.SaleItems.Where(si => si.ProductId == p.Id).Sum(si => (decimal?)si.TotalAmount) ?? 0) +
-                                   (_context.Sales.Where(s => s.ProductId == p.Id && !s.Items.Any()).Sum(s => (decimal?)s.TotalAmount) ?? 0)
-                })
-                .ToListAsync();
+                    PurchasedQuantity = purcInfo?.Qty ?? 0,
+                    PurchasedCost = purcInfo?.Cost ?? 0m,
+                    SoldQuantity = salesInfo?.Qty ?? 0,
+                    SalesRevenue = salesInfo?.Revenue ?? 0m
+                };
+            }).ToList();
 
             var totalProducts = reportData.Count;
             var totalAvailableQty = reportData.Sum(r => r.AvailableQuantity);
@@ -294,7 +328,7 @@ namespace InventoryManagementSystem.Controllers
                 cnic = customerUser?.Cnic ?? "N/A"
             };
 
-            var salesQuery = _context.Sales
+            var salesQuery = _context.Sales.AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Items)
                     .ThenInclude(i => i.Product)
@@ -319,54 +353,10 @@ namespace InventoryManagementSystem.Controllers
 
             var transactions = salesList.Select(s =>
             {
-                decimal paidAmount = 0m;
-                if (s.PaymentMode == InventoryManagementSystem.Models.PaymentMode.FullPayment)
-                {
-                    paidAmount = s.TotalAmount;
-                }
-                else
-                {
-                    paidAmount = s.DownPayment + (s.Installments?.Sum(i => i.PaidAmount) ?? 0m);
-                }
-
-                decimal balance = Math.Max(0m, s.TotalAmount - paidAmount);
-
-                string status;
-                string statusBadge;
-                if (balance <= 0)
-                {
-                    status = "Paid";
-                    statusBadge = "bg-success";
-                }
-                else if (paidAmount > 0)
-                {
-                    status = "Partial";
-                    statusBadge = "bg-warning text-dark";
-                }
-                else
-                {
-                    status = "Pending";
-                    statusBadge = "bg-danger";
-                }
-
-                string itemsSummary = "";
-                if (s.Items != null && s.Items.Any())
-                {
-                    itemsSummary = string.Join(", ", s.Items.Select(i =>
-                    {
-                        var pName = i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? i.Product.Name : $"{i.Product.Name} ({i.Product.Variant})") : "Item";
-                        return $"{pName} x{i.Quantity}";
-                    }));
-                }
-                else if (s.Product != null)
-                {
-                    var pName = string.IsNullOrEmpty(s.Product.Variant) ? s.Product.Name : $"{s.Product.Name} ({s.Product.Variant})";
-                    itemsSummary = $"{pName} x{s.Quantity}";
-                }
-                else
-                {
-                    itemsSummary = "N/A";
-                }
+                string statusBadge = s.PaymentStatus == "Paid" ? "bg-success" : (s.PaymentStatus == "Partial" ? "bg-warning text-dark" : "bg-danger");
+                string itemsSummary = s.Items.Any()
+                    ? string.Join(", ", s.Items.Select(i => $"{(i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? i.Product.Name : $"{i.Product.Name} ({i.Product.Variant})") : "Item")} x{i.Quantity}"))
+                    : (s.Product != null ? $"{(string.IsNullOrEmpty(s.Product.Variant) ? s.Product.Name : $"{s.Product.Name} ({s.Product.Variant})")} x{s.Quantity}" : "N/A");
 
                 return new
                 {
@@ -377,9 +367,9 @@ namespace InventoryManagementSystem.Controllers
                     paymentMode = s.PaymentMode.ToString(),
                     paymentMethod = s.PaymentMethod.ToString(),
                     totalAmount = s.TotalAmount,
-                    paidAmount = paidAmount,
-                    balance = balance,
-                    status = status,
+                    paidAmount = s.TotalPaidAmount,
+                    balance = s.BalanceDue,
+                    status = s.PaymentStatus,
                     statusBadge = statusBadge
                 };
             }).ToList();

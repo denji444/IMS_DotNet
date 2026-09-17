@@ -80,5 +80,16 @@ namespace InventoryManagementSystem.Models
 
         [NotMapped]
         public Supplier? NewSupplier { get; set; }
+
+        [NotMapped]
+        public decimal TotalPaidAmount => PaymentMode == PaymentMode.FullPayment
+            ? TotalCost
+            : DownPayment + (Installments?.Sum(i => i.PaidAmount) ?? 0m);
+
+        [NotMapped]
+        public decimal BalanceDue => Math.Max(0m, TotalCost - TotalPaidAmount);
+
+        [NotMapped]
+        public string PaymentStatus => BalanceDue <= 0 ? "Paid" : (TotalPaidAmount > 0 ? "Partial" : "Pending");
     }
 }

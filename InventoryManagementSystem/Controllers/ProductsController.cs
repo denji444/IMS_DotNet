@@ -9,7 +9,7 @@ using InventoryManagementSystem.Exceptions;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Inventory")]
     public class ProductsController : Controller
     {
         private readonly InventoryDbContext _context;

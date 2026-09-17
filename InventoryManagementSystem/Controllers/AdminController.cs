@@ -11,7 +11,7 @@ using InventoryManagementSystem.Models.ViewModels;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Dashboard")]
     public class AdminController : Controller
     {
         private readonly InventoryDbContext _context;
@@ -26,41 +26,54 @@ namespace InventoryManagementSystem.Controllers
             var viewModel = new DashboardViewModel();
 
             // Core Counts
-            viewModel.ProductCount = await _context.Products.CountAsync();
-            viewModel.SupplierCount = await _context.Suppliers.CountAsync();
+            viewModel.ProductCount = await _context.Products.AsNoTracking().CountAsync();
+            viewModel.SupplierCount = await _context.Suppliers.AsNoTracking().CountAsync();
 
-            var customerRoleId = await _context.Roles
+            var customerRoleId = await _context.Roles.AsNoTracking()
                 .Where(r => r.Name == "Customer")
                 .Select(r => r.Id)
                 .FirstOrDefaultAsync();
 
-            viewModel.CustomerCount = await _context.Users
+            viewModel.CustomerCount = await _context.Users.AsNoTracking()
                 .CountAsync(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == customerRoleId));
 
-            viewModel.LowStockCount = await _context.Products.CountAsync(p => p.StockQuantity <= 5);
-            viewModel.HighStockCount = await _context.Products.CountAsync(p => p.StockQuantity >= 50);
+            viewModel.LowStockCount = await _context.Products.AsNoTracking().CountAsync(p => p.StockQuantity <= 5);
+            viewModel.HighStockCount = await _context.Products.AsNoTracking().CountAsync(p => p.StockQuantity >= 50);
 
             // Financial KPIs
-            viewModel.TotalStockValue = await _context.Products.SumAsync(p => (decimal?)p.StockQuantity * (p.Price ?? 0m)) ?? 0m;
-            viewModel.TotalSales = await _context.Sales.SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
-            viewModel.TotalPurchases = await _context.Purchases.SumAsync(p => (decimal?)p.TotalCost) ?? 0m;
+            viewModel.TotalStockValue = await _context.Products.AsNoTracking().SumAsync(p => (decimal?)p.StockQuantity * (p.Price ?? 0m)) ?? 0m;
+            viewModel.TotalSales = await _context.Sales.AsNoTracking().SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
+            viewModel.TotalPurchases = await _context.Purchases.AsNoTracking().SumAsync(p => (decimal?)p.TotalCost) ?? 0m;
             viewModel.NetProfit = viewModel.TotalSales - viewModel.TotalPurchases;
 
-            // Pending Receivables (Unpaid Sale Installments) & Payables (Unpaid Purchase Installments)
-            var pendingSaleInst = await _context.SaleInstallments
+            // Pending Receivables & Payables
+            viewModel.PendingReceivables = await _context.SaleInstallments.AsNoTracking()
                 .Where(si => si.Status != "Paid")
                 .SumAsync(si => (decimal?)(si.Amount - si.PaidAmount)) ?? 0m;
 
-            viewModel.PendingReceivables = pendingSaleInst;
-
-            var pendingPurcInst = await _context.PurchaseInstallments
+            viewModel.PendingPayables = await _context.PurchaseInstallments.AsNoTracking()
                 .Where(pi => pi.Status != "Paid")
                 .SumAsync(pi => (decimal?)(pi.Amount - pi.PaidAmount)) ?? 0m;
 
-            viewModel.PendingPayables = pendingPurcInst;
-
-            // Past 6 Months Financial Trend Data
+            // Past 6 Months Financial Trend Data (Batched via 2 Grouped Queries instead of 12 sequential queries)
             var now = DateTime.UtcNow;
+            var sixMonthsAgo = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-5);
+
+            var monthlySalesGroup = await _context.Sales.AsNoTracking()
+                .Where(s => s.SaleDate >= sixMonthsAgo)
+                .GroupBy(s => new { s.SaleDate.Year, s.SaleDate.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(s => s.TotalAmount) })
+                .ToListAsync();
+
+            var monthlyPurchasesGroup = await _context.Purchases.AsNoTracking()
+                .Where(p => p.PurchaseDate >= sixMonthsAgo)
+                .GroupBy(p => new { p.PurchaseDate.Year, p.PurchaseDate.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(p => p.TotalCost) })
+                .ToListAsync();
+
+            var salesDict = monthlySalesGroup.ToDictionary(x => $"{x.Year}-{x.Month}", x => x.Total);
+            var purcDict = monthlyPurchasesGroup.ToDictionary(x => $"{x.Year}-{x.Month}", x => x.Total);
+
             var months = new List<string>();
             var monthlySales = new List<decimal>();
             var monthlyPurchases = new List<decimal>();
@@ -68,21 +81,11 @@ namespace InventoryManagementSystem.Controllers
             for (int i = 5; i >= 0; i--)
             {
                 var monthDate = now.AddMonths(-i);
-                var year = monthDate.Year;
-                var month = monthDate.Month;
+                var key = $"{monthDate.Year}-{monthDate.Month}";
 
                 months.Add(monthDate.ToString("MMM yyyy"));
-
-                var salesSum = await _context.Sales
-                    .Where(s => s.SaleDate.Year == year && s.SaleDate.Month == month)
-                    .SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
-
-                var purcSum = await _context.Purchases
-                    .Where(p => p.PurchaseDate.Year == year && p.PurchaseDate.Month == month)
-                    .SumAsync(p => (decimal?)p.TotalCost) ?? 0m;
-
-                monthlySales.Add(salesSum);
-                monthlyPurchases.Add(purcSum);
+                monthlySales.Add(salesDict.TryGetValue(key, out var sTotal) ? sTotal : 0m);
+                monthlyPurchases.Add(purcDict.TryGetValue(key, out var pTotal) ? pTotal : 0m);
             }
 
             viewModel.MonthlyLabels = months;
@@ -90,7 +93,7 @@ namespace InventoryManagementSystem.Controllers
             viewModel.MonthlyPurchasesData = monthlyPurchases;
 
             // Top 5 Selling Products
-            var multiItemCounts = await _context.SaleItems
+            var multiItemCounts = await _context.SaleItems.AsNoTracking()
                 .GroupBy(si => si.ProductId)
                 .Select(g => new
                 {
@@ -99,7 +102,7 @@ namespace InventoryManagementSystem.Controllers
                 })
                 .ToListAsync();
 
-            var legacyCounts = await _context.Sales
+            var legacyCounts = await _context.Sales.AsNoTracking()
                 .Where(s => s.ProductId.HasValue && !s.Items.Any())
                 .GroupBy(s => s.ProductId!.Value)
                 .Select(g => new
@@ -121,7 +124,7 @@ namespace InventoryManagementSystem.Controllers
                 .ToList();
 
             var topProductIds = topProducts.Select(tp => tp.ProductId).ToList();
-            var productDetails = await _context.Products
+            var productDetails = await _context.Products.AsNoTracking()
                 .Where(p => topProductIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, p => string.IsNullOrWhiteSpace(p.Variant) ? p.Name : $"{p.Name} ({p.Variant})");
 
@@ -135,21 +138,21 @@ namespace InventoryManagementSystem.Controllers
             }
 
             // Low Stock Items List (Stock <= 5)
-            viewModel.LowStockProducts = await _context.Products
+            viewModel.LowStockProducts = await _context.Products.AsNoTracking()
                 .Where(p => p.StockQuantity <= 5)
                 .OrderBy(p => p.StockQuantity)
                 .Take(10)
                 .ToListAsync();
 
             // High Stock Items List (Stock >= 50) - Overbought
-            viewModel.HighStockProducts = await _context.Products
+            viewModel.HighStockProducts = await _context.Products.AsNoTracking()
                 .Where(p => p.StockQuantity >= 50)
                 .OrderByDescending(p => p.StockQuantity)
                 .Take(10)
                 .ToListAsync();
 
             // Recent 5 Sales
-            viewModel.RecentSales = await _context.Sales
+            viewModel.RecentSales = await _context.Sales.AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Customer)
                 .OrderByDescending(s => s.SaleDate)

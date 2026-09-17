@@ -1,8 +1,9 @@
-var table;
+var suppliersTable;
 
 $(document).ready(function () {
     // Initialize DataTable
-    table = $("#suppliersTable").DataTable({
+    if ($("#suppliersTable").length) {
+        suppliersTable = $("#suppliersTable").DataTable({
         "ajax": {
             "url": "/Suppliers/GetSuppliersData",
             "type": "GET",
@@ -87,6 +88,7 @@ $(document).ready(function () {
             "emptyTable": "No suppliers found. Click 'Add Supplier' to create one."
         }
     });
+    }
 
 
 
@@ -127,7 +129,9 @@ $(document).ready(function () {
                 btn.prop("disabled", false).html(originalText);
                 if (response.success) {
                     $("#supplierModal").modal("hide");
-                    table.ajax.reload();
+                    if (suppliersTable) {
+                        suppliersTable.ajax.reload(null, false);
+                    }
                     Swal.fire({
                         title: 'Success!',
                         text: response.message,
@@ -216,7 +220,9 @@ function deleteSupplier(id) {
                 },
                 success: function (response) {
                     if (response.success) {
-                        table.ajax.reload();
+                        if (suppliersTable) {
+                            suppliersTable.ajax.reload(null, false);
+                        }
                         Swal.fire({
                             title: 'Deleted!',
                             text: response.message,

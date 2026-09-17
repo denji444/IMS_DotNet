@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Purchases")]
     public class PurchasesController : Controller
     {
         private readonly InventoryDbContext _context;
@@ -37,11 +37,7 @@ namespace InventoryManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPurchasesData()
         {
-            var purchases = await _context.Purchases
-                .Include(p => p.Product)
-                .Include(p => p.Supplier)
-                .Include(p => p.Items)
-                    .ThenInclude(i => i.Product)
+            var purchases = await _context.Purchases.AsNoTracking()
                 .Select(p => new
                 {
                     p.Id,

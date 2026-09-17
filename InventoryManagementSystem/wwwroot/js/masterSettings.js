@@ -15,35 +15,43 @@ $(document).ready(function () {
 
     // Sync side navbar active selection with on-screen tab switch
     function syncSidebarSelection(tabId) {
-        $('#masterSettingsCollapse .list-group-item').removeClass('active-sublink');
+        $('.sidebar-submenu .list-group-item').removeClass('active-sublink');
+        $('#sidebar-wrapper [data-bs-toggle="collapse"]').removeClass('active-link');
+        
+        function ensureParentOpen(collapseId) {
+            var collapseEl = document.getElementById(collapseId);
+            if (collapseEl) {
+                var toggleLink = $(`[href="#${collapseId}"]`);
+                toggleLink.addClass('active-link').attr('aria-expanded', 'true');
+                if (!collapseEl.classList.contains('show')) {
+                    var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
+                    bsCollapse.show();
+                }
+            }
+        }
 
         if (tabId === 'employees') {
             $('#side-nav-employees').addClass('active-sublink');
+            ensureParentOpen('hrCollapse');
         } else if (tabId === 'departments') {
             $('#side-nav-departments').addClass('active-sublink');
-            var urlParams = new URLSearchParams(window.location.search);
-            var deptId = urlParams.get('deptId');
-            if (deptId && $('#side-nav-dept-' + deptId).length) {
-                $('#side-nav-dept-' + deptId).addClass('active-sublink');
-            } else {
-                $('#side-nav-departments-all').addClass('active-sublink');
-            }
-            var collapseEl = document.getElementById('deptSubmenuCollapse');
-            if (collapseEl && !collapseEl.classList.contains('show')) {
-                var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
-                bsCollapse.show();
-            }
+            ensureParentOpen('hrCollapse');
         } else if (tabId === 'attendance') {
             $('#side-nav-attendance').addClass('active-sublink');
+            ensureParentOpen('hrCollapse');
         } else if (tabId === 'leaves') {
             $('#side-nav-leaves').addClass('active-sublink');
+            ensureParentOpen('hrCollapse');
         } else if (tabId === 'categories') {
             $('#side-nav-categories').addClass('active-sublink');
+            ensureParentOpen('inventoryCollapse');
         } else if (tabId === 'smtp') {
             $('#side-nav-smtp').addClass('active-sublink');
+            ensureParentOpen('settingsCollapse');
             loadSmtpSettings();
         } else if (tabId === 'company') {
             $('#side-nav-company').addClass('active-sublink');
+            ensureParentOpen('settingsCollapse');
             loadCompanyProfile();
         }
     }
@@ -66,15 +74,15 @@ $(document).ready(function () {
             window.history.replaceState({ path: newUrl }, '', newUrl);
         }
 
-        if (targetId === 'employees') {
+        if (targetId === 'employees' && empTable) {
             empTable.ajax.reload(null, false);
-        } else if (targetId === 'departments') {
+        } else if (targetId === 'departments' && deptTable) {
             deptTable.ajax.reload(null, false);
-        } else if (targetId === 'attendance') {
+        } else if (targetId === 'attendance' && attTable) {
             attTable.ajax.reload(null, false);
-        } else if (targetId === 'leaves') {
+        } else if (targetId === 'leaves' && leaveTable) {
             leaveTable.ajax.reload(null, false);
-        } else if (targetId === 'categories') {
+        } else if (targetId === 'categories' && categoryTable) {
             categoryTable.ajax.reload(null, false);
         } else if (targetId === 'smtp') {
             loadSmtpSettings();
@@ -86,18 +94,36 @@ $(document).ready(function () {
     // Initialize DataTables
     initTables();
 
-    // Activate tab from URL query parameter if present
+    // Activate tab from URL query parameter or default to first tab
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
+    if (!tabParam) {
+        var firstBtn = $('#masterSettingsTabs button.nav-link').first();
+        if (firstBtn.length) {
+            tabParam = firstBtn.attr('id').replace('-tab', '');
+        }
+    }
+
     if (tabParam) {
         var tabButton = $('#' + tabParam + '-tab');
         if (tabButton.length) {
-            tabButton.trigger('click');
+            var bsTab = bootstrap.Tab.getOrCreateInstance(tabButton[0]);
+            bsTab.show();
         } else {
-            syncSidebarSelection('employees');
+            var targetPane = $('#' + tabParam);
+            if (targetPane.length) {
+                $('.tab-pane').removeClass('show active');
+                targetPane.addClass('show active');
+            }
+            syncSidebarSelection(tabParam);
+            if (tabParam === 'categories' && categoryTable) {
+                categoryTable.ajax.reload(null, false);
+            } else if (tabParam === 'company') {
+                loadCompanyProfile();
+            } else if (tabParam === 'smtp') {
+                loadSmtpSettings();
+            }
         }
-    } else {
-        syncSidebarSelection('employees');
     }
 
     // Form Submissions
@@ -136,254 +162,264 @@ $('.modal').on('shown.bs.modal', function () {
 
 function initTables() {
     // Employees Table
-    empTable = $("#employeesTable").DataTable({
-        "ajax": {
-            "url": "/MasterSettings/GetEmployeesData",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            { "data": "fullName", "width": "15%" },
-            { "data": "email", "width": "15%" },
-            { "data": "phone", "width": "10%" },
-            { "data": "departmentName", "width": "15%" },
-            { "data": "designation", "width": "12%" },
-            { "data": "hireDate", "width": "10%" },
-            {
-                "data": "salary",
-                "render": function (d) { return 'PKR ' + parseFloat(d).toFixed(2); },
-                "width": "9%"
+    if ($("#employeesTable").length) {
+        empTable = $("#employeesTable").DataTable({
+            "ajax": {
+                "url": "/MasterSettings/GetEmployeesData",
+                "type": "GET",
+                "datatype": "json"
             },
-            {
-                "data": "status",
-                "render": function (d) {
-                    var badge = "bg-success";
-                    if (d === "Inactive") badge = "bg-secondary";
-                    else if (d === "On Leave") badge = "bg-warning text-dark";
-                    else if (d === "Terminated") badge = "bg-danger";
-                    return `<span class="badge ${badge}">${d}</span>`;
+            "columns": [
+                { "data": "fullName", "width": "15%" },
+                { "data": "email", "width": "15%" },
+                { "data": "phone", "width": "10%" },
+                { "data": "departmentName", "width": "15%" },
+                { "data": "designation", "width": "12%" },
+                { "data": "hireDate", "width": "10%" },
+                {
+                    "data": "salary",
+                    "render": function (d) { return 'PKR ' + parseFloat(d).toFixed(2); },
+                    "width": "9%"
                 },
-                "width": "8%"
-            },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center">
-                            <button class="btn btn-sm btn-outline-info rounded-circle shadow-sm" style="width: 34px; height: 34px; padding: 0; line-height: 32px;" onclick="openEmployeeAccountModal(${data})" title="User Credentials & Access Control">
-                                <i class="fas fa-user-tie"></i>
-                            </button>
-                        </div>
-                    `;
+                {
+                    "data": "status",
+                    "render": function (d) {
+                        var badge = "bg-success";
+                        if (d === "Inactive") badge = "bg-secondary";
+                        else if (d === "On Leave") badge = "bg-warning text-dark";
+                        else if (d === "Terminated") badge = "bg-danger";
+                        return `<span class="badge ${badge}">${d}</span>`;
+                    },
+                    "width": "8%"
                 },
-                "orderable": false,
-                "width": "6%"
-            },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openEmployeeModal(${data})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${data})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center">
+                                <button class="btn btn-sm btn-outline-info rounded-circle shadow-sm" style="width: 34px; height: 34px; padding: 0; line-height: 32px;" onclick="openEmployeeAccountModal(${data})" title="User Credentials & Access Control">
+                                    <i class="fas fa-user-tie"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "6%"
                 },
-                "orderable": false,
-                "width": "6%"
-            }
-        ]
-    });
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-dark me-1" onclick="openEmployeeModal(${data})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${data})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "6%"
+                }
+            ]
+        });
+    }
 
     // Departments Table
-    deptTable = $("#departmentsTable").DataTable({
-        "ajax": {
-            "url": "/MasterSettings/GetDepartmentsData",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            { "data": "id", "width": "10%" },
-            { "data": "name", "width": "30%" },
-            { "data": "description", "width": "40%" },
-            {
-                "data": "employeeCount",
-                "render": function (d) { return `<span class="badge bg-secondary">${d} Employee(s)</span>`; },
-                "width": "10%"
+    if ($("#departmentsTable").length) {
+        deptTable = $("#departmentsTable").DataTable({
+            "ajax": {
+                "url": "/MasterSettings/GetDepartmentsData",
+                "type": "GET",
+                "datatype": "json"
             },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openDeptModal(${data})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteDept(${data})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+            "columns": [
+                { "data": "id", "width": "10%" },
+                { "data": "name", "width": "30%" },
+                { "data": "description", "width": "40%" },
+                {
+                    "data": "employeeCount",
+                    "render": function (d) { return `<span class="badge bg-secondary">${d} Employee(s)</span>`; },
+                    "width": "10%"
                 },
-                "orderable": false,
-                "width": "10%"
-            }
-        ]
-    });
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-dark me-1" onclick="openDeptModal(${data})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteDept(${data})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "10%"
+                }
+            ]
+        });
+    }
 
     // Attendance Table
-    attTable = $("#attendanceTable").DataTable({
-        "ajax": {
-            "url": "/MasterSettings/GetAttendanceData",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            { "data": "employeeName", "width": "30%" },
-            { "data": "date", "width": "20%" },
-            { "data": "clockIn", "width": "15%" },
-            { "data": "clockOut", "width": "15%" },
-            {
-                "data": "status",
-                "render": function (d) {
-                    var badge = "bg-success";
-                    if (d === "Absent") badge = "bg-danger";
-                    else if (d === "Late") badge = "bg-warning text-dark";
-                    else if (d === "Half Day") badge = "bg-info text-white";
-                    else if (d && d.startsWith("On Leave")) badge = "bg-primary text-white";
-                    return `<span class="badge ${badge}">${d}</span>`;
-                },
-                "width": "10%"
+    if ($("#attendanceTable").length) {
+        attTable = $("#attendanceTable").DataTable({
+            "ajax": {
+                "url": "/MasterSettings/GetAttendanceData",
+                "type": "GET",
+                "datatype": "json"
             },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openAttendanceModal(${data})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${data})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+            "columns": [
+                { "data": "employeeName", "width": "30%" },
+                { "data": "date", "width": "20%" },
+                { "data": "clockIn", "width": "15%" },
+                { "data": "clockOut", "width": "15%" },
+                {
+                    "data": "status",
+                    "render": function (d) {
+                        var badge = "bg-success";
+                        if (d === "Absent") badge = "bg-danger";
+                        else if (d === "Late") badge = "bg-warning text-dark";
+                        else if (d === "Half Day") badge = "bg-info text-white";
+                        else if (d && d.startsWith("On Leave")) badge = "bg-primary text-white";
+                        return `<span class="badge ${badge}">${d}</span>`;
+                    },
+                    "width": "10%"
                 },
-                "orderable": false,
-                "width": "10%"
-            }
-        ]
-    });
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-dark me-1" onclick="openAttendanceModal(${data})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${data})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "10%"
+                }
+            ]
+        });
+    }
 
     // Leaves Table
-    leaveTable = $("#leavesTable").DataTable({
-        "ajax": {
-            "url": "/MasterSettings/GetLeavesData",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            { "data": "employeeName", "width": "25%" },
-            { "data": "startDate", "width": "15%" },
-            { "data": "endDate", "width": "15%" },
-            { "data": "leaveType", "width": "15%" },
-            {
-                "data": "status",
-                "render": function (d) {
-                    var badge = "bg-warning text-dark";
-                    if (d === "Approved") badge = "bg-success";
-                    else if (d === "Rejected") badge = "bg-danger";
-                    return `<span class="badge ${badge}">${d}</span>`;
-                },
-                "width": "10%"
+    if ($("#leavesTable").length) {
+        leaveTable = $("#leavesTable").DataTable({
+            "ajax": {
+                "url": "/MasterSettings/GetLeavesData",
+                "type": "GET",
+                "datatype": "json"
             },
-            { "data": "notes", "width": "12%" },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openLeaveModal(${data})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteLeave(${data})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+            "columns": [
+                { "data": "employeeName", "width": "25%" },
+                { "data": "startDate", "width": "15%" },
+                { "data": "endDate", "width": "15%" },
+                { "data": "leaveType", "width": "15%" },
+                {
+                    "data": "status",
+                    "render": function (d) {
+                        var badge = "bg-warning text-dark";
+                        if (d === "Approved") badge = "bg-success";
+                        else if (d === "Rejected") badge = "bg-danger";
+                        return `<span class="badge ${badge}">${d}</span>`;
+                    },
+                    "width": "10%"
                 },
-                "orderable": false,
-                "width": "8%"
-            }
-        ]
-    });
+                { "data": "notes", "width": "12%" },
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-dark me-1" onclick="openLeaveModal(${data})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteLeave(${data})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "8%"
+                }
+            ]
+        });
+    }
 
     // Categories & Dynamic Types Table
-    categoryTable = $("#categoriesTable").DataTable({
-        "ajax": {
-            "url": "/MasterSettings/GetCategoriesData",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            {
-                "data": "name",
-                "width": "20%",
-                "render": function (d) {
-                    return `<strong class="text-dark"><i class="fas fa-folder text-warning me-2"></i>${d}</strong>`;
-                }
+    if ($("#categoriesTable").length) {
+        categoryTable = $("#categoriesTable").DataTable({
+            "ajax": {
+                "url": "/MasterSettings/GetCategoriesData",
+                "type": "GET",
+                "datatype": "json"
             },
-            {
-                "data": "description",
-                "width": "25%",
-                "render": function (d) {
-                    return d ? d : '<span class="text-muted fst-italic">No description</span>';
-                }
-            },
-            {
-                "data": "typeOptions",
-                "width": "35%",
-                "render": function (types) {
-                    if (!types || types.length === 0) {
-                        return '<span class="text-muted fst-italic small">No dynamic types configured</span>';
+            "columns": [
+                {
+                    "data": "name",
+                    "width": "20%",
+                    "render": function (d) {
+                        return `<strong class="text-dark"><i class="fas fa-folder text-warning me-2"></i>${d}</strong>`;
                     }
-                    var listItems = types.map(function (t) {
-                        return `<li class="py-1 d-flex align-items-center text-dark"><i class="fas fa-check-circle text-primary me-2" style="font-size: 0.78rem;"></i><span>${t}</span></li>`;
-                    }).join('');
-                    return `<ul class="list-unstyled mb-0 small">${listItems}</ul>`;
+                },
+                {
+                    "data": "description",
+                    "width": "25%",
+                    "render": function (d) {
+                        return d ? d : '<span class="text-muted fst-italic">No description</span>';
+                    }
+                },
+                {
+                    "data": "typeOptions",
+                    "width": "35%",
+                    "render": function (types) {
+                        if (!types || types.length === 0) {
+                            return '<span class="text-muted fst-italic small">No dynamic types configured</span>';
+                        }
+                        var listItems = types.map(function (t) {
+                            return `<li class="py-1 d-flex align-items-center text-dark"><i class="fas fa-check-circle text-primary me-2" style="font-size: 0.78rem;"></i><span>${t}</span></li>`;
+                        }).join('');
+                        return `<ul class="list-unstyled mb-0 small">${listItems}</ul>`;
+                    }
+                },
+                {
+                    "data": "productCount",
+                    "className": "text-center",
+                    "render": function (d) {
+                        return `<span class="badge ${d > 0 ? 'bg-info text-dark' : 'bg-secondary'}">${d} Product(s)</span>`;
+                    },
+                    "width": "10%"
+                },
+                {
+                    "data": "id",
+                    "render": function (data) {
+                        return `
+                            <div class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-dark me-1" onclick="openCategoryModal(${data})" title="Edit Category & Types">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteCategory(${data})" title="Delete Category">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    },
+                    "orderable": false,
+                    "width": "10%"
                 }
-            },
-            {
-                "data": "productCount",
-                "className": "text-center",
-                "render": function (d) {
-                    return `<span class="badge ${d > 0 ? 'bg-info text-dark' : 'bg-secondary'}">${d} Product(s)</span>`;
-                },
-                "width": "10%"
-            },
-            {
-                "data": "id",
-                "render": function (data) {
-                    return `
-                        <div class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-dark me-1" onclick="openCategoryModal(${data})" title="Edit Category & Types">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCategory(${data})" title="Delete Category">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                },
-                "orderable": false,
-                "width": "10%"
-            }
-        ]
-    });
+            ]
+        });
+    }
 }
 
 function setupFormHandlers() {
@@ -629,7 +665,9 @@ function submitForm(url, model, modalSelector, tableRef, btnSelector) {
             btn.prop("disabled", false).html(originalText);
             if (response.success) {
                 $(modalSelector).modal("hide");
-                tableRef.ajax.reload(null, false);
+                if (tableRef && tableRef.ajax) {
+                    tableRef.ajax.reload(null, false);
+                }
                 Swal.fire({
                     title: 'Success!',
                     text: response.message,
@@ -882,7 +920,9 @@ function confirmDelete(url, tableRef, warningText) {
                 type: "POST",
                 success: function (response) {
                     if (response.success) {
-                        tableRef.ajax.reload(null, false);
+                        if (tableRef && tableRef.ajax) {
+                            tableRef.ajax.reload(null, false);
+                        }
                         Swal.fire({
                             title: 'Deleted!',
                             text: response.message,
@@ -922,6 +962,8 @@ function openEmployeeAccountModal(id) {
     $("#empAccUsername").val("");
     $("#empAccPassword").val("Default@123").attr("type", "password");
     $("#eyeIcon").removeClass("fa-eye-slash").addClass("fa-eye");
+    $(".perm-switch").prop("checked", false);
+    $("#empAccPermTab-btn").tab("show");
 
     $.get("/MasterSettings/GetEmployeeUserAccount/" + id, function (response) {
         if (!response.success) {
@@ -941,6 +983,13 @@ function openEmployeeAccountModal(id) {
         $("#empAccUsername").val(response.userName);
         $("#empAccPassword").val(response.defaultPassword);
 
+        // Populate Permissions
+        if (response.permissions && response.permissions.length > 0) {
+            response.permissions.forEach(function (p) {
+                $("#perm_" + p).prop("checked", true);
+            });
+        }
+
         var isRestricted = response.isRestricted;
         $("#empAccRestrictedToggle").prop("checked", isRestricted);
         updateStatusBadge(isRestricted);
@@ -953,6 +1002,67 @@ function openEmployeeAccountModal(id) {
             icon: 'error',
             confirmButtonColor: '#d33'
         });
+    });
+}
+
+function applyPermissionPreset(preset) {
+    $(".perm-switch").prop("checked", false);
+    if (preset === 'accounts') {
+        $("#perm_Purchases, #perm_Sales, #perm_Reports").prop("checked", true);
+    } else if (preset === 'sales') {
+        $("#perm_Sales, #perm_Reports").prop("checked", true);
+    } else if (preset === 'inventory') {
+        $("#perm_Inventory, #perm_Purchases").prop("checked", true);
+    } else if (preset === 'hr') {
+        $("#perm_Staff, #perm_Reports").prop("checked", true);
+    } else if (preset === 'all') {
+        $(".perm-switch").prop("checked", true);
+    }
+}
+
+function saveEmployeePermissions() {
+    var empId = parseInt($("#empAccEmployeeId").val());
+    if (!empId) return;
+
+    var selectedPermissions = [];
+    $(".perm-switch:checked").each(function () {
+        selectedPermissions.push($(this).val());
+    });
+
+    var token = $('input[name="__RequestVerificationToken"]').val();
+    var $btn = $("#btnSavePermissions");
+    var originalHtml = $btn.html();
+    $btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+
+    $.ajax({
+        url: "/MasterSettings/SaveEmployeePermissions",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            employeeId: empId,
+            permissions: selectedPermissions
+        }),
+        headers: {
+            "RequestVerificationToken": token
+        },
+        success: function (res) {
+            $btn.prop("disabled", false).html(originalHtml);
+            if (res.success) {
+                Swal.fire({
+                    title: 'Saved!',
+                    text: res.message || 'Menu access permissions updated.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Error!', res.message, 'error');
+            }
+        },
+        error: function () {
+            $btn.prop("disabled", false).html(originalHtml);
+            Swal.fire('Error!', 'Failed to save menu access permissions.', 'error');
+        }
     });
 }
 

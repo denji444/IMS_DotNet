@@ -33,54 +33,23 @@ namespace InventoryManagementSystem.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string htmlMessage)
         {
-            string server;
-            int port;
-            string username;
-            string password;
-            bool enableSsl;
-            string senderEmail;
-            string senderName;
+            var db = await _dbContext.SmtpSettings.AsNoTracking().OrderByDescending(s => s.Id).FirstOrDefaultAsync();
+            bool hasDbSmtp = db != null && !string.IsNullOrWhiteSpace(db.Server) && !string.IsNullOrWhiteSpace(db.SenderEmail);
 
-            var dbSmtp = await _dbContext.SmtpSettings.OrderByDescending(s => s.Id).FirstOrDefaultAsync();
+            string server = hasDbSmtp ? db!.Server : _fallbackSmtpSettings.Server;
+            int port = hasDbSmtp ? db!.Port : _fallbackSmtpSettings.Port;
+            string username = hasDbSmtp ? (db!.Username ?? "") : _fallbackSmtpSettings.Username;
+            bool enableSsl = hasDbSmtp ? db!.EnableSsl : _fallbackSmtpSettings.EnableSsl;
+            string senderEmail = hasDbSmtp ? db!.SenderEmail : _fallbackSmtpSettings.SenderEmail;
+            string senderName = hasDbSmtp
+                ? (string.IsNullOrWhiteSpace(db!.SenderName) ? "Inventory Management System" : db!.SenderName)
+                : (string.IsNullOrWhiteSpace(_fallbackSmtpSettings.SenderName) ? "Inventory Management System" : _fallbackSmtpSettings.SenderName);
 
-            if (dbSmtp != null && !string.IsNullOrWhiteSpace(dbSmtp.Server) && !string.IsNullOrWhiteSpace(dbSmtp.SenderEmail))
+            string password = _fallbackSmtpSettings.Password;
+            if (hasDbSmtp && !string.IsNullOrEmpty(db!.Password))
             {
-                server = dbSmtp.Server;
-                port = dbSmtp.Port;
-                username = dbSmtp.Username ?? string.Empty;
-
-                // Decrypt password if protected, or fallback if unencrypted string
-                string rawPassword = dbSmtp.Password ?? string.Empty;
-                if (!string.IsNullOrEmpty(rawPassword))
-                {
-                    try
-                    {
-                        password = _protector.Unprotect(rawPassword);
-                    }
-                    catch
-                    {
-                        // If unprotect fails (e.g. legacy plain-text password), use rawPassword
-                        password = rawPassword;
-                    }
-                }
-                else
-                {
-                    password = string.Empty;
-                }
-
-                enableSsl = dbSmtp.EnableSsl;
-                senderEmail = dbSmtp.SenderEmail;
-                senderName = string.IsNullOrWhiteSpace(dbSmtp.SenderName) ? "Inventory Management System" : dbSmtp.SenderName;
-            }
-            else
-            {
-                server = _fallbackSmtpSettings.Server;
-                port = _fallbackSmtpSettings.Port;
-                username = _fallbackSmtpSettings.Username;
-                password = _fallbackSmtpSettings.Password;
-                enableSsl = _fallbackSmtpSettings.EnableSsl;
-                senderEmail = _fallbackSmtpSettings.SenderEmail;
-                senderName = string.IsNullOrWhiteSpace(_fallbackSmtpSettings.SenderName) ? "Inventory Management System" : _fallbackSmtpSettings.SenderName;
+                try { password = _protector.Unprotect(db.Password); }
+                catch { password = db.Password; }
             }
 
             try

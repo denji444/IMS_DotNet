@@ -1,120 +1,41 @@
-@model InventoryManagementSystem.Models.Product
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Manage Products";
+    ViewData["Title"] = "Inventory & Catalog";
 }
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-        <h4 class="mb-0"><i class="fas fa-box me-2"></i>Product SKU Directory</h4>
-        <button class="btn btn-light btn-sm" onclick="openCreateModal()">
-            <i class="fas fa-plus me-1"></i> Add Product
-        </button>
-    </div>
-    <div class="card-body p-4">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle w-100" id="productsTable">
-                <thead class="table-dark text-center">
-                    <tr>
-                        <th class="text-center">SKU</th>
-                        <th class="text-center">Product & Variant</th>
-                        <th class="text-center">Category & Condition</th>
-                        <th class="text-center">Description</th>
-                        <th class="text-center">Price</th>
-                        <th class="text-center">Stock Qty</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Loaded dynamically via DataTables AJAX -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Product Create/Edit Modal -->
-<div class="modal fade" id="productModal" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="productModalLabel">Add Product</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Inventory & Catalog Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div>
+                <h2 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes-stacked me-2 text-primary"></i>Inventory & Catalog</h2>
+                <p class="text-muted mb-0">Manage product SKU directory, categories, sub-classifications, and dynamic type attributes.</p>
             </div>
-            <form id="productForm" novalidate>
-                @Html.AntiForgeryToken()
-                <input type="hidden" id="productId" name="Id" value="0" />
-                
-                <div class="modal-body p-4">
-                    <div class="form-floating mb-3">
-                        <input asp-for="Name" class="form-control" id="productName" placeholder="Product Name" required />
-                        <label asp-for="Name"></label>
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
-
-                    <!-- Category & Product Type / Condition -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label asp-for="CategoryName" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-sitemap me-1 text-primary"></i>Category</label>
-                            <select asp-for="CategoryName" class="form-select" id="productCategorySelect">
-                                <option value="">Loading categories...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="ProductType" class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-tags me-1 text-primary"></i>Type / Condition</label>
-                            <select asp-for="ProductType" class="form-select" id="productTypeSelect">
-                                <option value="">Select Category First</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Main SKU & Variant fields (Always visible) -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <div class="form-floating">
-                                <input asp-for="Sku" class="form-control" id="productSku" placeholder="Product SKU" required />
-                                <label asp-for="Sku">SKU</label>
-                                <span asp-validation-for="Sku" class="text-danger" id="skuError"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-floating">
-                                <input asp-for="Variant" class="form-control" id="productVariant" placeholder="Variant (Color, Size, etc.)" />
-                                <label asp-for="Variant">Variant Name</label>
-                                <span asp-validation-for="Variant" class="text-danger"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Additional Variants (Optional, for batch creation of new variants) -->
-                    <div class="mb-3 border rounded p-3 bg-light" id="additionalVariantsSection">
-                        <label class="form-label text-dark small fw-bold mb-2"><i class="fas fa-layer-group me-1"></i>Add Additional Variants (Optional)</label>
-                        <div id="additionalVariantsContainer">
-                            <!-- Dynamic variant rows appended here -->
-                        </div>
-                        <button type="button" class="btn btn-outline-dark btn-sm mt-2" id="btnAddVariantRow">
-                            <i class="fas fa-plus me-1"></i> Add Variant Row
-                        </button>
-                    </div>
-
-                    <div class="form-floating mb-3">
-                        <textarea asp-for="Description" class="form-control" id="description" placeholder="Description" style="height: 80px;"></textarea>
-                        <label asp-for="Description"></label>
-                        <span asp-validation-for="Description" class="text-danger"></span>
-                    </div>
-
-
-
-                    <input type="hidden" id="stockQuantity" name="StockQuantity" value="0" />
-                </div>
-                <div class="modal-footer bg-light border-0 py-3">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-dark" id="btnSaveProduct">Save Product</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
+
+<!-- Inventory & Catalog Tabs -->
+<ul class="nav nav-tabs nav-fill mb-4 bg-white p-2 rounded shadow-sm" id="inventoryTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button" role="tab" aria-controls="products">
+            <i class="fas fa-box-open me-2"></i> Products Catalog
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-3 d-flex align-items-center justify-content-center" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab" aria-controls="categories">
+            <i class="fas fa-tags me-2"></i> Product Categories & Types
+        </button>
+    </li>
+</ul>
+
+<!-- Inventory & Catalog Tab Content -->
+<div class="tab-content" id="inventoryTabsContent">
+    <partial name="Partials/_ProductsTab" />
+    <partial name="Partials/_CategoriesTab" />
+</div>
+
+@Html.AntiForgeryToken()
 
 @section Scripts {
     <script src="~/js/products.js" asp-append-version="true"></script>

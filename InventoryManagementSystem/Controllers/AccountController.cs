@@ -147,19 +147,40 @@ namespace InventoryManagementSystem.Controllers
 
         private IActionResult RedirectToDashboard()
         {
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole("Admin") || User.HasClaim("Permission", "Dashboard"))
             {
                 return RedirectToAction("Index", "Admin");
             }
+            if (User.HasClaim("Permission", "Sales")) return RedirectToAction("Index", "Sales");
+            if (User.HasClaim("Permission", "Purchases")) return RedirectToAction("Index", "Purchases");
+            if (User.HasClaim("Permission", "Reports")) return RedirectToAction("Index", "Reports");
+            if (User.HasClaim("Permission", "Inventory")) return RedirectToAction("Index", "Products");
+            if (User.HasClaim("Permission", "Staff")) return RedirectToAction("Index", "MasterSettings", new { tab = "employees" });
+            if (User.HasClaim("Permission", "Settings")) return RedirectToAction("Index", "MasterSettings", new { tab = "company" });
+
             return RedirectToAction("Index", "Home");
         }
 
         private async Task<string> GetDashboardUrlForUser(ApplicationUser? user)
         {
-            if (user != null && await _userManager.IsInRoleAsync(user, "Admin"))
+            if (user == null) return Url.Action("Index", "Home") ?? "/";
+
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 return Url.Action("Index", "Admin") ?? "/";
             }
+
+            var claims = await _userManager.GetClaimsAsync(user);
+            var permissions = claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToHashSet();
+
+            if (permissions.Contains("Dashboard")) return Url.Action("Index", "Admin") ?? "/";
+            if (permissions.Contains("Sales")) return Url.Action("Index", "Sales") ?? "/";
+            if (permissions.Contains("Purchases")) return Url.Action("Index", "Purchases") ?? "/";
+            if (permissions.Contains("Reports")) return Url.Action("Index", "Reports") ?? "/";
+            if (permissions.Contains("Inventory")) return Url.Action("Index", "Products") ?? "/";
+            if (permissions.Contains("Staff")) return Url.Action("Index", "MasterSettings", new { tab = "employees" }) ?? "/";
+            if (permissions.Contains("Settings")) return Url.Action("Index", "MasterSettings", new { tab = "company" }) ?? "/";
+
             return Url.Action("Index", "Home") ?? "/";
         }
     }

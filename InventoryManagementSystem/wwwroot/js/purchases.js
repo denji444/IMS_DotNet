@@ -1,4 +1,4 @@
-var table;
+var purchasesTable;
 var isModalLoading = false;
 var voucherItems = [];
 
@@ -6,7 +6,8 @@ $(document).ready(function () {
     loadCategoryAndTypeFilters();
 
     // Initialize DataTable
-    table = $("#purchasesTable").DataTable({
+    if ($("#purchasesTable").length) {
+        purchasesTable = $("#purchasesTable").DataTable({
         "autoWidth": false,
         "ajax": {
             "url": "/Purchases/GetPurchasesData",
@@ -129,6 +130,7 @@ $(document).ready(function () {
             "emptyTable": "No purchase history found. Click 'New Purchase' to stock in."
         }
     });
+    }
 
     // Initialize Supplier Select2
     $("#supplierSelect").select2({
@@ -529,7 +531,9 @@ $(document).ready(function () {
                 btn.prop("disabled", false).html(originalText);
                 if (response.success) {
                     $("#purchaseModal").modal("hide");
-                    table.ajax.reload();
+                    if (purchasesTable) {
+                        purchasesTable.ajax.reload(null, false);
+                    }
                     Swal.fire({
                         title: 'Success!',
                         text: response.message,
@@ -560,6 +564,31 @@ $(document).ready(function () {
             }
         });
     });
+
+    // Purchasing Module Tab Routing & Lazy Load
+    $('#purchasingTabs button').on('shown.bs.tab', function (e) {
+        var rawTarget = $(e.target).data('bs-target') || '';
+        var targetId = rawTarget.replace('#', '');
+        if (history.replaceState) {
+            var urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('tab', targetId);
+            var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + urlParams.toString();
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+        }
+        if (targetId === 'purchases' && purchasesTable) {
+            purchasesTable.ajax.reload(null, false);
+        } else if (targetId === 'suppliers' && typeof suppliersTable !== 'undefined' && suppliersTable) {
+            suppliersTable.ajax.reload(null, false);
+        }
+    });
+
+    // Activate tab from URL query param
+    var urlParams = new URLSearchParams(window.location.search);
+    var tabParam = urlParams.get('tab') || 'purchases';
+    var tabButton = $('#' + tabParam + '-tab');
+    if (tabButton.length) {
+        bootstrap.Tab.getOrCreateInstance(tabButton[0]).show();
+    }
 });
 
 function loadCategoryAndTypeFilters() {
@@ -756,7 +785,9 @@ function deletePurchase(id) {
                 },
                 success: function (response) {
                     if (response.success) {
-                        table.ajax.reload();
+                        if (purchasesTable) {
+                            purchasesTable.ajax.reload(null, false);
+                        }
                         Swal.fire({
                             title: 'Deleted!',
                             text: response.message,
@@ -1030,6 +1061,3 @@ function payLeaseInstallment(installmentId, remainingAmount) {
         }
     });
 }
-
-
-

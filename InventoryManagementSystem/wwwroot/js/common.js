@@ -1,4 +1,47 @@
 // Global IMS JS Utilities
+if (window.jQuery) {
+    // Automatic Anti-Forgery Token Injection for all jQuery AJAX POST/PUT/DELETE requests
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                var token = $('input[name="__RequestVerificationToken"]').val();
+                if (token) {
+                    xhr.setRequestHeader('RequestVerificationToken', token);
+                }
+            }
+        }
+    });
+}
+
+function showToast(msg, icon) {
+    if (!window.Swal) return;
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true
+    });
+    Toast.fire({
+        icon: icon || 'success',
+        title: msg
+    });
+}
+
+function copyToClipboard(elementId, toastMsg) {
+    var text = $(elementId).val() || $(elementId).text();
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () {
+            showToast(toastMsg || 'Copied to clipboard!');
+        });
+    } else {
+        var input = $(elementId)[0];
+        if (input && input.select) input.select();
+        document.execCommand('copy');
+        showToast(toastMsg || 'Copied to clipboard!');
+    }
+}
+
 if (window.jQuery && $.fn && $.fn.dataTable) {
     var defaultExportOptions = {
         columns: function (idx, data, node) {
@@ -216,16 +259,6 @@ $(document).ready(function () {
     if ($.fn.select2) {
         $.fn.select2.defaults.set("theme", "bootstrap-5");
     }
-
-    // Add anti-forgery token to all AJAX requests automatically if present
-    var token = $('input[name="__RequestVerificationToken"]').val();
-    if (token) {
-        $.ajaxSetup({
-            headers: {
-                'RequestVerificationToken': token
-            }
-        });
-    }
 });
 
 // Global CNIC formatting utility (XXXXX-XXXXXXX-X)
@@ -412,4 +445,60 @@ $(document).ready(function () {
             }
         });
     });
+
+    // Universal Sidebar Tab Interception & Zero-Reload Switcher
+    $('#sidebar-wrapper').on('click', '.sidebar-submenu a', function (e) {
+        var linkHref = $(this).attr('href');
+        if (!linkHref || linkHref.startsWith('#')) return;
+
+        try {
+            var targetUrl = new URL(linkHref, window.location.origin);
+            var currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+            var targetPath = targetUrl.pathname.replace(/\/+$/, '').toLowerCase();
+
+            // Check if link points to current page
+            if (currentPath === targetPath || (currentPath === '' && targetPath === '/home')) {
+                var tabParam = targetUrl.searchParams.get('tab');
+                if (tabParam) {
+                    var tabBtn = $('#' + tabParam + '-tab');
+                    if (tabBtn.length) {
+                        e.preventDefault();
+
+                        // Switch active class in sidebar immediately
+                        $('.sidebar-submenu a').removeClass('active-sublink');
+                        $(this).addClass('active-sublink');
+
+                        // Activate the tab
+                        bootstrap.Tab.getOrCreateInstance(tabBtn[0]).show();
+
+                        // Update browser URL query string without full reload
+                        if (history.replaceState) {
+                            window.history.replaceState({ path: targetUrl.href }, '', targetUrl.href);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            // If URL parsing fails, allow standard browser navigation
+        }
+    });
+
+    // Global listener to sync sidebar active state whenever any tab is shown
+    $(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"], a[data-bs-toggle="tab"]', function (e) {
+        var rawTarget = $(e.target).data('bs-target') || $(e.target).attr('href') || '';
+        var targetId = rawTarget.replace('#', '').replace('-tab', '');
+        if (targetId) {
+            $('.sidebar-submenu a').removeClass('active-sublink');
+            var matchingLink = $('#side-nav-' + targetId);
+            if (matchingLink.length) {
+                matchingLink.addClass('active-sublink');
+                var parentCollapse = matchingLink.closest('.collapse');
+                if (parentCollapse.length && !parentCollapse.hasClass('show')) {
+                    var bsCollapse = bootstrap.Collapse.getInstance(parentCollapse[0]) || new bootstrap.Collapse(parentCollapse[0], { toggle: false });
+                    bsCollapse.show();
+                }
+            }
+        }
+    });
 });
+
