@@ -53,7 +53,7 @@ $(document).ready(function () {
                 "render": function (data) {
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
-                            <button class="btn btn-sm btn-dark" onclick="openEditModal('${data}')" title="Edit Customer">
+                            <button class="btn btn-sm btn-dark" onclick="openCustomerEditModal('${data}')" title="Edit Customer">
                                 <i class="fas fa-edit me-1"></i>Edit
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteCustomer('${data}')" title="Delete Customer">
@@ -145,7 +145,7 @@ $(document).ready(function () {
     });
 });
 
-function openCreateModal() {
+function openCustomerCreateModal() {
     $("#customerForm")[0].reset();
     $("#customerId").val("");
     $("#customerCnic").val("");
@@ -154,7 +154,7 @@ function openCreateModal() {
     $("#customerModal").modal("show");
 }
 
-function openEditModal(id) {
+function openCustomerEditModal(id) {
     $(".text-danger").text("");
     $.ajax({
         url: "/Customers/GetCustomer/" + id,

@@ -110,7 +110,7 @@ $(document).ready(function () {
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Purchase">
+                            <button class="btn btn-sm btn-dark" onclick="openPurchaseEditModal(${data})" title="Edit Purchase">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                             <button class="btn btn-sm btn-info text-white" onclick="printVoucher(${data})" title="Print Voucher">
@@ -653,7 +653,7 @@ function removePurchaseItem(index) {
     renderPurchaseItemsTable();
 }
 
-function openCreateModal() {
+function openPurchaseCreateModal() {
     isModalLoading = true;
     voucherItems = [];
     renderPurchaseItemsTable();
@@ -679,7 +679,7 @@ function openCreateModal() {
     isModalLoading = false;
 }
 
-function openEditModal(id) {
+function openPurchaseEditModal(id) {
     isModalLoading = true;
     $(".text-danger").text("");
     $("#newSupplierToggleContainer").hide();

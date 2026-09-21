@@ -72,7 +72,7 @@ $(document).ready(function () {
                 "render": function (data) {
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
-                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Supplier">
+                            <button class="btn btn-sm btn-dark" onclick="openSupplierEditModal(${data})" title="Edit Supplier">
                                 <i class="fas fa-edit me-1"></i>Edit
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSupplier(${data})" title="Delete Supplier">
@@ -164,7 +164,7 @@ $(document).ready(function () {
     });
 });
 
-function openCreateModal() {
+function openSupplierCreateModal() {
     // Reset Form
     $("#supplierForm")[0].reset();
     $("#supplierId").val(0);
@@ -174,7 +174,7 @@ function openCreateModal() {
     $("#supplierModal").modal("show");
 }
 
-function openEditModal(id) {
+function openSupplierEditModal(id) {
     $(".text-danger").text(""); // Clear validation errors
     $.ajax({
         url: "/Suppliers/GetSupplier/" + id,

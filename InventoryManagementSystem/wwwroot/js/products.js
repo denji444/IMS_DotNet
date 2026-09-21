@@ -88,7 +88,7 @@ $(document).ready(function () {
                     "render": function (data) {
                         return `
                             <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
-                                <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Product">
+                                <button class="btn btn-sm btn-dark" onclick="openProductEditModal(${data})" title="Edit Product">
                                     <i class="fas fa-edit me-1"></i>Edit
                                 </button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteProduct(${data})" title="Delete Product">
@@ -419,7 +419,7 @@ function addVariantRow(name, sku) {
     $("#additionalVariantsContainer").append(rowHtml);
 }
 
-function openCreateModal() {
+function openProductCreateModal() {
     $("#productForm")[0].reset();
     $("#productId").val(0);
     $("#productModalLabel").text("Add Product");
@@ -429,7 +429,7 @@ function openCreateModal() {
     $("#productModal").modal("show");
 }
 
-function openEditModal(id) {
+function openProductEditModal(id) {
     $("#productForm")[0].reset();
     $("#productId").val(id);
     $("#productModalLabel").text("Edit Product");

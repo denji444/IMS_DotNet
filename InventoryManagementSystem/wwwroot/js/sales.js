@@ -101,7 +101,7 @@ $(document).ready(function () {
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark" onclick="openEditModal(${data})" title="Edit Sale">
+                            <button class="btn btn-sm btn-dark" onclick="openSaleEditModal(${data})" title="Edit Sale">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                             <button class="btn btn-sm btn-info text-white" onclick="printInvoice(${data})" title="Print Invoice">
@@ -677,7 +677,7 @@ function removeSaleItem(index) {
     renderSaleItemsTable();
 }
 
-function openCreateModal() {
+function openSaleCreateModal() {
     invoiceItems = [];
     renderSaleItemsTable();
     $("#saleForm")[0].reset();
@@ -703,7 +703,7 @@ function openCreateModal() {
     $("#saleModal").modal("show");
 }
 
-function openEditModal(id) {
+function openSaleEditModal(id) {
     $(".text-danger").text("");
     $("#newCustomerToggleContainer").hide();
     $("#newCustomerFields").addClass("d-none");
