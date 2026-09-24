@@ -16,7 +16,7 @@ $(document).ready(function () {
         "columns": [
             { 
                 "data": "invoiceNo",
-                "width": "18%",
+                "width": "15%",
                 "className": "text-center align-middle text-nowrap",
                 "render": function(data, type, row) {
                     var dt = row.saleDate ? row.saleDate.split(' ')[0] : '';
@@ -28,7 +28,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "productName",
-                "width": "35%",
+                "width": "27%",
                 "className": "text-center align-middle",
                 "render": function(data, type, row) {
                     if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
@@ -56,7 +56,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "customerName",
-                "width": "15%",
+                "width": "14%",
                 "className": "text-center align-middle",
                 "render": function(data) {
                     if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
@@ -66,7 +66,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "totalAmount",
-                "width": "15%",
+                "width": "14%",
                 "className": "text-center align-middle text-nowrap",
                 "render": function(data) {
                     var totalP = parseFloat(data || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -77,7 +77,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "notes",
-                "width": "10%",
+                "width": "12%",
                 "className": "text-center align-middle",
                 "render": function(data) {
                     if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
@@ -87,28 +87,27 @@ $(document).ready(function () {
             },
             {
                 "data": "id",
-                "width": "7%",
-                "className": "text-center align-middle text-nowrap",
+                "width": "18%",
                 "render": function (data, type, row) {
                     var leaseBtn = "";
                     if (row.paymentMode === 1) {
                         leaseBtn = `
-                            <button class="btn btn-sm btn-warning text-dark" onclick="openLeaseModal(${data}, '${row.invoiceNo}', ${row.totalAmount}, ${row.downPayment || 0})" title="Lease Schedule">
-                                <i class="fas fa-calendar-alt"></i> Lease
+                            <button class="btn btn-sm btn-warning text-dark px-2 py-1" onclick="openLeaseModal(${data}, '${row.invoiceNo}', ${row.totalAmount}, ${row.downPayment || 0})" title="Lease Schedule">
+                                <i class="fas fa-calendar-alt"></i><span class="d-none d-xxl-inline ms-1">Lease</span>
                             </button>
                         `;
                     }
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark" onclick="openSaleEditModal(${data})" title="Edit Sale">
-                                <i class="fas fa-edit"></i> Edit
+                            <button class="btn btn-sm btn-dark px-2 py-1" onclick="openSaleEditModal(${data})" title="Edit Sale">
+                                <i class="fas fa-edit"></i><span class="d-none d-xxl-inline ms-1">Edit</span>
                             </button>
-                            <button class="btn btn-sm btn-info text-white" onclick="printInvoice(${data})" title="Print Invoice">
-                                <i class="fas fa-print"></i> Invoice
+                            <button class="btn btn-sm btn-info text-white px-2 py-1" onclick="printInvoice(${data})" title="Print Invoice">
+                                <i class="fas fa-print"></i><span class="d-none d-xxl-inline ms-1">Invoice</span>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteSale(${data})" title="Delete Sale">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-danger px-2 py-1" onclick="deleteSale(${data})" title="Delete Sale">
+                                <i class="fas fa-trash"></i><span class="d-none d-xxl-inline ms-1">Delete</span>
                             </button>
                         </div>
                     `;
@@ -184,6 +183,119 @@ $(document).ready(function () {
             },
             cache: true
         }
+    });
+
+    // Barcode Scanner handler (Supports instant Enter or automatic typing/scanner detection)
+    var saleScanTimeout = null;
+    var isScanningSale = false;
+
+    function handleSaleScan(code) {
+        if (!code || isScanningSale) return;
+        var cleanCode = code.trim();
+        if (!cleanCode) return;
+
+        isScanningSale = true;
+        $.ajax({
+            url: "/Products/GetProductByBarcode?code=" + encodeURIComponent(cleanCode),
+            type: "GET",
+            success: function (res) {
+                isScanningSale = false;
+                if (res.success) {
+                    // 1. Set Category & Product Type Filters
+                    if (res.categoryName) {
+                        $("#itemCategoryFilter").val(res.categoryName).trigger('change.select2');
+                        var $typeSelect = $("#itemTypeFilter");
+                        $typeSelect.empty().append('<option value="">-- All Product Types --</option>');
+                        $.ajax({
+                            url: "/Products/GetTypesByCategory?categoryName=" + encodeURIComponent(res.categoryName),
+                            type: "GET",
+                            success: function(types) {
+                                if (types && types.length > 0) {
+                                    $.each(types, function(i, t) {
+                                        $typeSelect.append(new Option(t, t));
+                                    });
+                                }
+                                if (res.productType) {
+                                    $typeSelect.val(res.productType);
+                                }
+                                $typeSelect.trigger('change.select2');
+                            }
+                        });
+                    }
+
+                    // 2. Select Product in Select2 & Trigger Batch Loading & Rates
+                    var option = new Option(res.text, res.id, true, true);
+                    $("#productSelect").append(option).trigger('change');
+
+                    // 3. Fallback unit price if no batch demand rate overrides it
+                    if (res.demandRate !== undefined && res.demandRate !== null && parseFloat(res.demandRate) > 0) {
+                        $("#unitPrice").val(parseFloat(res.demandRate).toFixed(2));
+                    } else if (res.price !== undefined && res.price !== null && parseFloat(res.price) > 0) {
+                        $("#unitPrice").val(parseFloat(res.price).toFixed(2));
+                    }
+
+                    // 4. Toast notification & focus
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `Scanned: ${res.text}`,
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    $("#saleBarcodeScan").val("");
+                    $("#saleQty").val(1).focus().select();
+                } else {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: res.message || 'Product not found',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                    $("#saleBarcodeScan").select();
+                }
+            },
+            error: function () {
+                isScanningSale = false;
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Error looking up barcode.',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        });
+    }
+
+    $("#saleBarcodeScan").on("keydown", function (e) {
+        if (e.which === 13 || e.key === "Enter") {
+            e.preventDefault();
+            clearTimeout(saleScanTimeout);
+            handleSaleScan($(this).val());
+        }
+    });
+
+    $("#saleBarcodeScan").on("input", function () {
+        clearTimeout(saleScanTimeout);
+        var val = $(this).val().trim();
+        if (val.length >= 3) {
+            saleScanTimeout = setTimeout(function () {
+                handleSaleScan(val);
+            }, 350);
+        }
+    });
+
+    $("#btnClearSaleBarcode").on("click", function () {
+        clearTimeout(saleScanTimeout);
+        $("#saleBarcodeScan").val("").focus();
+    });
+
+    $('#saleModal').on('shown.bs.modal', function () {
+        $('#saleBarcodeScan').focus();
     });
 
     // Handle Category & Product Type filter changes
@@ -692,6 +804,7 @@ function openSaleCreateModal() {
     $("#newCustomerFields").addClass("d-none");
     clearNewCustomerFields();
     $("#productSelect").val(null).trigger('change');
+    $("#saleBarcodeScan").val("");
     $("#saleBatchSelect").empty().append('<option value="">-- General / Unbatched Stock --</option>').trigger('change');
     $("#availableStockContainer").addClass("d-none");
     $("#availableStockQty").text("0");

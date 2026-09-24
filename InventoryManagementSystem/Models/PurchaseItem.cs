@@ -23,6 +23,9 @@ namespace InventoryManagementSystem.Models
         [StringLength(100)]
         public string? BatchNumber { get; set; }
 
+        [NotMapped]
+        public string? Barcode { get; set; }
+
         [Required]
         [Range(1, 1000000, ErrorMessage = "Quantity must be at least 1")]
         public int Quantity { get; set; }

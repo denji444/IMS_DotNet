@@ -13,7 +13,7 @@
                 <table class="table table-hover table-striped align-middle w-100" id="purchasesTable">
                     <thead class="table-dark text-center">
                         <tr>
-                            <th class="text-center">Voucher & Date</th>
+                            <th class="text-center">Invoice & Date</th>
                             <th class="text-center">Product & Batch</th>
                             <th class="text-center">Supplier</th>
                             <th class="text-center">Qty</th>
@@ -91,10 +91,18 @@
                             </div>
                         </div>
 
-                        <!-- Multi-Item Purchase Voucher Builder -->
+                        <!-- Multi-Item Purchase Invoice Builder -->
                         <div class="border rounded p-3 mb-3 bg-light">
-                            <h6 class="text-dark mb-3 fw-bold"><i class="fas fa-boxes text-primary me-2"></i>Voucher Items Selection</h6>
+                            <h6 class="text-dark mb-3 fw-bold"><i class="fas fa-boxes text-primary me-2"></i>Invoice Items Selection</h6>
                             
+                            <div class="mb-2">
+                                <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-barcode text-primary me-1"></i>Barcode Scanner (Scan Box Barcode or Enter SKU)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control" id="purchaseBarcodeScan" placeholder="Scan barcode with scanner or enter SKU/Barcode..." autocomplete="off" />
+                                    <button class="btn btn-outline-secondary" type="button" id="btnClearPurchaseBarcode" title="Clear"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+
                             <div class="row g-2 mb-2">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary small fw-bold mb-1">Filter Category</label>
@@ -111,17 +119,22 @@
                             </div>
 
                             <div class="row g-2 mb-2">
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label text-secondary small fw-bold mb-1">Select Product SKU</label>
                                     <select class="form-select select2-product w-100" id="productSelect">
                                         <!-- Remotely bound -->
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-layer-group text-primary me-1"></i>Batch Name / Number</label>
                                     <select class="form-select form-select-sm w-100" id="batchNumber">
                                         <option value="">Select or Type Batch...</option>
                                     </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-secondary small fw-bold mb-1"><i class="fas fa-barcode text-primary me-1"></i>New <Barcode></Barcode></label>
+                                    <input type="text" class="form-control form-control-sm" id="itemBarcode" placeholder="Scan or type barcode..." autocomplete="off" />
+                                    <div class="small fw-semibold mt-1" id="itemBarcodeFeedback" style="font-size: 0.72rem;"></div>
                                 </div>
                             </div>
 
@@ -166,7 +179,7 @@
                                     </thead>
                                     <tbody id="purchaseItemsTableBody">
                                         <tr id="emptyPurchaseItemsRow">
-                                            <td colspan="8" class="text-muted small py-3">No items added to voucher yet. Select a product, batch & rates, then click "Add".</td>
+                                            <td colspan="8" class="text-muted small py-3">No items added to invoice yet. Select a product, batch & rates, then click "Add".</td>
                                         </tr>
                                     </tbody>
                                 </table>

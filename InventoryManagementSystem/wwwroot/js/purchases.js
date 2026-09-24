@@ -17,7 +17,7 @@ $(document).ready(function () {
         "columns": [
             { 
                 "data": "purchaseNo",
-                "width": "18%",
+                "width": "15%",
                 "className": "text-center align-middle text-nowrap",
                 "render": function(data, type, row) {
                     var dt = row.purchaseDate ? row.purchaseDate.split(' ')[0] : '';
@@ -29,7 +29,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "productName",
-                "width": "30%",
+                "width": "24%",
                 "className": "text-center align-middle",
                 "render": function(data, type, row) {
                     if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
@@ -57,7 +57,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "supplierName",
-                "width": "14%",
+                "width": "13%",
                 "className": "text-center align-middle",
                 "render": function(data) {
                     return `<span class="fw-medium text-dark text-truncate d-block mx-auto" style="max-width: 130px;" title="${data}">${data}</span>`;
@@ -73,7 +73,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "totalCost",
-                "width": "15%",
+                "width": "14%",
                 "className": "text-center align-middle text-nowrap",
                 "render": function(data, type, row) {
                     var unitP = parseFloat(row.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -86,7 +86,7 @@ $(document).ready(function () {
             },
             { 
                 "data": "notes",
-                "width": "15%",
+                "width": "10%",
                 "className": "text-center align-middle",
                 "render": function(data) {
                     if (!data || data === "N/A") return `<span class="text-muted small">N/A</span>`;
@@ -96,28 +96,27 @@ $(document).ready(function () {
             },
             {
                 "data": "id",
-                "width": "12%",
-                "className": "text-center align-middle text-nowrap",
+                "width": "18%",
                 "render": function (data, type, row) {
                     var leaseBtn = "";
                     if (row.paymentMode === 1) {
                         leaseBtn = `
-                            <button class="btn btn-sm btn-warning text-dark" onclick="openLeaseModal(${data}, '${row.purchaseNo}', ${row.totalCost}, ${row.downPayment || 0})" title="Lease Schedule">
-                                <i class="fas fa-calendar-alt"></i> Lease
+                            <button class="btn btn-sm btn-warning text-dark px-2 py-1" onclick="openLeaseModal(${data}, '${row.purchaseNo}', ${row.totalCost}, ${row.downPayment || 0})" title="Lease Schedule">
+                                <i class="fas fa-calendar-alt"></i><span class="d-none d-xxl-inline ms-1">Lease</span>
                             </button>
                         `;
                     }
                     return `
                         <div class="d-inline-flex gap-1 text-nowrap justify-content-center">
                             ${leaseBtn}
-                            <button class="btn btn-sm btn-dark" onclick="openPurchaseEditModal(${data})" title="Edit Purchase">
-                                <i class="fas fa-edit"></i> Edit
+                            <button class="btn btn-sm btn-dark px-2 py-1" onclick="openPurchaseEditModal(${data})" title="Edit Purchase">
+                                <i class="fas fa-edit"></i><span class="d-none d-xxl-inline ms-1">Edit</span>
                             </button>
-                            <button class="btn btn-sm btn-info text-white" onclick="printVoucher(${data})" title="Print Voucher">
-                                <i class="fas fa-print"></i> Print
+                            <button class="btn btn-sm btn-info text-white px-2 py-1" onclick="printVoucher(${data})" title="Print Purchase Invoice">
+                                <i class="fas fa-print"></i><span class="d-none d-xxl-inline ms-1">Print</span>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePurchase(${data})" title="Delete Purchase">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-danger px-2 py-1" onclick="deletePurchase(${data})" title="Delete Purchase">
+                                <i class="fas fa-trash"></i><span class="d-none d-xxl-inline ms-1">Delete</span>
                             </button>
                         </div>
                     `;
@@ -211,6 +210,140 @@ $(document).ready(function () {
         }
     });
 
+    // Barcode Scanner handler (Supports instant Enter or automatic typing/scanner detection)
+    var purchaseScanTimeout = null;
+    var isScanningPurchase = false;
+
+    function handlePurchaseScan(code) {
+        if (!code || isScanningPurchase) return;
+        var cleanCode = code.trim();
+        if (!cleanCode) return;
+
+        isScanningPurchase = true;
+        $.ajax({
+            url: "/Products/GetProductByBarcode?code=" + encodeURIComponent(cleanCode),
+            type: "GET",
+            success: function (res) {
+                isScanningPurchase = false;
+                if (res.success) {
+                    // 1. Set Category & Product Type Filters
+                    if (res.categoryName) {
+                        $("#itemCategoryFilter").val(res.categoryName).trigger('change.select2');
+                        var $typeSelect = $("#itemTypeFilter");
+                        $typeSelect.empty().append('<option value="">-- All Product Types --</option>');
+                        $.ajax({
+                            url: "/Products/GetTypesByCategory?categoryName=" + encodeURIComponent(res.categoryName),
+                            type: "GET",
+                            success: function(types) {
+                                if (types && types.length > 0) {
+                                    $.each(types, function(i, t) {
+                                        $typeSelect.append(new Option(t, t));
+                                    });
+                                }
+                                if (res.productType) {
+                                    $typeSelect.val(res.productType);
+                                }
+                                $typeSelect.trigger('change.select2');
+                            }
+                        });
+                    }
+
+                    // 2. Select Product in Select2 & Trigger Batch Loading
+                    var option = new Option(res.text, res.id, true, true);
+                    $("#productSelect").append(option).trigger('change');
+
+                    // 3. Auto-populate Rates
+                    if (res.purchaseRate !== undefined && res.purchaseRate !== null && parseFloat(res.purchaseRate) > 0) {
+                        $("#unitPrice").val(parseFloat(res.purchaseRate).toFixed(2));
+                    } else if (res.price !== undefined && res.price !== null && parseFloat(res.price) > 0) {
+                        $("#unitPrice").val(parseFloat(res.price).toFixed(2));
+                    }
+
+                    if (res.demandRate !== undefined && res.demandRate !== null && parseFloat(res.demandRate) > 0) {
+                        $("#demandRate").val(parseFloat(res.demandRate).toFixed(2));
+                    }
+
+                    if (res.fixRate !== undefined && res.fixRate !== null && parseFloat(res.fixRate) > 0) {
+                        $("#fixRate").val(parseFloat(res.fixRate).toFixed(2));
+                    }
+
+                    // 4. Auto-select or create Batch if available
+                    if (res.latestBatch) {
+                        setTimeout(function() {
+                            var $batchSelect = $("#batchNumber");
+                            if ($batchSelect.find("option[value='" + res.latestBatch + "']").length === 0) {
+                                $batchSelect.append(new Option(res.latestBatch, res.latestBatch, true, true));
+                            } else {
+                                $batchSelect.val(res.latestBatch);
+                            }
+                            $batchSelect.trigger("change.select2");
+                        }, 150);
+                    }
+
+                    // 5. Toast notification & focus
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `Scanned: ${res.text}`,
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    $("#purchaseBarcodeScan").val("");
+                    $("#purchaseQty").val(1).focus().select();
+                } else {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: res.message || 'Product not found',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                    $("#purchaseBarcodeScan").select();
+                }
+            },
+            error: function () {
+                isScanningPurchase = false;
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Error looking up barcode.',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        });
+    }
+
+    $("#purchaseBarcodeScan").on("keydown", function (e) {
+        if (e.which === 13 || e.key === "Enter") {
+            e.preventDefault();
+            clearTimeout(purchaseScanTimeout);
+            handlePurchaseScan($(this).val());
+        }
+    });
+
+    $("#purchaseBarcodeScan").on("input", function () {
+        clearTimeout(purchaseScanTimeout);
+        var val = $(this).val().trim();
+        if (val.length >= 3) {
+            purchaseScanTimeout = setTimeout(function () {
+                handlePurchaseScan(val);
+            }, 350);
+        }
+    });
+
+    $("#btnClearPurchaseBarcode").on("click", function () {
+        clearTimeout(purchaseScanTimeout);
+        $("#purchaseBarcodeScan").val("").focus();
+    });
+
+    $('#purchaseModal').on('shown.bs.modal', function () {
+        $('#purchaseBarcodeScan').focus();
+    });
+
     // Handle Category & Product Type filter changes
     $("#itemCategoryFilter").on("change", function() {
         var catName = $(this).val();
@@ -276,7 +409,11 @@ $(document).ready(function () {
     // Load initial registered batches on page ready
     loadRegisteredBatchesForPurchase(null);
 
-    // Listen to product selection to automatically populate unit cost and fetch existing batches
+    $("#itemBarcode").on("input change blur", function () {
+        validateItemBarcode();
+    });
+
+    // Listen to product selection to automatically populate unit cost, barcode, and fetch existing batches
     $("#productSelect").on("change", function () {
         var id = $(this).val();
         loadRegisteredBatchesForPurchase(id);
@@ -286,6 +423,13 @@ $(document).ready(function () {
         var data = e.params.data;
         if (data && data.price) {
             $("#unitPrice").val(parseFloat(data.price).toFixed(2));
+        }
+        if (data && data.barcode) {
+            $("#itemBarcode").val(data.barcode);
+            validateItemBarcode();
+        } else {
+            $("#itemBarcode").val("");
+            resetItemBarcodeFeedback();
         }
         if (data && data.stockQuantity !== undefined && parseInt(data.stockQuantity) >= 50) {
             Swal.fire({
@@ -306,6 +450,7 @@ $(document).ready(function () {
         var productText = $("#productSelect option:selected").text();
         var rawBatch = $("#batchNumber").val();
         var batchNumber = (rawBatch && typeof rawBatch === 'string') ? rawBatch.trim() : (Array.isArray(rawBatch) ? rawBatch.join(', ').trim() : "");
+        var barcodeVal = $("#itemBarcode").val().trim();
         var qty = parseInt($("#purchaseQty").val()) || 0;
         var unitPrice = parseFloat($("#unitPrice").val()) || 0;
         var demandRateRaw = $("#demandRate").val().trim();
@@ -320,6 +465,10 @@ $(document).ready(function () {
         }
         if (!batchNumber) {
             Swal.fire({ title: 'Warning!', text: 'Batch Name / Number is required to bind product rates.', icon: 'warning', confirmButtonColor: '#3085d6' });
+            return;
+        }
+        if ($("#itemBarcode").hasClass("is-invalid")) {
+            Swal.fire({ title: 'Validation Error!', text: 'The entered barcode is already assigned to another product.', icon: 'error', confirmButtonColor: '#d33' });
             return;
         }
         if (qty <= 0) {
@@ -359,6 +508,7 @@ $(document).ready(function () {
             productId: productId,
             productName: productText,
             batchNumber: batchNumber,
+            barcode: barcodeVal || null,
             quantity: qty,
             unitPrice: unitPrice,
             demandRate: demandRate,
@@ -369,6 +519,8 @@ $(document).ready(function () {
         // Clear product inputs
         $("#productSelect").val(null).trigger('change');
         $("#batchNumber").val(null).trigger('change');
+        $("#itemBarcode").val("");
+        resetItemBarcodeFeedback();
         $("#purchaseQty").val(1);
         $("#unitPrice").val("");
         $("#demandRate").val("");
@@ -418,7 +570,7 @@ $(document).ready(function () {
         if (!voucherItems || voucherItems.length === 0) {
             Swal.fire({
                 title: 'Validation Error!',
-                text: 'Please add at least one item to the purchase voucher.',
+                text: 'Please add at least one item to the purchase invoice.',
                 icon: 'warning',
                 confirmButtonColor: '#3085d6'
             });
@@ -591,6 +743,54 @@ $(document).ready(function () {
     }
 });
 
+// Live Barcode Remote Validation (Global Scope)
+var barcodeValidationTimeout = null;
+
+function resetItemBarcodeFeedback() {
+    $("#itemBarcode").removeClass("is-invalid is-valid");
+    $("#itemBarcodeFeedback").removeClass("text-danger text-success text-warning").text("");
+    $("#btnAddPurchaseItem").prop("disabled", false);
+}
+
+function validateItemBarcode() {
+    var code = $("#itemBarcode").val().trim();
+    var productId = $("#productSelect").val();
+
+    if (!code) {
+        resetItemBarcodeFeedback();
+        return;
+    }
+
+    clearTimeout(barcodeValidationTimeout);
+    barcodeValidationTimeout = setTimeout(function () {
+        $.ajax({
+            url: "/Products/ValidateBarcode",
+            type: "GET",
+            data: { code: code, productId: productId },
+            success: function (res) {
+                if (res.valid) {
+                    $("#itemBarcode").removeClass("is-invalid").addClass("is-valid");
+                    if (res.isCurrentProduct) {
+                        $("#itemBarcodeFeedback").removeClass("text-danger text-success").addClass("text-warning").text(res.message);
+                    } else if (res.message) {
+                        $("#itemBarcodeFeedback").removeClass("text-danger text-warning").addClass("text-success").text(res.message);
+                    } else {
+                        $("#itemBarcodeFeedback").removeClass("text-danger text-warning text-success").text("");
+                    }
+                    $("#btnAddPurchaseItem").prop("disabled", false);
+                } else {
+                    $("#itemBarcode").removeClass("is-valid").addClass("is-invalid");
+                    $("#itemBarcodeFeedback").removeClass("text-success text-warning").addClass("text-danger").text(res.message);
+                    $("#btnAddPurchaseItem").prop("disabled", true);
+                }
+            },
+            error: function () {
+                resetItemBarcodeFeedback();
+            }
+        });
+    }, 300);
+}
+
 function loadCategoryAndTypeFilters() {
     $.ajax({
         url: "/Products/GetCategoriesWithTypes",
@@ -614,7 +814,7 @@ function renderPurchaseItemsTable() {
     var grandTotal = 0;
 
     if (!voucherItems || voucherItems.length === 0) {
-        $tbody.html('<tr id="emptyPurchaseItemsRow"><td colspan="8" class="text-muted small py-3">No items added to voucher yet. Select a product, batch & rates, then click "Add".</td></tr>');
+        $tbody.html('<tr id="emptyPurchaseItemsRow"><td colspan="8" class="text-muted small py-3">No items added to invoice yet. Select a product, batch & rates, then click "Add".</td></tr>');
         $("#totalCost").val("0.00").trigger('change');
         return;
     }
@@ -623,12 +823,13 @@ function renderPurchaseItemsTable() {
         var lineTotal = item.quantity * item.unitPrice;
         grandTotal += lineTotal;
         var batchBadge = item.batchNumber ? `<span class="badge bg-primary text-white"><i class="fas fa-layer-group me-1"></i>${item.batchNumber}</span>` : '<span class="badge bg-light text-secondary">General</span>';
+        var barcodeBadge = item.barcode ? `<div class="mt-1"><span class="badge bg-light text-dark border font-monospace small" style="font-size: 0.72rem;"><i class="fas fa-barcode me-1 text-secondary"></i>${item.barcode}</span></div>` : '';
         var dRateHtml = (item.demandRate !== null && item.demandRate !== undefined && !isNaN(parseFloat(item.demandRate))) ? `PKR ${parseFloat(item.demandRate).toFixed(2)}` : '<span class="text-muted small">N/A</span>';
         var fRateHtml = (item.fixRate !== null && item.fixRate !== undefined && !isNaN(parseFloat(item.fixRate))) ? `PKR ${parseFloat(item.fixRate).toFixed(2)}` : '<span class="text-muted small">N/A</span>';
 
         var rowHtml = `
             <tr>
-                <td class="text-start fw-bold small">${item.productName}</td>
+                <td class="text-start fw-bold small">${item.productName}${barcodeBadge}</td>
                 <td>${batchBadge}</td>
                 <td>${item.quantity}</td>
                 <td>PKR ${parseFloat(item.unitPrice).toFixed(2)}</td>
@@ -659,6 +860,8 @@ function openPurchaseCreateModal() {
     renderPurchaseItemsTable();
     $("#purchaseForm")[0].reset();
     $("#purchaseId").val(0);
+    $("#itemBarcode").val("");
+    resetItemBarcodeFeedback();
     $("#itemCategoryFilter").val("").trigger('change');
     $("#itemTypeFilter").val("").trigger('change');
     $("#supplierSelect").val(null).trigger('change');
@@ -670,6 +873,7 @@ function openPurchaseCreateModal() {
     clearNewSupplierFields();
     $("#productSelect").val(null).trigger('change');
     $("#batchNumber").val(null).trigger('change');
+    $("#purchaseBarcodeScan").val("");
     $(".text-danger").text("");
     $("#paymentMode").val("0").trigger('change').prop('disabled', false);
     $("#paymentMethod").val("0").trigger('change');
@@ -687,6 +891,8 @@ function openPurchaseEditModal(id) {
     $("#supplierSelectContainer").removeClass("d-none");
     $("#supplierSelect").attr("required", "required");
     clearNewSupplierFields();
+    $("#itemBarcode").val("");
+    resetItemBarcodeFeedback();
     $.ajax({
         url: "/Purchases/GetPurchase/" + id,
         type: "GET",
@@ -703,6 +909,7 @@ function openPurchaseEditModal(id) {
                         productId: i.productId,
                         productName: i.productName || ("Product #" + i.productId),
                         batchNumber: i.batchNumber || "",
+                        barcode: i.barcode || "",
                         quantity: i.quantity,
                         unitPrice: i.unitPrice,
                         demandRate: i.demandRate !== undefined ? i.demandRate : null,

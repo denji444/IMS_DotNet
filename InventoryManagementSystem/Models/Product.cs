@@ -14,6 +14,10 @@ namespace InventoryManagementSystem.Models
         [Remote("VerifySku", "Products", AdditionalFields = nameof(Id), ErrorMessage = "SKU already exists")]
         public string Sku { get; set; } = string.Empty;
 
+        [StringLength(50, ErrorMessage = "Barcode cannot exceed 50 characters")]
+        [Remote("VerifyBarcode", "Products", AdditionalFields = nameof(Id), ErrorMessage = "Barcode is already assigned to another product")]
+        public string? Barcode { get; set; }
+
         [Required(ErrorMessage = "Product Name is required")]
         [StringLength(100, ErrorMessage = "Product Name cannot exceed 100 characters")]
         public string Name { get; set; } = string.Empty;

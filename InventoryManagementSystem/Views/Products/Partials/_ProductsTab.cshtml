@@ -13,7 +13,7 @@
                 <table class="table table-hover table-striped align-middle w-100" id="productsTable">
                     <thead class="table-dark text-center">
                         <tr>
-                            <th class="text-center">SKU</th>
+                            <th class="text-center">SKU & Barcode</th>
                             <th class="text-center">Product & Variant</th>
                             <th class="text-center">Category & Condition</th>
                             <th class="text-center">Description</th>
@@ -32,7 +32,7 @@
 
     <!-- Product Create/Edit Modal -->
     <div class="modal fade" id="productModal" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title" id="productModalLabel">Add Product</h5>
@@ -65,16 +65,23 @@
                             </div>
                         </div>
 
-                        <!-- Main SKU & Variant fields (Always visible) -->
+                        <!-- Main SKU, Barcode & Variant fields -->
                         <div class="row g-2 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-floating">
-                                    <input asp-for="Sku" class="form-control" id="productSku" placeholder="Product SKU" required />
+                                    <input asp-for="Sku" class="form-control" id="productSku" placeholder="Product SKU (Internal)" />
                                     <label asp-for="Sku">SKU</label>
                                     <span asp-validation-for="Sku" class="text-danger" id="skuError"></span>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Barcode" class="form-control" id="productBarcode" placeholder="Barcode (UPC/EAN)" />
+                                    <label asp-for="Barcode">Barcode</label>
+                                    <span asp-validation-for="Barcode" class="text-danger" id="barcodeError"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="form-floating">
                                     <input asp-for="Variant" class="form-control" id="productVariant" placeholder="Variant (Color, Size, etc.)" />
                                     <label asp-for="Variant">Variant Name</label>

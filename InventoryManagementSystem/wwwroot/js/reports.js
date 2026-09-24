@@ -16,7 +16,13 @@ $(document).ready(function () {
             }
         },
         "columns": [
-            { "data": "sku" },
+            { 
+                "data": "sku",
+                "render": function(data, type, row) {
+                    var barcodeHtml = row.barcode ? `<small class="text-muted d-block font-monospace"><i class="fas fa-barcode me-1"></i>${row.barcode}</small>` : '';
+                    return `<div><span class="fw-bold text-dark">${data}</span>${barcodeHtml}</div>`;
+                }
+            },
             { "data": "productName" },
             { "data": "variant", "render": function(data) { return data ? data : "Standard"; } },
             { "data": "availableQuantity", "className": "text-center" },

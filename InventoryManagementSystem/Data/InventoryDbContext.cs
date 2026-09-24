@@ -37,6 +37,12 @@ namespace InventoryManagementSystem.Data
                 .HasIndex(p => p.Sku)
                 .IsUnique();
 
+            // Product Barcode unique if not null
+            builder.Entity<Product>()
+                .HasIndex(p => p.Barcode)
+                .IsUnique()
+                .HasFilter("[Barcode] IS NOT NULL");
+
             // Supplier Name must be unique
             builder.Entity<Supplier>()
                 .HasIndex(s => s.Name)

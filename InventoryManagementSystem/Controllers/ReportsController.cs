@@ -70,6 +70,7 @@ namespace InventoryManagementSystem.Controllers
                 {
                     ProductId = p.Id,
                     Sku = p.Sku,
+                    Barcode = p.Barcode,
                     ProductName = p.Name,
                     Variant = p.Variant,
                     AvailableQuantity = p.StockQuantity,

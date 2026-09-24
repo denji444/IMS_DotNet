@@ -256,7 +256,7 @@
                                             <tr>
                                                 <td>
                                                     <div class="fw-bold text-dark">@prod.Name</div>
-                                                    <small class="text-muted">SKU: @prod.Sku</small>
+                                                    <small class="text-muted">SKU: @prod.Sku@(!string.IsNullOrEmpty(prod.Barcode) ? $" | Barcode: {prod.Barcode}" : "")</small>
                                                 </td>
                                                 <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
                                                 <td class="text-center">
@@ -300,7 +300,7 @@
                                             <tr>
                                                 <td>
                                                     <div class="fw-bold text-dark">@prod.Name</div>
-                                                    <small class="text-muted">SKU: @prod.Sku</small>
+                                                    <small class="text-muted">SKU: @prod.Sku@(!string.IsNullOrEmpty(prod.Barcode) ? $" | Barcode: {prod.Barcode}" : "")</small>
                                                 </td>
                                                 <td>@(string.IsNullOrEmpty(prod.Variant) ? "Standard" : prod.Variant)</td>
                                                 <td class="text-center">

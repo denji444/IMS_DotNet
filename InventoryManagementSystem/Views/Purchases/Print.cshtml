@@ -2,7 +2,7 @@
 @using InventoryManagementSystem.Models
 @{
     Layout = "_PrintLayout";
-    ViewData["Title"] = $"Purchase Voucher - {Model.PurchaseNo}";
+    ViewData["Title"] = $"Purchase Invoice - {Model.PurchaseNo}";
     var company = ViewData["CompanyProfile"] as InventoryManagementSystem.Models.CompanyProfile;
     var headerModel = new InventoryManagementSystem.Models.PrintHeaderViewModel
     {
@@ -21,7 +21,7 @@
 }
 
 <div class="d-flex justify-content-between align-items-center no-print mb-4">
-    <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Voucher</button>
+    <button onclick="window.print();" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> Print Purchase Invoice</button>
 </div>
 
 @await Html.PartialAsync("_PrintHeader", headerModel)
@@ -131,7 +131,7 @@
 @if (!string.IsNullOrEmpty(Model.Notes))
 {
     <div class="border rounded p-3 my-4 bg-light">
-        <h6 class="fw-bold mb-1">Voucher Notes:</h6>
+        <h6 class="fw-bold mb-1">Invoice Notes:</h6>
         <p class="mb-0 text-muted small">@Model.Notes</p>
     </div>
 }

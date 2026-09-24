@@ -1307,6 +1307,16 @@ function loadCompanyProfile() {
                     $("#companyLogoPreview").addClass("d-none").attr("src", "");
                     $("#companyLogoPlaceholder").removeClass("d-none");
                 }
+
+                // Keep global companyProfile synced for DataTables print export
+                window.companyProfile = {
+                    companyName: d.companyName || d.CompanyName || '',
+                    tagline: d.tagline || d.Tagline || '',
+                    address: d.address || d.Address || '',
+                    phone: d.phone || d.Phone || '',
+                    email: d.email || d.Email || '',
+                    logoPath: logoPath || ''
+                };
             }
         },
         error: function (xhr) {

@@ -1,10 +1,13 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<InventoryManagementSystem.Models.ApplicationUser> UserManager
+@inject InventoryManagementSystem.Data.InventoryDbContext DbContext
 @{
     InventoryManagementSystem.Models.ApplicationUser? currentUser = null;
     if (User.Identity?.IsAuthenticated == true)
     {
         currentUser = await UserManager.FindByNameAsync(User.Identity.Name!);
     }
+    var companyProfile = await DbContext.CompanyProfiles.FirstOrDefaultAsync() 
+        ?? new InventoryManagementSystem.Models.CompanyProfile();
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -87,14 +90,14 @@
                         <a href="#purchasingCollapse" data-bs-toggle="collapse" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between @(isPurchasingActive ? "active-link" : "")" aria-expanded="@(isPurchasingActive ? "true" : "false")">
                             <div>
                                 <i class="fas fa-cart-flatbed me-2"></i>
-                                <span class="nav-text">Purchasing & Inbound</span>
+                                <span class="nav-text">Purchase</span>
                             </div>
                             <i class="fas fa-chevron-down nav-text ms-auto transition-transform" style="font-size: 0.8rem;"></i>
                         </a>
                         <div class="collapse @(isPurchasingActive ? "show" : "")" id="purchasingCollapse">
                             <div class="sidebar-submenu py-1 ms-3 border-start border-secondary" style="border-width: 2px !important;">
                                 <a id="side-nav-purchases" asp-controller="Purchases" asp-action="Index" asp-route-tab="purchases" class="list-group-item list-group-item-action py-2 ps-4 @(isPurchasingActive && (currentTab == "purchases" || string.IsNullOrEmpty(currentTab)) ? "active-sublink" : "")">
-                                    <i class="fas fa-file-invoice-dollar me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Purchases Voucher</span>
+                                    <i class="fas fa-file-invoice-dollar me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Purchases Directory </span>
                                 </a>
                                 <a id="side-nav-suppliers" asp-controller="Purchases" asp-action="Index" asp-route-tab="suppliers" class="list-group-item list-group-item-action py-2 ps-4 @(isPurchasingActive && currentTab == "suppliers" ? "active-sublink" : "")">
                                     <i class="fas fa-truck-field me-2" style="font-size: 0.85rem;"></i><span class="nav-text" style="font-size: 0.9rem;">Suppliers Directory</span>
@@ -274,6 +277,18 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Company Profile Configuration for Global Print/Export -->
+    <script>
+        window.companyProfile = {
+            companyName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.CompanyName ?? "Inventory Management System (IMS)")),
+            tagline: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.Tagline ?? "")),
+            address: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.Address ?? "")),
+            phone: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.Phone ?? "")),
+            email: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.Email ?? "")),
+            logoPath: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(companyProfile.LogoPath ?? ""))
+        };
+    </script>
 
     <!-- Custom Common JS -->
     <script src="~/js/common.js" asp-append-version="true"></script>

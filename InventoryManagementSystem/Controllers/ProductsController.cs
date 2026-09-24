@@ -33,6 +33,7 @@ namespace InventoryManagementSystem.Controllers
                 {
                     p.Id,
                     p.Sku,
+                    p.Barcode,
                     p.Name,
                     p.Variant,
                     CategoryName = string.IsNullOrEmpty(p.CategoryName) ? "General Stock" : p.CategoryName,
@@ -85,7 +86,11 @@ namespace InventoryManagementSystem.Controllers
             var query = _context.Products.AsQueryable();
             if (!string.IsNullOrEmpty(q))
             {
-                query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q) || p.Variant.Contains(q));
+                var search = q.Trim();
+                query = query.Where(p => p.Sku.Contains(search) 
+                                      || (p.Barcode != null && p.Barcode.Contains(search))
+                                      || p.Name.Contains(search) 
+                                      || p.Variant.Contains(search));
             }
             var products = await query.ToListAsync();
 
@@ -108,10 +113,16 @@ namespace InventoryManagementSystem.Controllers
                     price = purcPrice;
                 }
 
+                var label = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]";
+                if (!string.IsNullOrEmpty(p.Barcode))
+                {
+                    label += $" • {p.Barcode}";
+                }
+
                 return new
                 {
                     id = p.Id,
-                    text = string.IsNullOrEmpty(p.Variant) ? $"{p.Name} ({p.Sku})" : $"{p.Name} ({p.Variant}) [{p.Sku}]",
+                    text = label,
                     price = price
                 };
             }).ToList();
@@ -136,7 +147,11 @@ namespace InventoryManagementSystem.Controllers
 
             if (!string.IsNullOrWhiteSpace(q))
             {
-                query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q) || p.Variant.Contains(q));
+                var search = q.Trim();
+                query = query.Where(p => p.Sku.Contains(search) 
+                                      || (p.Barcode != null && p.Barcode.Contains(search))
+                                      || p.Name.Contains(search) 
+                                      || p.Variant.Contains(search));
             }
 
             var products = await query.ToListAsync();
@@ -164,6 +179,7 @@ namespace InventoryManagementSystem.Controllers
                 {
                     id = p.Id,
                     sku = p.Sku,
+                    barcode = p.Barcode ?? "",
                     name = p.Name,
                     variant = p.Variant,
                     categoryName = p.CategoryName ?? "",
@@ -203,6 +219,7 @@ namespace InventoryManagementSystem.Controllers
             {
                 product.Id,
                 product.Sku,
+                product.Barcode,
                 product.Name,
                 product.Variant,
                 CategoryName = product.CategoryName ?? "",
@@ -213,14 +230,150 @@ namespace InventoryManagementSystem.Controllers
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ValidateBarcode(string code, int? productId)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return Json(new { valid = true });
+            }
+
+            var cleanCode = code.Trim();
+            var existingProduct = await _context.Products
+                .FirstOrDefaultAsync(p => p.Barcode != null && p.Barcode.ToLower() == cleanCode.ToLower());
+
+            if (existingProduct != null)
+            {
+                if (productId.HasValue && existingProduct.Id == productId.Value)
+                {
+                    return Json(new { 
+                        valid = true, 
+                        isCurrentProduct = true, 
+                        message = $"Barcode '{cleanCode}' is currently assigned to this product." 
+                    });
+                }
+                else
+                {
+                    var variantText = string.IsNullOrEmpty(existingProduct.Variant) ? "" : $" ({existingProduct.Variant})";
+                    return Json(new { 
+                        valid = false, 
+                        message = $"Barcode '{cleanCode}' is already assigned to '{existingProduct.Name}{variantText}' (SKU: {existingProduct.Sku})." 
+                    });
+                }
+            }
+
+            return Json(new { valid = true, message = $"Barcode '{cleanCode}' is available." });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProductByBarcode(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return Json(new { success = false, message = "Barcode/SKU cannot be empty." });
+            }
+
+            var cleanCode = code.Trim();
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => (p.Barcode != null && p.Barcode.ToLower() == cleanCode.ToLower())
+                                       || p.Sku.ToLower() == cleanCode.ToLower());
+
+            if (product == null)
+            {
+                return Json(new { success = false, message = $"Product with Barcode or SKU '{cleanCode}' was not found." });
+            }
+
+            var latestPurchaseItem = await _context.PurchaseItems
+                .Where(pi => pi.ProductId == product.Id)
+                .OrderByDescending(pi => pi.Id)
+                .Select(pi => new
+                {
+                    pi.UnitPrice,
+                    pi.DemandRate,
+                    pi.FixRate,
+                    pi.BatchNumber
+                })
+                .FirstOrDefaultAsync();
+
+            decimal purchaseRate = product.Price ?? 0;
+            decimal? demandRate = null;
+            decimal? fixRate = null;
+            string latestBatch = "";
+
+            if (latestPurchaseItem != null)
+            {
+                purchaseRate = latestPurchaseItem.UnitPrice;
+                demandRate = latestPurchaseItem.DemandRate;
+                fixRate = latestPurchaseItem.FixRate;
+                latestBatch = latestPurchaseItem.BatchNumber ?? "";
+            }
+            else
+            {
+                var legacyPurchase = await _context.Purchases
+                    .Where(p => p.ProductId == product.Id)
+                    .OrderByDescending(p => p.PurchaseDate)
+                    .Select(p => new
+                    {
+                        p.UnitPrice,
+                        p.DemandRate,
+                        p.FixRate,
+                        p.BatchNumber
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (legacyPurchase != null)
+                {
+                    purchaseRate = legacyPurchase.UnitPrice;
+                    demandRate = legacyPurchase.DemandRate;
+                    fixRate = legacyPurchase.FixRate;
+                    latestBatch = legacyPurchase.BatchNumber ?? "";
+                }
+            }
+
+            decimal? effectivePrice = purchaseRate > 0 ? purchaseRate : (product.Price ?? 0);
+
+            var text = string.IsNullOrEmpty(product.Variant)
+                ? $"{product.Name} ({product.Sku})"
+                : $"{product.Name} ({product.Variant}) [{product.Sku}]";
+
+            return Json(new
+            {
+                success = true,
+                id = product.Id,
+                sku = product.Sku,
+                barcode = product.Barcode ?? "",
+                name = product.Name,
+                variant = product.Variant ?? "",
+                categoryName = product.CategoryName ?? "",
+                productType = product.ProductType ?? "",
+                description = product.Description ?? "",
+                price = effectivePrice,
+                purchaseRate = purchaseRate,
+                demandRate = demandRate,
+                fixRate = fixRate,
+                latestBatch = latestBatch,
+                stockQuantity = product.StockQuantity,
+                text = text
+            });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([FromBody] Product product)
         {
+            product.Sku = product.Sku?.Trim() ?? string.Empty;
+            product.Barcode = string.IsNullOrWhiteSpace(product.Barcode) ? null : product.Barcode.Trim();
+
             // Verify main SKU manually
             if (await _context.Products.AnyAsync(p => p.Sku == product.Sku))
             {
                 return Json(new { success = false, message = $"SKU '{product.Sku}' already exists." });
+            }
+
+            // Verify main Barcode uniqueness if provided
+            if (!string.IsNullOrWhiteSpace(product.Barcode) && await _context.Products.AnyAsync(p => p.Barcode == product.Barcode))
+            {
+                return Json(new { success = false, message = $"Barcode '{product.Barcode}' is already assigned to another product." });
             }
 
             if (product.MultipleVariants != null && product.MultipleVariants.Any())
@@ -228,6 +381,9 @@ namespace InventoryManagementSystem.Controllers
                 // Manual validation check for multiple variants list
                 foreach (var variant in product.MultipleVariants)
                 {
+                    variant.Sku = variant.Sku?.Trim() ?? string.Empty;
+                    variant.Barcode = string.IsNullOrWhiteSpace(variant.Barcode) ? null : variant.Barcode.Trim();
+
                     if (string.IsNullOrWhiteSpace(variant.Sku))
                     {
                         return Json(new { success = false, message = "All variants must have a SKU." });
@@ -244,6 +400,18 @@ namespace InventoryManagementSystem.Controllers
                     {
                         return Json(new { success = false, message = $"SKU '{variant.Sku}' already exists." });
                     }
+
+                    if (!string.IsNullOrWhiteSpace(variant.Barcode))
+                    {
+                        if (variant.Barcode == product.Barcode)
+                        {
+                            return Json(new { success = false, message = $"Variant Barcode '{variant.Barcode}' cannot be the same as the main Barcode." });
+                        }
+                        if (await _context.Products.AnyAsync(p => p.Barcode == variant.Barcode))
+                        {
+                            return Json(new { success = false, message = $"Barcode '{variant.Barcode}' is already assigned to another product." });
+                        }
+                    }
                 }
 
                 // Check list itself for duplicate SKUs
@@ -251,6 +419,18 @@ namespace InventoryManagementSystem.Controllers
                 if (duplicateSkus.Any())
                 {
                     return Json(new { success = false, message = $"Duplicate SKUs inside submission: {string.Join(", ", duplicateSkus)}" });
+                }
+
+                // Check list itself for duplicate Barcodes
+                var duplicateBarcodes = product.MultipleVariants
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Barcode))
+                    .GroupBy(v => v.Barcode!)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+                if (duplicateBarcodes.Any())
+                {
+                    return Json(new { success = false, message = $"Duplicate Barcodes inside submission: {string.Join(", ", duplicateBarcodes)}" });
                 }
             }
 
@@ -275,6 +455,7 @@ namespace InventoryManagementSystem.Controllers
                             var newProduct = new Product
                             {
                                 Sku = variant.Sku.Trim(),
+                                Barcode = string.IsNullOrWhiteSpace(variant.Barcode) ? null : variant.Barcode.Trim(),
                                 Name = product.Name.Trim(),
                                 Variant = variant.Variant.Trim(),
                                 CategoryName = product.CategoryName,
@@ -312,10 +493,19 @@ namespace InventoryManagementSystem.Controllers
                 return Json(new { success = false, message = "Product ID mismatch." });
             }
 
+            product.Sku = product.Sku?.Trim() ?? string.Empty;
+            product.Barcode = string.IsNullOrWhiteSpace(product.Barcode) ? null : product.Barcode.Trim();
+
             // Verify main SKU uniqueness
             if (await _context.Products.AnyAsync(p => p.Sku == product.Sku && p.Id != id))
             {
                 return Json(new { success = false, message = $"SKU '{product.Sku}' is already assigned to another product." });
+            }
+
+            // Verify main Barcode uniqueness if provided
+            if (!string.IsNullOrWhiteSpace(product.Barcode) && await _context.Products.AnyAsync(p => p.Barcode == product.Barcode && p.Id != id))
+            {
+                return Json(new { success = false, message = $"Barcode '{product.Barcode}' is already assigned to another product." });
             }
 
             if (product.MultipleVariants != null && product.MultipleVariants.Any())
@@ -323,6 +513,9 @@ namespace InventoryManagementSystem.Controllers
                 // Manual validation check for multiple variants list
                 foreach (var variant in product.MultipleVariants)
                 {
+                    variant.Sku = variant.Sku?.Trim() ?? string.Empty;
+                    variant.Barcode = string.IsNullOrWhiteSpace(variant.Barcode) ? null : variant.Barcode.Trim();
+
                     if (string.IsNullOrWhiteSpace(variant.Sku))
                     {
                         return Json(new { success = false, message = "All variants must have a SKU." });
@@ -339,6 +532,18 @@ namespace InventoryManagementSystem.Controllers
                     {
                         return Json(new { success = false, message = $"SKU '{variant.Sku}' already exists." });
                     }
+
+                    if (!string.IsNullOrWhiteSpace(variant.Barcode))
+                    {
+                        if (variant.Barcode == product.Barcode)
+                        {
+                            return Json(new { success = false, message = $"Variant Barcode '{variant.Barcode}' cannot be the same as the main Barcode." });
+                        }
+                        if (await _context.Products.AnyAsync(p => p.Barcode == variant.Barcode))
+                        {
+                            return Json(new { success = false, message = $"Barcode '{variant.Barcode}' is already assigned to another product." });
+                        }
+                    }
                 }
 
                 // Check list itself for duplicate SKUs
@@ -346,6 +551,18 @@ namespace InventoryManagementSystem.Controllers
                 if (duplicateSkus.Any())
                 {
                     return Json(new { success = false, message = $"Duplicate SKUs inside submission: {string.Join(", ", duplicateSkus)}" });
+                }
+
+                // Check list itself for duplicate Barcodes
+                var duplicateBarcodes = product.MultipleVariants
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Barcode))
+                    .GroupBy(v => v.Barcode!)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+                if (duplicateBarcodes.Any())
+                {
+                    return Json(new { success = false, message = $"Duplicate Barcodes inside submission: {string.Join(", ", duplicateBarcodes)}" });
                 }
             }
 
@@ -365,6 +582,7 @@ namespace InventoryManagementSystem.Controllers
                     }
 
                     existingProduct.Sku = product.Sku;
+                    existingProduct.Barcode = product.Barcode;
                     existingProduct.Name = product.Name;
                     existingProduct.CategoryName = product.CategoryName;
                     existingProduct.ProductType = product.ProductType;
@@ -381,6 +599,7 @@ namespace InventoryManagementSystem.Controllers
                             var newProduct = new Product
                             {
                                 Sku = variant.Sku.Trim(),
+                                Barcode = string.IsNullOrWhiteSpace(variant.Barcode) ? null : variant.Barcode.Trim(),
                                 Name = product.Name.Trim(),
                                 Variant = variant.Variant.Trim(),
                                 CategoryName = product.CategoryName,
@@ -452,6 +671,21 @@ namespace InventoryManagementSystem.Controllers
                 ? await _context.Products.AnyAsync(p => p.Sku == sku && p.Id != id.Value)
                 : await _context.Products.AnyAsync(p => p.Sku == sku);
             
+            return Json(!exists);
+        }
+
+        [AcceptVerbs("GET", "POST")]
+        public async Task<IActionResult> VerifyBarcode(string? barcode, int? id)
+        {
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                return Json(true);
+            }
+            var cleanBarcode = barcode.Trim();
+            var exists = id.HasValue
+                ? await _context.Products.AnyAsync(p => p.Barcode == cleanBarcode && p.Id != id.Value)
+                : await _context.Products.AnyAsync(p => p.Barcode == cleanBarcode);
+
             return Json(!exists);
         }
 

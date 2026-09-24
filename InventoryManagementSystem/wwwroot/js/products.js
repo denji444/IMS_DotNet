@@ -14,10 +14,16 @@ $(document).ready(function () {
             "columns": [
                 { 
                     "data": "sku",
-                    "width": "14%",
+                    "width": "16%",
                     "className": "text-center align-middle",
-                    "render": function(data) {
-                        return `<span class="fw-bold text-nowrap">${data}</span>`;
+                    "render": function(data, type, row) {
+                        var barcodeHtml = row.barcode 
+                            ? `<div class="mt-1"><span class="badge bg-light text-dark border font-monospace small"><i class="fas fa-barcode me-1 text-secondary"></i>${row.barcode}</span></div>` 
+                            : `<div class="mt-1"><span class="text-muted small">No Barcode</span></div>`;
+                        return `<div>
+                                    <span class="fw-bold text-dark text-nowrap">${data}</span>
+                                    ${barcodeHtml}
+                                </div>`;
                     }
                 },
                 { 
@@ -193,10 +199,12 @@ $(document).ready(function () {
         $(".variant-row").each(function () {
             var vName = $(this).find(".var-name").val().trim();
             var vSku = $(this).find(".var-sku").val().trim();
+            var vBarcode = $(this).find(".var-barcode").val().trim();
             if (vName && vSku) {
                 additionalVariants.push({
-                    VariantName: vName,
-                    Sku: vSku
+                    Variant: vName,
+                    Sku: vSku,
+                    Barcode: vBarcode || null
                 });
             }
         });
@@ -207,10 +215,11 @@ $(document).ready(function () {
             CategoryName: $("#productCategorySelect").val(),
             ProductType: $("#productTypeSelect").val(),
             Sku: $("#productSku").val().trim(),
+            Barcode: $("#productBarcode").val().trim() || null,
             Variant: $("#productVariant").val().trim() || "Standard",
             Description: $("#description").val().trim(),
             StockQuantity: parseInt($("#stockQuantity").val()) || 0,
-            AdditionalVariants: additionalVariants
+            MultipleVariants: additionalVariants
         };
 
         var btn = $("#btnSaveProduct");
@@ -399,15 +408,18 @@ function loadTypesForCategory(categoryName, selectedType) {
     }
 }
 
-function addVariantRow(name, sku) {
+function addVariantRow(name, sku, barcode) {
     var rowId = "var_row_" + Date.now() + "_" + Math.floor(Math.random() * 100);
     var rowHtml = `
         <div class="row g-2 mb-2 variant-row align-items-center" id="${rowId}">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <input class="form-control form-control-sm var-name" placeholder="Variant Name (e.g. Blue, XL)" value="${name || ''}" required />
             </div>
-            <div class="col-md-5">
+            <div class="col-md-3">
                 <input class="form-control form-control-sm var-sku" placeholder="Variant SKU (Unique)" value="${sku || ''}" required />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control form-control-sm var-barcode" placeholder="Barcode (Optional)" value="${barcode || ''}" />
             </div>
             <div class="col-md-2 text-center">
                 <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="$('#${rowId}').remove()">
@@ -422,6 +434,7 @@ function addVariantRow(name, sku) {
 function openProductCreateModal() {
     $("#productForm")[0].reset();
     $("#productId").val(0);
+    $("#productBarcode").val("");
     $("#productModalLabel").text("Add Product");
     $("#additionalVariantsContainer").empty();
     $("#additionalVariantsSection").removeClass("d-none");
@@ -439,6 +452,7 @@ function openProductEditModal(id) {
     $.get("/Products/GetProduct/" + id, function (data) {
         $("#productName").val(data.name);
         $("#productSku").val(data.sku);
+        $("#productBarcode").val(data.barcode || "");
         $("#productVariant").val(data.variant);
         $("#description").val(data.description);
         $("#stockQuantity").val(data.stockQuantity);

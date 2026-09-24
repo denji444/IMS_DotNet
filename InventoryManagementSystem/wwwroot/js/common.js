@@ -100,87 +100,262 @@ if (window.jQuery && $.fn && $.fn.dataTable) {
                             var pageTitle = rawTitle.split('-')[0].trim();
                             var rowCount = $(doc.body).find('table.dataTable tbody tr').length;
 
-                            // Inject custom B&W Print CSS
+                            var profile = window.companyProfile || {};
+                            var compName = profile.companyName || 'Inventory Management System (IMS)';
+                            var tagline = profile.tagline || 'Smart Inventory, Sales & Enterprise Tracking';
+                            var address = profile.address || '';
+                            var phone = profile.phone || '';
+                            var email = profile.email || '';
+                            var logoPath = profile.logoPath || '';
+
+                            function escapeHtml(str) {
+                                if (!str) return '';
+                                return String(str)
+                                    .replace(/&/g, '&amp;')
+                                    .replace(/</g, '&lt;')
+                                    .replace(/>/g, '&gt;')
+                                    .replace(/"/g, '&quot;')
+                                    .replace(/'/g, '&#039;');
+                            }
+
+                            // Dynamic Logo HTML
+                            var logoHtml = '';
+                            if (logoPath) {
+                                var logoSrc = logoPath;
+                                if (!logoSrc.startsWith('http') && !logoSrc.startsWith('data:')) {
+                                    logoSrc = window.location.origin + (logoSrc.startsWith('/') ? '' : '/') + logoSrc;
+                                }
+                                logoHtml = `
+                                    <div class="letterhead-logo-img-container">
+                                        <img src="${logoSrc}" alt="Company Logo" class="letterhead-logo-img" />
+                                    </div>
+                                `;
+                            } else {
+                                logoHtml = `
+                                    <div class="letterhead-logo-icon">
+                                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                `;
+                            }
+
+                            // Contact grid HTML
+                            var contactItems = [];
+                            if (address) {
+                                contactItems.push(`
+                                    <div class="letterhead-contact-item">
+                                        <i class="fas fa-map-marker-alt small"></i>
+                                        <span>${escapeHtml(address)}</span>
+                                    </div>
+                                `);
+                            }
+                            if (phone) {
+                                contactItems.push(`
+                                    <div class="letterhead-contact-item">
+                                        <i class="fas fa-phone small"></i>
+                                        <span>${escapeHtml(phone)}</span>
+                                    </div>
+                                `);
+                            }
+                            if (email) {
+                                contactItems.push(`
+                                    <div class="letterhead-contact-item">
+                                        <i class="fas fa-envelope small"></i>
+                                        <span>${escapeHtml(email)}</span>
+                                    </div>
+                                `);
+                            }
+                            var contactHtml = contactItems.length ? `<div class="letterhead-contact-grid">${contactItems.join('')}</div>` : '';
+
+                            // Document meta box HTML
+                            var docBadge = `${escapeHtml(pageTitle.toUpperCase())} REPORT`;
+                            var docBoxHtml = `
+                                <div class="letterhead-doc-box">
+                                    <div class="letterhead-doc-badge">${docBadge}</div>
+                                    <div class="letterhead-doc-meta">
+                                        <div><strong>EXPORT DATE:</strong> ${dateStr}</div>
+                                        <div><strong>TOTAL RECORDS:</strong> ${rowCount}</div>
+                                        <div class="small text-muted mt-1">OFFICIAL SYSTEM EXPORT</div>
+                                    </div>
+                                </div>
+                            `;
+
+                            // Inject FontAwesome CDN & Print Letterhead CSS
                             $(doc.head).append(`
+                                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
                                 <style>
+                                    @media print {
+                                        * {
+                                            -webkit-print-color-adjust: exact !important;
+                                            print-color-adjust: exact !important;
+                                        }
+                                        body {
+                                            margin: 0 !important;
+                                            padding: 10px !important;
+                                        }
+                                    }
                                     body {
-                                        color: #000000 !important;
+                                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+                                        color: #1e293b !important;
                                         margin: 15px !important;
                                         padding: 0 !important;
                                         background: #ffffff !important;
                                     }
-                                    .print-container {
-                                        width: 100%;
+                                    .letterhead-container {
+                                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                        color: #1e293b;
+                                        margin-bottom: 20px;
+                                        position: relative;
                                     }
-                                    .print-header {
-                                        border-bottom: 3px double #000000;
-                                        padding-bottom: 10px;
-                                        margin-bottom: 15px;
+                                    .letterhead-top-bar {
+                                        height: 6px;
+                                        background: linear-gradient(90deg, #0f172a 0%, #1e293b 55%, #2563eb 100%);
+                                        border-radius: 4px 4px 0 0;
+                                        margin-bottom: 16px;
+                                    }
+                                    .letterhead-body {
                                         display: flex;
                                         justify-content: space-between;
-                                        align-items: flex-end;
+                                        align-items: flex-start;
+                                        gap: 20px;
                                     }
-                                    .print-brand {
-                                        font-size: 22px;
+                                    .letterhead-brand-section {
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 18px;
+                                        flex: 1;
+                                    }
+                                    .letterhead-logo-icon {
+                                        width: 110px;
+                                        height: 110px;
+                                        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+                                        border-radius: 14px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+                                        flex-shrink: 0;
+                                    }
+                                    .letterhead-logo-img-container {
+                                        width: 110px;
+                                        height: 110px;
+                                        max-width: 110px;
+                                        max-height: 110px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        background: transparent;
+                                        border: none !important;
+                                        box-shadow: none !important;
+                                        flex-shrink: 0;
+                                    }
+                                    .letterhead-logo-img {
+                                        max-height: 110px;
+                                        max-width: 110px;
+                                        width: auto;
+                                        height: auto;
+                                        object-fit: contain;
+                                        display: block;
+                                    }
+                                    .letterhead-brand-details h2 {
+                                        font-size: 1.45rem;
                                         font-weight: 800;
-                                        color: #000000;
+                                        color: #0f172a;
+                                        letter-spacing: -0.5px;
+                                        margin: 0 0 2px 0;
+                                        line-height: 1.2;
+                                    }
+                                    .letterhead-brand-details .tagline {
+                                        font-size: 0.8rem;
+                                        font-weight: 600;
+                                        color: #2563eb;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.8px;
+                                        margin-bottom: 6px;
+                                    }
+                                    .letterhead-contact-grid {
+                                        display: flex;
+                                        flex-wrap: wrap;
+                                        column-gap: 18px;
+                                        row-gap: 4px;
+                                        font-size: 0.78rem;
+                                        color: #475569;
+                                        margin-top: 6px;
+                                    }
+                                    .letterhead-contact-item {
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 5px;
+                                    }
+                                    .letterhead-contact-item i {
+                                        color: #2563eb;
+                                    }
+                                    .letterhead-doc-box {
+                                        text-align: right;
+                                        min-width: 240px;
+                                        background: #f8fafc;
+                                        border: 1px solid #e2e8f0;
+                                        border-radius: 8px;
+                                        padding: 12px 16px;
+                                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+                                    }
+                                    .letterhead-doc-badge {
+                                        display: inline-block;
+                                        background: #0f172a;
+                                        color: #ffffff;
+                                        font-size: 0.85rem;
+                                        font-weight: 700;
                                         text-transform: uppercase;
                                         letter-spacing: 1px;
-                                        line-height: 1.1;
-                                    }
-                                    .print-sub {
-                                        font-size: 13px;
-                                        color: #333333;
-                                        margin-top: 4px;
-                                        font-weight: 600;
-                                    }
-                                    .print-meta-box {
-                                        border: 1px solid #000000;
-                                        padding: 6px 12px;
-                                        font-size: 11px;
-                                        line-height: 1.5;
-                                        background-color: #fafafa;
-                                    }
-                                    .print-summary-bar {
-                                        display: flex;
-                                        justify-content: space-between;
-                                        font-size: 11px;
-                                        font-weight: 600;
-                                        color: #000000;
+                                        padding: 4px 12px;
+                                        border-radius: 4px;
                                         margin-bottom: 8px;
-                                        padding: 4px 0;
-                                        border-bottom: 1px solid #000000;
                                     }
+                                    .letterhead-doc-meta {
+                                        font-size: 0.82rem;
+                                        color: #334155;
+                                        line-height: 1.55;
+                                    }
+                                    .letterhead-doc-meta strong {
+                                        color: #0f172a;
+                                    }
+                                    .letterhead-divider {
+                                        margin-top: 16px;
+                                        border: 0;
+                                        height: 0;
+                                        border-top: 2px solid #0f172a;
+                                        border-bottom: 1px solid #2563eb;
+                                    }
+                                    
                                     table.dataTable {
                                         width: 100% !important;
                                         border-collapse: collapse !important;
-                                        margin-top: 10px !important;
+                                        margin-top: 15px !important;
                                         margin-bottom: 20px !important;
                                     }
                                     table.dataTable thead {
                                         display: table-header-group !important;
                                     }
                                     table.dataTable thead th {
-                                        background-color: #f1f5f9 !important;
-                                        color: #000000 !important;
+                                        background-color: #0f172a !important;
+                                        color: #ffffff !important;
                                         font-weight: 700 !important;
                                         font-size: 11px !important;
                                         text-transform: uppercase !important;
                                         letter-spacing: 0.5px !important;
-                                        padding: 8px 10px !important;
-                                        border-top: 2px solid #000000 !important;
-                                        border-bottom: 2px solid #000000 !important;
-                                        border-left: 1px solid #cbd5e1 !important;
-                                        border-right: 1px solid #cbd5e1 !important;
+                                        padding: 9px 12px !important;
+                                        border: 1px solid #334155 !important;
+                                        text-align: center;
                                     }
                                     table.dataTable tbody tr {
                                         page-break-inside: avoid !important;
                                     }
                                     table.dataTable tbody td {
-                                        padding: 7px 10px !important;
-                                        font-size: 11px !important;
-                                        border: 1px solid #cbd5e1 !important;
-                                        color: #000000 !important;
+                                        padding: 8px 12px !important;
+                                        font-size: 11.5px !important;
+                                        border: 1px solid #e2e8f0 !important;
+                                        color: #1e293b !important;
                                     }
                                     table.dataTable tbody tr:nth-child(even) {
                                         background-color: #f8fafc !important;
@@ -191,10 +366,10 @@ if (window.jQuery && $.fn && $.fn.dataTable) {
                                         justify-content: space-between;
                                         font-size: 11px;
                                         font-weight: 600;
-                                        color: #000000;
+                                        color: #0f172a;
                                     }
                                     .print-sign-line {
-                                        border-top: 1px solid #000000;
+                                        border-top: 1px solid #0f172a;
                                         width: 200px;
                                         text-align: center;
                                         padding-top: 4px;
@@ -202,48 +377,44 @@ if (window.jQuery && $.fn && $.fn.dataTable) {
                                     .print-footer {
                                         margin-top: 25px;
                                         padding-top: 8px;
-                                        border-top: 1px solid #000000;
+                                        border-top: 1px solid #e2e8f0;
                                         display: flex;
                                         justify-content: space-between;
                                         align-items: center;
                                         font-size: 10px;
-                                        color: #475569;
-                                    }
-                                    @media print {
-                                        body { margin: 0 !important; }
+                                        color: #64748b;
                                     }
                                 </style>
                             `);
 
-                            // Inject Header Banner & Meta Summary
+                            // Prepend matching letterhead banner
                             $(doc.body).prepend(`
-                                <div class="print-container">
-                                    <div class="print-header">
-                                        <div>
-                                            <div class="print-brand">IMS PORTAL</div>
-                                            <div class="print-sub">INVENTORY MANAGEMENT SYSTEM &bull; ${pageTitle.toUpperCase()}</div>
+                                <div class="letterhead-container">
+                                    <div class="letterhead-top-bar"></div>
+                                    <div class="letterhead-body">
+                                        <div class="letterhead-brand-section">
+                                            ${logoHtml}
+                                            <div class="letterhead-brand-details">
+                                                <h2>${escapeHtml(compName)}</h2>
+                                                ${tagline ? `<div class="tagline">${escapeHtml(tagline)}</div>` : ''}
+                                                ${contactHtml}
+                                            </div>
                                         </div>
-                                        <div class="print-meta-box">
-                                            <div><strong>DATE:</strong> ${dateStr}</div>
-                                            <div><strong>DOCUMENT:</strong> OFFICIAL SYSTEM REPORT</div>
-                                        </div>
+                                        ${docBoxHtml}
                                     </div>
-                                    <div class="print-summary-bar">
-                                        <div>REPORT: ${pageTitle.toUpperCase()}</div>
-                                        <div>TOTAL ENTRIES: ${rowCount}</div>
-                                    </div>
+                                    <div class="letterhead-divider"></div>
                                 </div>
                             `);
 
-                            // Inject Signature Block & Footer
+                            // Append signatures & footer
                             $(doc.body).append(`
                                 <div class="print-sign-row">
                                     <div class="print-sign-line">PREPARED BY</div>
                                     <div class="print-sign-line">AUTHORIZED SIGNATURE</div>
                                 </div>
                                 <div class="print-footer">
-                                    <div>CONFIDENTIAL &bull; INVENTORY MANAGEMENT SYSTEM &bull; AUDIT REPORT</div>
-                                    <div>SYSTEM GENERATED DOCUMENT</div>
+                                    <div>CONFIDENTIAL &bull; ${escapeHtml(compName.toUpperCase())} &bull; SYSTEM AUDIT EXPORT</div>
+                                    <div>PAGE GENERATED AUTOMATICALLY</div>
                                 </div>
                             `);
                         }

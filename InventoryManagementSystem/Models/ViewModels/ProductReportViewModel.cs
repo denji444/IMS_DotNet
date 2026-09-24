@@ -4,6 +4,7 @@ namespace InventoryManagementSystem.Models.ViewModels
     {
         public int ProductId { get; set; }
         public string Sku { get; set; } = string.Empty;
+        public string? Barcode { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public string Variant { get; set; } = string.Empty;
         public int AvailableQuantity { get; set; }

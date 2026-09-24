@@ -88,6 +88,7 @@ namespace InventoryManagementSystem.Controllers
                 i.ProductId,
                 ProductName = i.Product != null ? (string.IsNullOrEmpty(i.Product.Variant) ? $"{i.Product.Name} ({i.Product.Sku})" : $"{i.Product.Name} ({i.Product.Variant}) [{i.Product.Sku}]") : null,
                 i.BatchNumber,
+                barcode = i.Product != null ? i.Product.Barcode : null,
                 i.Quantity,
                 i.UnitPrice,
                 i.DemandRate,
@@ -103,6 +104,7 @@ namespace InventoryManagementSystem.Controllers
                     ProductId = purchase.ProductId.Value,
                     ProductName = purchase.Product != null ? (string.IsNullOrEmpty(purchase.Product.Variant) ? $"{purchase.Product.Name} ({purchase.Product.Sku})" : $"{purchase.Product.Name} ({purchase.Product.Variant}) [{purchase.Product.Sku}]") : null,
                     BatchNumber = purchase.BatchNumber,
+                    barcode = purchase.Product != null ? purchase.Product.Barcode : null,
                     Quantity = purchase.Quantity,
                     UnitPrice = purchase.UnitPrice,
                     DemandRate = purchase.DemandRate,
@@ -325,10 +327,10 @@ namespace InventoryManagementSystem.Controllers
                 item.TotalCost = item.Quantity * item.UnitPrice;
             }
 
-            // Generate unique PurchaseNo: PUR-yyyyMMdd-XXXX
+            // Generate unique PurchaseNo: PINV-yyyyMMdd-XXXX (Purchase Invoice)
             var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
-            var count = await _context.Purchases.CountAsync(p => p.PurchaseNo.StartsWith($"PUR-{dateStr}")) + 1;
-            purchase.PurchaseNo = $"PUR-{dateStr}-{count:D4}";
+            var count = await _context.Purchases.CountAsync(p => p.PurchaseNo.StartsWith($"PINV-{dateStr}") || p.PurchaseNo.StartsWith($"PUR-{dateStr}")) + 1;
+            purchase.PurchaseNo = $"PINV-{dateStr}-{count:D4}";
 
             purchase.TotalCost = purchase.Items.Sum(i => i.TotalCost);
             purchase.Quantity = purchase.Items.Sum(i => i.Quantity);
@@ -409,13 +411,22 @@ namespace InventoryManagementSystem.Controllers
                         purchase.SupplierId = purchase.NewSupplier.Id;
                     }
 
-                    // Increment Product stock count for all items
+                    // Increment Product stock count for all items and assign new Barcode if provided
                     foreach (var item in purchase.Items)
                     {
                         var prod = await _context.Products.FindAsync(item.ProductId);
                         if (prod != null)
                         {
                             prod.StockQuantity += item.Quantity;
+                            if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            {
+                                var cleanBc = item.Barcode.Trim();
+                                var existsOther = await _context.Products.AnyAsync(p => p.Id != prod.Id && p.Barcode != null && p.Barcode.ToLower() == cleanBc.ToLower());
+                                if (!existsOther)
+                                {
+                                    prod.Barcode = cleanBc;
+                                }
+                            }
                         }
                     }
 
@@ -577,13 +588,22 @@ namespace InventoryManagementSystem.Controllers
                         }
                     }
 
-                    // 2. Add stock for new items
+                    // 2. Add stock for new items and assign new Barcode if provided
                     foreach (var newItem in purchase.Items)
                     {
                         var prod = await _context.Products.FindAsync(newItem.ProductId);
                         if (prod != null)
                         {
                             prod.StockQuantity += newItem.Quantity;
+                            if (!string.IsNullOrWhiteSpace(newItem.Barcode))
+                            {
+                                var cleanBc = newItem.Barcode.Trim();
+                                var existsOther = await _context.Products.AnyAsync(p => p.Id != prod.Id && p.Barcode != null && p.Barcode.ToLower() == cleanBc.ToLower());
+                                if (!existsOther)
+                                {
+                                    prod.Barcode = cleanBc;
+                                }
+                            }
                         }
                     }
 

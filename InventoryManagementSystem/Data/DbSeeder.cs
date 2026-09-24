@@ -109,6 +109,7 @@ namespace InventoryManagementSystem.Data
                     Name = "iPhone 17 Pro Max",
                     Variant = "256GB - Orange (89% Health, 9/10 Condition)",
                     Sku = "IP17PM-256-ORG-89",
+                    Barcode = "195949038201",
                     Desc = "Super Retina XDR display, Titanium frame with Orange finish, 89% battery health, 9/10 body condition.",
                     Category = "Mobile Phones",
                     Type = "PTA Approved",
@@ -123,6 +124,7 @@ namespace InventoryManagementSystem.Data
                     Name = "iPhone 16 Pro",
                     Variant = "128GB - Natural Titanium (95% Health, 10/10)",
                     Sku = "IP16P-128-NT-95",
+                    Barcode = "195949012345",
                     Desc = "A17 Pro Chip, Natural Titanium finish, 95% battery health, flawless 10/10 mint condition.",
                     Category = "Mobile Phones",
                     Type = "Non-PTA (Factory Unlocked)",
@@ -137,6 +139,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Samsung Galaxy S24 Ultra",
                     Variant = "512GB - Titanium Black (100% Health, Box Packed)",
                     Sku = "S24U-512-BLK-CPID",
+                    Barcode = "8806095312345",
                     Desc = "Galaxy AI, Snapdragon 8 Gen 3, S-Pen included, CPID Approved, Box Packed.",
                     Category = "Mobile Phones",
                     Type = "CPID Approved",
@@ -151,6 +154,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Google Pixel 9 Pro XL",
                     Variant = "256GB - Obsidian Black (92% Health, 9.5/10)",
                     Sku = "PIX9PXL-256-BLK",
+                    Barcode = "840248401234",
                     Desc = "Tensor G4 Chip, Pro Triple Camera System, Obsidian Black, 92% Health.",
                     Category = "Mobile Phones",
                     Type = "Patch Approved",
@@ -165,6 +169,7 @@ namespace InventoryManagementSystem.Data
                     Name = "MacBook Pro 16\" M3 Max",
                     Variant = "36GB RAM / 1TB SSD - Space Black",
                     Sku = "MBP16-M3MAX-36-1TB",
+                    Barcode = "195949123456",
                     Desc = "M3 Max 16-Core CPU, 40-Core GPU, 36GB Unified Memory, Liquid Retina XDR display.",
                     Category = "Laptops & Computers",
                     Type = "Brand New (Box Packed)",
@@ -179,6 +184,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Dell XPS 15 9530",
                     Variant = "Core i9 13th Gen / 32GB RAM / 1TB SSD / RTX 4070",
                     Sku = "DELL-XPS15-I9-4070",
+                    Barcode = "884116421098",
                     Desc = "OLED 3.5K Touch Screen, Intel Core i9-13900H, NVIDIA RTX 4070 8GB.",
                     Category = "Laptops & Computers",
                     Type = "Open Box (Imported)",
@@ -193,6 +199,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Lenovo ThinkPad X1 Carbon Gen 11",
                     Variant = "Core i7 13th Gen / 16GB RAM / 512GB SSD",
                     Sku = "THINK-X1C11-I7-16-512",
+                    Barcode = "196803123456",
                     Desc = "Ultrabook, 14\" WUXGA Anti-Glare display, Carbon Fiber chassis, Grade A Refurbished.",
                     Category = "Laptops & Computers",
                     Type = "Refurbished (Grade A)",
@@ -207,6 +214,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Sony WH-1000XM5 Wireless Headphones",
                     Variant = "Midnight Blue - Sealed Box",
                     Sku = "SONY-WH1000XM5-BLU",
+                    Barcode = "027242923348",
                     Desc = "Industry leading noise canceling headphones with Auto NC Optimizer, 30-hr battery life.",
                     Category = "Electronics & Accessories",
                     Type = "Original / Genuine",
@@ -221,6 +229,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Apple Watch Ultra 2",
                     Variant = "49mm Titanium Case with Orange Ocean Band",
                     Sku = "AW-ULTRA2-49-ORG",
+                    Barcode = "0194253826620",
                     Desc = "S9 SiP, double tap gesture, brightest Apple display ever (3000 nits), Water resistant 100m.",
                     Category = "Electronics & Accessories",
                     Type = "Original / Genuine",
@@ -235,6 +244,7 @@ namespace InventoryManagementSystem.Data
                     Name = "iPad Pro 13\" M4",
                     Variant = "256GB WiFi + Cellular - Space Black",
                     Sku = "IPAD-M4-13-256-BLK",
+                    Barcode = "195949234567",
                     Desc = "Ultra Retina XDR Tandem OLED, M4 chip, Ultra thin 5.1mm design, Apple Pencil Pro support.",
                     Category = "Laptops & Computers",
                     Type = "Brand New (Box Packed)",
@@ -249,6 +259,7 @@ namespace InventoryManagementSystem.Data
                     Name = "Anker 737 Power Bank (PowerCore 24K)",
                     Variant = "24,000mAh 140W Fast Charging",
                     Sku = "ANKER-737-24K-140W",
+                    Barcode = "194644098765",
                     Desc = "Smart digital display, 140W 2-way fast charging for laptops & phones.",
                     Category = "Electronics & Accessories",
                     Type = "Original / Genuine",
@@ -263,6 +274,7 @@ namespace InventoryManagementSystem.Data
                     Name = "PlayStation 5 Slim Digital Edition",
                     Variant = "1TB SSD - White (Japanese Spec)",
                     Sku = "PS5-SLIM-DIG-1TB",
+                    Barcode = "711719572456",
                     Desc = "Slim design, 1TB custom SSD, DualSense wireless controller included.",
                     Category = "Electronics & Accessories",
                     Type = "Brand New (Box Packed)",
@@ -286,6 +298,7 @@ namespace InventoryManagementSystem.Data
                         Name = item.Name,
                         Variant = item.Variant,
                         Sku = item.Sku,
+                        Barcode = item.Barcode,
                         Description = item.Desc,
                         CategoryName = item.Category,
                         ProductType = item.Type,
@@ -310,6 +323,10 @@ namespace InventoryManagementSystem.Data
                         PaymentMethod = item.PayMethod
                     };
                     dbContext.Purchases.Add(purchase);
+                }
+                else if (string.IsNullOrEmpty(existingProd.Barcode) && !string.IsNullOrEmpty(item.Barcode))
+                {
+                    existingProd.Barcode = item.Barcode;
                 }
             }
 
